@@ -1,0 +1,10 @@
+[NAMES]
+harbor		server host name
+vortex		sda hdd seagete 10tb
+
+[POSTS]
+22			ssh
+
+
+
+

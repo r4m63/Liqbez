@@ -1,0 +1,99 @@
+-d: Запуск контейнера в фоновом режиме (detached mode)
+-p [host_port]:[container_port]: Проброс порта с хоста на контейнер
+--name [container_name]: Задает имя для контейнера
+-v [host_path]:[container_path]: Монтирует том (volume) с хоста в контейнер
+-e [VAR_NAME]=[value]: Устанавливает переменные окружения в контейнере
+--rm: Автоматически удаляет контейнер после его остановки
+
+
+
+docker run
+    -d, --detach: Запуск контейнера в фоновом режиме.
+    --name [name]: Присвоение имени контейнеру.
+    -p [host_port]:[container_port]: Проброс порта.
+    -v [host_path]:[container_path]: Монтирование тома.
+    -e [VAR_NAME]=[value]: Установка переменных окружения.
+    --rm: Автоматическое удаление контейнера после его остановки.
+    --network [network]: Подключение к указанной сети.
+    --restart [policy]: Политика перезапуска контейнера (например, no, always, unless-stopped, on-failure).
+    --memory [limit]: Ограничение памяти для контейнера.
+    --cpus [number]: Ограничение CPU для контейнера.
+    --env-file [file]: Файл с переменными окружения.
+    --privileged: Запуск контейнера с привилегиями.
+    --user [user]: Запуск контейнера от имени указанного пользователя.
+    --entrypoint [command]: Переопределение точки входа контейнера.
+docker build
+    -t [name:tag], --tag [name:tag]: Присвоение тега образу.
+    --file [path]: Указание Dockerfile.
+    --build-arg [ARG_NAME]=[value]: Передача аргументов сборки.
+    --no-cache: Сборка без использования кэша.
+    --pull: Всегда проверять наличие обновленной версии базового образа.
+docker push
+    --disable-content-trust: Отключение проверки целостности содержимого.
+docker exec
+    -it: Взаимодействие с контейнером через терминал (интерактивный режим).
+    --user [user]: Выполнение команды от имени указанного пользователя.
+docker logs
+    -f, --follow: Следить за логами в реальном времени.
+    --tail [number]: Показать последние number строк логов.
+
+docker compose up
+    -d, --detach: Запуск в фоновом режиме.
+    --build: Пересборка образов перед запуском.
+    --force-recreate: Принудительное пересоздание контейнеров.
+    --remove-orphans: Удаление контейнеров, не указанных в docker-compose.yml.
+docker compose down
+    --volumes: Удаление томов, связанных с сервисами.
+    --remove-orphans: Удаление неуправляемых контейнеров.
+docker compose exec
+    -it: Интерактивный режим.
+    --user [user]: Выполнение команды от имени указанного пользователя.
+docker compose logs
+    -f, --follow: Следить за логами в реальном времени.
+    --tail [number]: Показать последние number строк логов.
+docker compose build
+    --no-cache: Сборка без использования кэша.
+    --pull: Всегда проверять наличие обновленной версии базового образа.
+docker compose config
+    --services: Показать список сервисов.
+    --volumes: Показать список томов.
+
+
+
+Docker команды
+    docker --version                        Показывает версию установленного Docker
+    docker pull [image]                     Загружает образ из Docker Hub или другого реестра
+    docker images                           Показывает список локально загруженных образов
+    docker rmi [image]                      Удаляет указанный образ
+    docker run [options] [image]            Создает и запускает контейнер из указанного образа
+    docker ps                               Показывает запущенные контейнеры
+    docker ps -a                            Показывает все контейнеры, включая остановленные
+    docker stop [container]                 Останавливает запущенный контейнер
+    docker start [container]                Запускает остановленный контейнер
+    docker restart [container]              Перезапускает контейнер
+    docker rm [container]                   Удаляет указанный контейнер
+    docker exec -it [container] [command]   Выполняет команду в запущенном контейнере
+    docker logs [container]                 Показывает логи указанного контейнера
+    docker network ls                       Показывает список сетей Docker
+    docker volume ls                        Показывает список томов Docker
+    docker build -t [name] [path]           Создает образ из Dockerfile
+    docker commit [container] [new_image]   Создает новый образ из измененного контейнера
+    docker inspect [container/image]        Показывает детали о контейнере или образе
+    docker tag [image] [new_tag]            Присваивает новый тег существующему образу
+    docker push [image]                     Загружает образ в удаленный реестр
+
+Docker Compose команды
+    docker compose --version                Показывает версию установленного Docker Compose
+    docker compose up                       Запускает контейнеры, указанные в docker-compose.yml
+    docker compose down                     Останавливает и удаляет контейнеры, сети и тома, созданные up
+    docker compose ps                       Показывает состояние контейнеров, управляемых Compose
+    docker compose logs                     Показывает логи всех контейнеров, управляемых Compose
+    docker compose build                    Создает или обновляет образы для сервисов, указанных в docker-compose.yml
+    docker compose exec [service] [command] Выполняет команду в запущенном контейнере сервиса
+    docker compose stop                     Останавливает контейнеры, но не удаляет их
+    docker compose start                    Запускает остановленные контейнеры
+    docker compose restart                  Перезапускает контейнеры
+    docker compose rm                       Удаляет остановленные контейнеры
+    docker compose scale [service]=[number] Масштабирует указанный сервис до заданного числа экземпляров (устарело в новых версиях)
+    docker compose pull                     Загружает образы для сервисов, указанных в docker-compose.yml
+    docker compose config                   Проверяет и отображает конфигурацию docker-compose.yml
