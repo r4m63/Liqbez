@@ -6,7 +6,7 @@
 - [Команды](#команды)
 
 ### Коннект
-psql -U <username> -d <database_name> -h <hostname> -p <port_number>
+psql -d <database_name> -h <hostname> -p <port_number> -U <username
 
 ### Команды
 
