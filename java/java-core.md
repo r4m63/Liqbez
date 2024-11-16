@@ -1,3 +1,21 @@
+# Java-Core
+
+## Темы
+- [Методы объекта Object (wait, notify, notifyAll, hashCode, equals, clone)]()
+- [Коллекции]()
+- [Math lib]()
+- [File lib]()
+- [Network lib]()
+- [Локализация, интернлизация]()
+- [Java Lang]()
+- [Версии jdk (новвоведения)]()
+- [ООП]()
+- [MultiThreading]()
+- [Patterns]()
+- [JDBC]()
+
+
+
 - Язык Java. Особенности языка
 - Средства разработки. JDK и JRE. Компиляция и выполнение программы. JAR-архивы
 - Примитивные типы данных в Java. Приведение типов
