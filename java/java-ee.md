@@ -1,15 +1,20 @@
 # Java-EE
 
 ## Темы
+- [Spring (Boot, WEB, MVC, Data, Security)]()
+- [ORM (Hibernate)]()
 - [Servlets]()
 - [JSF]()
-- [ORM (Hibernate)]()
-- [Spring (BOOT, WEB, MVC, Data, Security)]()
 - [WEB Architecrute]()
 - [Контейнеры сервелетов (Apache Tomcat, Wildfly)]()
 
+---
+# Spring
 
-## Hibernate
+
+
+---
+# Hibernate
 
 ORM (Object Realtional Mapping) - преобразование объектно-ориентированной модели в реляционную и наоборот
 
@@ -956,8 +961,8 @@ count(имя свойства)
 
 
 
-
-## JSF
+---
+# JSF
 
 Структура JSF приложения
 
