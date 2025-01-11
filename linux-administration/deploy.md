@@ -8,7 +8,9 @@ After=network.target
 
 [Service]
 User=ramil
-ExecStart=/bin/bash -c 'cd /var/www/aze-umma.ru && /var/www/aze-umma.ru/venv/bin/gunicorn  --bind 0.0.0.0:8000 app:app'
+Environment=PORT=4000
+ExecStart=/bin/bash -c 'cd /var/www/aze-umma.ru && npm start'
+Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 

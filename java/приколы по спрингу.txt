@@ -1,0 +1,425 @@
+Google OAuth:
+Client ID
+	363689377201-i7d23g08f1qdek5shkjujs482l8pkjrn.apps.googleusercontent.com
+Client secret
+	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
+	
+
+
+
+Spring управляет бинами через Spring IoC (Inversion of Control) Container, который является ядром фреймворка.
+IoC-контейнер отвечает за создание, инициализацию, связывание, настройку и управление жизненным циклом бинов в приложении.
+Как Spring работает с бинами?
+Определение бинов:
+
+Вы указываете бины через аннотации (@Component, @Service, @Repository, @Controller, @Bean) или конфигурационные файлы (XML/Java).
+Контейнер сканирует классы или конфигурационные файлы и регистрирует их как бины.
+Инициализация бинов:
+Контейнер создает экземпляры бинов и выполняет их настройку (например, внедрение зависимостей через @Autowired).
+
+Жизненный цикл бинов:
+Контейнер управляет жизненным циклом бинов — от создания до уничтожения. Можно внедрить собственную логику с помощью интерфейсов InitializingBean и DisposableBean или аннотаций @PostConstruct и @PreDestroy.
+
+Связывание (Wiring):
+Spring автоматически связывает бины через их тип или имя, используя зависимости (Dependency Injection). Это позволяет разделять реализацию и связывание.
+
+Scope:
+Вы можете задавать различные области видимости бинов (singleton, prototype, request, session и др.), чтобы контролировать, сколько экземпляров бина будет создано.
+
+Аналогия с Jakarta Beans (EJB и CDI):
+1. Создание и управление бинами
+EJB/CDI:
+
+Управление осуществляется контейнером Jakarta EE.
+Для определения бинов используются аннотации @Stateless, @Stateful, @Singleton (для EJB) или @Named, @ApplicationScoped, @RequestScoped (для CDI).
+CDI использует аннотации @Inject и стереотипы для создания и управления.
+Spring:
+
+Управляется IoC-контейнером Spring.
+Для определения бинов используются @Component и связанные аннотации, либо метод с @Bean в конфигурации.
+Внедрение зависимостей осуществляется через @Autowired или @Qualifier.
+2. Области видимости
+EJB:
+В EJB три основных типа бинов:
+@Stateless: Нет состояния между вызовами.
+@Stateful: Сохраняет состояние между вызовами.
+@Singleton: Один экземпляр на приложение.
+CDI:
+Поддерживает более гибкие области видимости (@RequestScoped, @SessionScoped, @ApplicationScoped и другие).
+Spring:
+Spring предлагает @Scope для настройки областей видимости (singleton, prototype, request, session, application).
+3. Инъекция зависимостей
+CDI: Использует @Inject для внедрения, с поддержкой квалификаторов (@Qualifier).
+Spring: Использует @Autowired, с опциональными @Qualifier для уточнения.
+Отличие Spring: Внедрение может быть через конструкторы, методы или поля.
+4. Жизненный цикл
+EJB/CDI: Управление полностью делегируется серверу приложений. Вы не можете вручную контролировать создание или уничтожение бина.
+Spring: Полный контроль над жизненным циклом через интерфейсы, аннотации и возможности кастомизации (@PostConstruct, @PreDestroy, BeanPostProcessor).
+Ключевые отличия Spring от Jakarta Beans:
+Особенность	Spring	EJB/CDI
+Контейнер	IoC-контейнер Spring	Сервер приложений (WildFly, Payara и др.)
+Настройка	Легкая настройка (аннотации, Java-код)	Более строгие требования к окружению
+Зависимость от сервера	Независим (можно использовать standalone)	Зависит от Jakarta EE среды
+Области видимости	Гибкие, поддержка кастомных скопов	Определенные стандартами Jakarta EE
+Гибкость	Высокая, подходит для любых приложений	Чаще используется в больших корпоративных системах
+
+
+
+Где находится IoC-контейнер Spring?
+IoC-контейнер — это компонент фреймворка Spring. Он реализован в виде классов и интерфейсов внутри библиотеки spring-context и других связанных модулей. Основными реализациями IoC-контейнера являются:
+
+ApplicationContext:
+Основной интерфейс, используемый для работы с бинами в Spring.
+Например:
+
+AnnotationConfigApplicationContext (для конфигураций на основе Java-аннотаций).
+ClassPathXmlApplicationContext (для XML-конфигураций).
+BeanFactory:
+Более низкоуровневый интерфейс. Реже используется напрямую.
+
+Как IoC-контейнер инициализируется?
+Инициализация IoC-контейнера Spring происходит через программное или декларативное указание конфигурации:
+
+Программная конфигурация (Java-based): Вы определяете конфигурацию бинов с помощью аннотаций @Configuration и @Bean. Контейнер создается вызовом конструктора AnnotationConfigApplicationContext:
+
+java
+Копировать код
+ApplicationContext context = new AnnotationConfigApplicationContext(AppConfig.class);
+XML-конфигурация: Указываете бины в XML-файле, и контейнер создается через ClassPathXmlApplicationContext:
+
+java
+Копировать код
+ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
+Автоматическое сканирование компонентов: Вы можете включить сканирование с помощью аннотации @ComponentScan:
+
+java
+Копировать код
+@Configuration
+@ComponentScan(basePackages = "com.example")
+public class AppConfig {
+}
+Инициализация через Spring Boot: В приложениях Spring Boot контейнер инициализируется автоматически через класс SpringApplication:
+
+java
+Копировать код
+SpringApplication.run(Application.class, args);
+Как IoC-контейнер связан с сервером приложений Jakarta EE?
+IoC-контейнер Spring не зависит от серверов приложений Jakarta EE, но может быть интегрирован с ними, если это необходимо.
+
+Работа Standalone:
+Spring может работать без Jakarta EE сервера (например, с использованием встроенных серверов, таких как Tomcat или Jetty). IoC-контейнер полностью отвечает за управление бинами.
+
+Интеграция с Jakarta EE сервером: Если вы разворачиваете Spring-приложение в Jakarta EE сервере (например, WildFly, Payara, Tomcat):
+
+Spring IoC-контейнер сосуществует с контейнерами Jakarta EE, такими как CDI.
+Вы можете интегрировать функциональность Spring с Jakarta EE, например, использовать Spring для управления бинами и EJB/CDI для транзакций или безопасности.
+Инъекция ресурсов Jakarta EE в Spring:
+Используется аннотация @Resource для интеграции с Jakarta EE:
+
+java
+Копировать код
+@Resource
+private DataSource dataSource;
+Контейнер сервера управляет окружением:
+Jakarta EE сервер берет на себя управление другими компонентами (например, JNDI, транзакциями), а Spring IoC-контейнер отвечает за ваши бины.
+
+Пример: Интеграция Spring с Jakarta EE сервером
+Spring может быть развернут в Jakarta EE сервере как WAR-приложение. Для этого используются:
+
+Файл web.xml для регистрации DispatcherServlet.
+Конфигурация Spring через @Configuration или XML.
+Пример web.xml:
+
+xml
+Копировать код
+<web-app>
+    <servlet>
+        <servlet-name>springDispatcher</servlet-name>
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+        <init-param>
+            <param-name>contextConfigLocation</param-name>
+            <param-value>/WEB-INF/spring-context.xml</param-value>
+        </init-param>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>springDispatcher</servlet-name>
+        <url-pattern>/</url-pattern>
+    </servlet-mapping>
+</web-app>
+Ключевые различия в связи с сервером Jakarta EE:
+Особенность	Spring IoC-контейнер	Jakarta EE контейнер
+Управление бинами	Полностью автономное	Управляется сервером приложений
+Транзакции	Через Spring Transaction Management или JTA	Через встроенные механизмы Jakarta EE
+Деплой	Можно использовать standalone (например, Spring Boot) или WAR/EAR на сервере	Только WAR/EAR на сервере приложений
+Ресурсы сервера (JNDI, DataSource)	Требуется конфигурация для использования JNDI	Нативная поддержка
+Таким образом, IoC-контейнер Spring предоставляет большую гибкость, так как он может быть использован в любых окружениях, включая standalone или Jakarta EE серверы.
+
+
+Spring Boot значительно упрощает настройку и запуск приложений на основе экосистемы Spring, включая такие модули, как Spring Web, Spring Security и другие. Однако без использования Spring Boot процесс настройки более ручной и требует большего количества конфигураций.
+
+Роль Spring Boot
+Spring Boot выполняет три основные задачи:
+
+Автоконфигурация (Spring Boot Autoconfiguration):
+Spring Boot автоматически настраивает зависимости и компоненты, основываясь на содержимом classpath (загруженных библиотек) и предопределенных стратегиях. Например:
+
+Если в classpath есть spring-web, Spring Boot автоматически настраивает DispatcherServlet.
+Если подключен spring-data-jpa, Boot настраивает EntityManagerFactory.
+Встроенные серверы приложений:
+Spring Boot включает встроенные серверы, такие как Tomcat, Jetty или Undertow, что позволяет запускать приложение как standalone. Это упрощает разработку и тестирование.
+
+Единый конфигурационный файл:
+Использование файла application.properties или application.yml для управления настройками, таких как порты, источники данных, параметры безопасности и др.
+
+Настройка без Spring Boot
+Если не использовать Spring Boot, настройка будет более ручной и требует выполнения следующих шагов:
+
+1. Настройка IoC-контейнера:
+Вы должны самостоятельно создать экземпляр ApplicationContext:
+
+Для конфигурации на основе аннотаций:
+java
+Копировать код
+AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(AppConfig.class);
+Для XML-конфигурации:
+java
+Копировать код
+ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
+2. Ручная регистрация компонентов:
+Вы явно указываете все бины и зависимости в Java-классе или XML:
+
+Java конфигурация:
+java
+Копировать код
+@Configuration
+public class AppConfig {
+    @Bean
+    public MyService myService() {
+        return new MyServiceImpl();
+    }
+}
+XML конфигурация:
+xml
+Копировать код
+<bean id="myService" class="com.example.MyServiceImpl"/>
+3. Настройка Spring Web (если используется):
+Вы должны настроить DispatcherServlet вручную:
+
+Зарегистрировать его в web.xml:
+xml
+Копировать код
+<servlet>
+    <servlet-name>dispatcher</servlet-name>
+    <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+    <init-param>
+        <param-name>contextConfigLocation</param-name>
+        <param-value>/WEB-INF/spring-web-config.xml</param-value>
+    </init-param>
+</servlet>
+    <servlet-mapping>
+    <servlet-name>dispatcher</servlet-name>
+    <url-pattern>/</url-pattern>
+</servlet-mapping>
+4. Конфигурация других модулей Spring:
+Например, для Spring Security, вы должны указать конфигурацию:
+
+В XML:
+xml
+Копировать код
+<http>
+    <intercept-url pattern="/admin/**" access="ROLE_ADMIN"/>
+    <form-login login-page="/login"/>
+</http>
+<authentication-manager>
+    <authentication-provider>
+        <user-service>
+            <user name="admin" password="admin" authorities="ROLE_ADMIN"/>
+        </user-service>
+    </authentication-provider>
+</authentication-manager>
+5. Управление сервером приложений:
+Вы должны развернуть приложение как WAR-файл на внешнем сервере приложений, таком как Apache Tomcat или WildFly.
+
+Ключевые различия с Spring Boot
+Функциональность	С Spring Boot	Без Spring Boot
+Создание контейнера	Автоматически (SpringApplication.run())	Ручной вызов ApplicationContext
+Автоконфигурация	Автоматическая на основе classpath	Всё настраивается вручную
+Сервер приложений	Встроенный (Tomcat/Jetty/Undertow)	Требуется развертывание на внешнем сервере
+Конфигурационные файлы	Единый файл application.properties/yml	Множество XML и Java конфигураций
+Быстрота разработки	Высокая	Медленная из-за ручной настройки
+Когда использовать Spring Boot и когда — нет?
+Spring Boot:
+
+Если вам нужно быстрое и гибкое развертывание приложения.
+Для микросервисов, REST API и небольших веб-приложений.
+Если требуется меньше настроек и больше готовых решений.
+Без Spring Boot:
+
+Для приложений, где нужен строгий контроль над конфигурацией.
+Если вы интегрируете Spring в уже существующую корпоративную архитектуру.
+Когда требуется развертывание на Jakarta EE серверах (WildFly, Payara).
+Таким образом, Spring Boot — это упрощение, но не обязательный компонент. Вы можете работать со Spring вручную, но это потребует больше усилий.
+
+
+
+
+
+
+
+
+
+
+
+======================================================================
+@Configuration
+@RequiredArgsConstructor
+public class ApplicationConfig {
+
+    private final UserRepository repository;
+
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return username -> repository.findByEmail(username).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+    }
+
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService());
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
+    }
+
+    @Bean
+    public AuditorAware<Integer> auditorAware() {
+        return new ApplicationAuditAware();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+}
+======================================================================
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+	пишут просто без соли -> .password(passwordEncoder.encode(request.getPassword()))
+    Spring Security
+    BCrypt генерирует соль автоматически
+    BCrypt генерирует уникальную соль для каждого хэширования и встраивает её в результирующий хэш.
+    При проверке пароля PasswordEncoder.matches() извлекает соль из хэша и использует её для повторного хэширования введённого пароля
+
+Principal class
+AuthenticationManager class
+ResponseEntity<?>
+
+extends WebSecurityConfigurerAdapter
+extends OncePerRequestFilter
+extends SpringBootServletInitializer
+extends JpaRepository<Token, Integer>
+
+implements UserDetailsService
+implements Filter
+
+@Autowired
+    Автоматически внедряет зависимости в поле, конструктор или метод
+    Используется для автоматической инъекции бинов в Spring-контексте
+    используется: На полях, конструкторах или сеттерах в классах, управляемых Spring
+    Spring ищет бин подходящего типа в контексте и внедряет его. Если таких бинов несколько, используется бин с аннотацией @Primary, либо требуется уточнить через @Qualifier
+    @Component
+    public class MyService {
+        @Autowired
+        private MyRepository repository;
+    }
+
+@Configuration
+    Помечает класс как конфигурационный, т.е. содержащий бины, которые нужно зарегистрировать в контексте Spring
+    используется: На классах
+    Класс с этой аннотацией заменяет XML-конфигурацию. Все методы с @Bean внутри этого класса создают бины, которые добавляются в контекст
+    @Configuration
+    public class AppConfig {
+        @Bean
+        public MyService myService() {
+            return new MyService();
+        }
+    }
+
+@PropertySource(value = {"classpath:mail.properties"}) -> this.environment.getProperty("mail.debug")
+    Задает файл свойств, который Spring должен загрузить для использования в контексте.
+    используется: На конфигурационных классах, отмеченных @Configuration
+    Загружает указанный файл свойств, чтобы к ним можно было обращаться через объект Environment или аннотацию @Value
+    
+    @Configuration
+    @PropertySource("classpath:mail.properties")
+    public class MailConfig {
+        @Autowired
+        private Environment environment;
+
+        public void printMailDebug() {
+            System.out.println(environment.getProperty("mail.debug"));
+        }
+    }
+
+@Resource
+    Внедряет зависимости, похожим образом на @Autowired, но с поддержкой JNDI-ресурсов и явной привязкой по имени
+    используется: На полях или сеттерах
+    Ищет бин по имени (по умолчанию по имени поля). Если бин не найден, может искать по типу
+
+    @Resource(name = "myBean")
+    private MyService service;
+
+@Bean
+    Помечает метод, возвращающий объект, как бин. Этот бин будет зарегистрирован в контексте Spring
+    используется: В конфигурационных классах, помеченных @Configuration
+    Метод вызывается Spring во время инициализации контекста, а его результат добавляется в качестве бина
+    @Configuration
+    public class AppConfig {
+        @Bean
+        public MyService myService() {
+            return new MyService();
+        }
+    }
+
+@UtilityClass
+@Component
+@EnableConfigurationProperties(JwtConfigurationProperties.class)
+@ConfigurationProperties(prefix = "com.behl.salamanca")
+@EnableWebSecurity
+@Repository
+@Service
+@RestController
+@PostMapping
+@ResponseStatus
+@SpringBootApplication
+@EnableJpaAuditing(auditorAwareRef = "auditorAware")
+@Query(value ="")
+@RequestBody
+
+@Jacksonized
+@Email
+@NotBlank
+@CreatedBy
+@LastModifiedDate
+@CreatedDate
+@LastModifiedBy
+@JsonProperty("access_token")
+
+Controller params -> (HttpServletRequest request, HttpServletResponse response)
+
+@Value("${application.security.jwt.secret-key}")
+private String secretKey;
+
+
+
+
+
+
+
+
+
