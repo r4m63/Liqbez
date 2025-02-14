@@ -1,0 +1,105 @@
+Content-Type:
+
+Самые популярные: 
+application/json
+multipart/form-data
+application/x-www-form-urlencoded
+text/plain
+
+
+-------------------
+application/json → Обычный JSON
+application/ld+json → JSON-LD (Linked Data)
+application/schema+json → JSON Schema
+application/geo+json → GeoJSON (для геоданных)
+application/csp-report → JSON-отчеты о Content Security Policy
+
+application/xml → Обычный XML
+application/rss+xml → RSS-ленты
+application/atom+xml → Atom-фид
+application/mathml+xml → MathML (математические формулы)
+application/svg+xml → SVG (графика в формате XML)
+application/xslt+xml → XSLT (трансформация XML)
+application/xhtml+xml → XHTML
+
+text/plain → Обычный текст
+text/csv → Табличные данные (CSV)
+text/tab-separated-values → Табличные данные с табуляцией
+text/html → HTML-страницы
+text/css → CSS-файлы
+text/javascript → JS-код (редко используется)
+text/markdown → Markdown
+
+multipart/form-data → Чаще всего используется для загрузки файлов
+multipart/mixed → Несколько частей разных типов (например, JSON + файл)
+multipart/alternative → Альтернативные версии одного контента (HTML + текст)
+multipart/related → Несколько взаимосвязанных частей (например, HTML + изображения)
+multipart/signed → Подписанный контент (с цифровой подписью)
+multipart/encrypted → Зашифрованные данные
+
+application/x-www-form-urlencoded → Данные в виде key=value&key2=value2
+
+application/octet-stream → Бинарные данные (неизвестный формат)
+application/pdf → PDF-документы
+application/zip → ZIP-архивы
+application/gzip → GZIP-архивы
+application/x-bzip2 → BZIP2-архивы
+application/x-tar → TAR-архивы
+application/x-7z-compressed → 7Z-архивы
+application/x-rar-compressed → RAR-архивы
+application/vnd.android.package-archive → APK-файл (Android)
+application/msword → Документы Word (.doc)
+application/vnd.openxmlformats-officedocument.wordprocessingml.document → DOCX
+application/vnd.ms-excel → Файлы Excel (.xls)
+application/vnd.openxmlformats-officedocument.spreadsheetml.sheet → XLSX
+application/vnd.ms-powerpoint → Презентации PowerPoint (.ppt)
+application/vnd.openxmlformats-officedocument.presentationml.presentation → PPTX
+
+image/png → PNG
+image/jpeg → JPEG
+image/gif → GIF
+image/webp → WebP
+image/svg+xml → SVG
+image/bmp → BMP
+image/tiff → TIFF
+image/x-icon → ICO (фавиконка)
+
+audio/mpeg → MP3
+audio/wav → WAV
+audio/ogg → OGG
+audio/flac → FLAC
+audio/aac → AAC
+
+video/mp4 → MP4
+video/webm → WebM
+video/ogg → Ogg Video
+video/x-msvideo → AVI
+video/x-matroska → MKV
+
+application/graphql → GraphQL-запросы
+application/x-ndjson → JSON-поток (Newline Delimited JSON)
+application/vnd.api+json → JSON:API (стандарт для REST API)
+application/problem+json → Ошибки в формате JSON
+application/problem+xml → Ошибки в формате XML
+application/x-pem-file → PEM-файл (ключи SSL)
+application/x-font-ttf → TTF-шрифты
+application/x-font-woff → WOFF-шрифты
+application/x-font-woff2 → WOFF2-шрифты
+application/x-httpd-php → PHP-код
+application/vnd.apple.installer+xml → macOS Installer
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,22 @@
+java.time (Java 8+)
+
+java.time.Instant
+java.time.LocalDate только дата
+java.time.LocalTime только время
+java.time.LocalDateTime дата и время без учета часового пояса
+
+java.time.ZonedDateTime дата и время с часовым поясом
+java.time.OffsetDateTime дата и время со смещением от UTC
+
+java.time.Duration разница между двумя точками во времени (в секундах, миллисекундах)
+java.time.Period разница между двумя датами (в годах, месяцах, днях)
+
+java.time.format.DateTimeFormatter для форматирования и парсинга дат
+
+java.time.Clock для работы с системными и нестандартными временными источниками
+java.time.Year
+java.time.Month
+java.time.DayOfWeek
+
+
+

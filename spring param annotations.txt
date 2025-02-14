@@ -1,0 +1,79 @@
+
+@RequestParam
+	get query param
+	Используется для извлечения параметров из запроса (query parameters, form-data, x-www-form-urlencoded).
+	Можно задать по умолчанию значение, если параметр отсутствует.
+	Подходит для простых типов данных (String, int, boolean и т. д.).
+	@GetMapping("/hello")
+	public String hello(@RequestParam(name = "name", defaultValue = "Guest")
+
+
+@PathVariable
+	Извлекает параметры из URL-пути. Используется, если параметр является частью URL.
+	@GetMapping("/users/{id}")
+	public String getUser(@PathVariable("id") Long userId)
+	Можно использовать без имени, если оно совпадает с переменной:
+	@GetMapping("/users/{id}")
+	public String getUser(@PathVariable Long id)
+
+
+@ModelAttribute
+	Используется для автоматического связывания данных формы (form-data) с объектом.
+	Работает с JavaBeans (POJO-классами).
+	Может использоваться глобально (например, для всех методов контроллера).
+	@PostMapping("/register")
+	public String registerUser(@ModelAttribute User user)
+
+
+@RequestBody
+	Используется для извлечения тела HTTP-запроса (JSON, XML и т. д.) и его преобразования в Java-объект (использует HttpMessageConverter).
+	@PostMapping("/create-user")
+	public String createUser(@RequestBody User user)
+
+
+@RequestHeader
+	Позволяет получить заголовки HTTP-запроса.
+	@GetMapping("/check-header")
+	public String checkHeader(@RequestHeader("User-Agent") String userAgent)
+
+
+@CookieValue
+	@GetMapping("/get-cookie")
+	public String getCookie(@CookieValue(name = "sessionId", defaultValue = "unknown")
+
+
+@SessionAttribute
+	Извлекает данные из текущей HTTP-сессии.
+	@GetMapping("/profile")
+	public String getProfile(@SessionAttribute(name = "user") User user)
+
+
+@RequestPart
+	Используется для загрузки файлов (multipart/form-data).
+	@PostMapping("/upload")
+	public String uploadFile(@RequestPart("file") MultipartFile file)
+
+
+
+
+
+
+@RequestParam		Query-параметры, form-data
+@PathVariable		Переменные в URL
+@ModelAttribute		Данные формы, POJO
+@RequestBody		JSON/XML-тело запроса
+@RequestHeader		Заголовки HTTP
+@CookieValue		Cookie
+@SessionAttribute	Переменные из сессии
+@RequestPart		Файлы (multipart/form-data)
+
+
+
+
+Java POJO классы - 
+
+
+
+
+
+
