@@ -5,6 +5,7 @@
 - [Архитектура компьютера](architecture/computer-architecture.md)
 - [Сети](architecture/networks.md)
 - [Операционные системы](architecture/os.md)
+- [TPU](architecture/tpu.md)
 
 ## Java
 - [Java Core](java/java-core.md)
