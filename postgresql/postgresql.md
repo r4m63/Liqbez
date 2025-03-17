@@ -7,12 +7,13 @@
 
 ### Коннект
 
-psql -d <database_name> -h <hostname> -p <port_number> -U <username>
-указывать -d <database_name> обязательно иначе будет пытаться подключиться к базе данных с именем пользователя
+`psql -d <database_name> -h <hostname> -p <port_number> -U <username>`
+
+Указывать -d <database_name> обязательно иначе будет пытаться подключиться к базе данных с именем пользователя
 
 ### Команды
 
-| Команда              | Действие              |
+| Команда              | Описание              |
 |----------------------|-----------------------|
 | \l \list \l+		       | all db                |
 | \c <database_name> 	 | connect to db         |
