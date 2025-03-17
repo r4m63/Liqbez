@@ -1,0 +1,11 @@
+[NAMES]
+harbor		server host name
+vortex		sda hdd seagete 10tb
+
+[POSTS]
+22			ssh							[yes]
+45001			aze-umma.ru.frontend.service		[yes]
+			minecraft server
+			lab4 web itmo
+
+
