@@ -32,5 +32,9 @@
 - [Tmux](linux/tmux.md)
 - [Диски и монтирование](linux/disks.md)
 
+## Other
+- [Git](other/git.md)
+- [Postgresql](other/postgresql.md)
+
 ## С/С++
 
