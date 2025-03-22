@@ -5,7 +5,9 @@
 - [Архитектура компьютера](architecture/computer-architecture.md)
 - [Сети](architecture/networks.md)
 - [Операционные системы](architecture/os.md)
-- [TPU](architecture/tpu.md)
+- [CPU (Центральный процессор)](architecture/cpu.md)
+- [GPU (Графический процессор)](architecture/gpu.md)
+- [TPU (Тензорный процессор)](architecture/tpu.md)
 
 ## Java
 - [Java Core](java/java-core.md)
@@ -23,10 +25,11 @@
 
 ## Linux и DevOps
 - [Администрирование](linux/admin.md)
-- [SSL](linux/ssl.md)
 - [Nginx](linux/nginx.md)
 - [Деплой в Nginx](linux/deployment-nginx.md)
+- [SSL](linux/ssl.md)
 - [Docker](linux/docker.md)
+- [Хостинг сервисов](linux/hosting.md)
 - [GitLab хостинг](linux/gitlab-hosting.md)
 - [Система Linux](linux/system.md)
 - [Tmux](linux/tmux.md)

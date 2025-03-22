@@ -1,0 +1,16 @@
+GUI:
+Nautilus 
+Dolphin
+Thunar
+PCManFM
+Nemo
+Double Commander
+
+TUI:
+Midnight Commander (mc)
+Ranger
+nnn
+Vifm
+LF (as in "list files")
+
+
