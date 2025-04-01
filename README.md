@@ -23,21 +23,23 @@
 - [React](web/react.md)
 - [SCSS](web/scss.md)
 
-## Linux и DevOps
+## Linux
 - [Администрирование](linux/admin.md)
+- [Система Linux](linux/system.md)
+- [Диски и монтирование](linux/disks.md)
+
+## Software
+- [Git](other/git.md)
+- [Postgresql](other/postgresql.md)
 - [Nginx](linux/nginx.md)
 - [Деплой в Nginx](linux/deployment-nginx.md)
 - [SSL](linux/ssl.md)
 - [Docker](linux/docker.md)
 - [Хостинг сервисов](linux/hosting.md)
 - [GitLab хостинг](linux/gitlab-hosting.md)
-- [Система Linux](linux/system.md)
 - [Tmux](linux/tmux.md)
-- [Диски и монтирование](linux/disks.md)
 
-## Other
-- [Git](other/git.md)
-- [Postgresql](other/postgresql.md)
+
 
 ## С/С++
 
