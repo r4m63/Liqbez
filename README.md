@@ -19,7 +19,6 @@
 ## Веб-разработка
 - [Веб-архитектура](web/web-architecture.md)
 - [JavaScript](web/js.md)
-- [TypeScript](web/ts.md)
 - [React](web/react.md)
 - [SCSS](web/scss.md)
 

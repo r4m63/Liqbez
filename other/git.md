@@ -9,48 +9,77 @@ oh-my-zsh
 
 ## Команды
 
+### Настройка Git
+
 `git config`
+
 - `--system`
 - `--global`
 - `--local`
 - `--list`
-`git config user.name "Name"`
+
 `git config user.email "email@example.com"`
+
+`git config user.name "Name"`
 
 ### Создание и клонирование репозитория
 
 `git init`
+
 `git clone <url>`
 
 ### Просмотр состояния и изменений
 
-`git status`
-- `-s` / `--short` 
-- `-b` / `--branch`
+`git status` Отображает состояние рабочей директории и индекса (staging area), показывая: Отслеживаемые и
+неотслеживаемые файлы, Изменения готовые к коммиту, Состояние ветки, Конфликты слияния (если есть)
 
-`git diff`
-- `--staged` – сравнивает индекс с последним коммитом.
-- `--name-only` – показывает только измененные файлы.
-- `--color-words` – подсвечивает изменения в тексте.
-- `HEAD` – сравнить с последним коммитом.
+- `git status -v` или `--verbose` Показать дополнительные подробности (повторный флаг увеличивает детализацию)
+- `git status -s` или `--short` Краткий формат вывода
+- `git status -b` или `--branch` Показать информацию о ветке и ее связи с удаленным репозиторием
+- `git status --long` Полный формат вывода (по умолчанию)
+
+`git diff` Показывает различия между: Рабочей директорией и индексом, Индексом и последним коммитом, Двумя коммитами,
+Двумя ветками, Двумя файлами
+
+- `git diff` Сравнение рабочей директории с индексом
+- `git diff --staged` или `--cached` Сравнение индекса с последним коммитом
+- `git diff HEAD` Сравнение рабочей директории с последним коммитом
+- `git diff <commit>` Сравнение рабочей директории с указанным коммитом
+- `git diff <commit1> <commit2>` Сравнение двух коммитов
+- `git diff <branch1> <branch2>` Сравнение двух веток
 
 ### Добавление и фиксация изменений
 
-`git add <file>`
-`git commit -m "Сообщение"`
-`git commit --amend`
+`git add <file>` добавляет изменения из рабочего каталога в индекс
+
+- `git add .` все файлы в текущей директории
+- `git add -A` все изменения (добавления, удаления, перемещения)
+- `git add -u` только отслеживаемые файлы
+
+`git commit` фиксирует все подготовленные изменения в истории Git
+
+- `git commit -m "Сообщение"` сообщение коммита
+- `git commit --amend` позволяет изменить последний коммит (можно исправить сообщение или добавить забытые файлы)
 
 ### Отмена изменений
 
-`git revert <commit>`       
-`git reset`                 
-`git reset --soft <commit>`
-`git reset --mixed <commit>`
-`git reset --hard <commit>`
-`git reset -- soft @~2`
-`git restore <file>`
+`git revert <commit>`
+
+`git reset`
+
+`git reset <commit>`
+
+- `--soft`
+- `--mixed`
+- `--hard`
+
+`git reset --soft @~2`
+
 `git reset` HEAD
-`git clean` -dxf
+
+`git restore <file>`
+
+`git cle  an` -dxf
 
 ### Работа с ветками
 
@@ -66,9 +95,13 @@ oh-my-zsh
 
 ### История и логи
 
-`git log`          
-`git log --oneline`
-`git log --graph`  
+`git log`
+
+- `--oneline`
+- `--graph`
+-
+
+`--graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- %an%C(reset)%C(auto)%d%C(reset)' --all`
 `git show <commit>`
 `git blame <file>`
 
@@ -105,7 +138,6 @@ oh-my-zsh
 `git bisect` – поиск коммита, вызвавшего ошибку.
 `git gc` – очистка репозитория (удаление старых объектов).
 `git fsck` – проверка целостности репозитория.
-`git cherry-pick <коммит>` – применить один коммит в текущую ветку.
 
 ## Области GIT
 

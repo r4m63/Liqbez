@@ -156,3 +156,4 @@ SOA, Microservices и Event-Driven — это архитектуры для по
 Hexagonal и Serverless архитектуры помогают в создании приложений, которые легко масштабируются и интегрируются с другими системами.
 Выбор архитектуры зависит от сложности приложения, требуемой масштабируемости и специфики бизнес-логики.
 
+https://stackoverflow.com/questions/34130036/how-to-understand-restful-api-is-stateless
