@@ -22,11 +22,9 @@ oh-my-zsh
 
 `git config user.name "Name"`
 
-### Создание и клонирование репозитория
+### Создание репозитория
 
 `git init`
-
-`git clone <url>`
 
 ### Просмотр состояния и изменений
 
@@ -59,84 +57,117 @@ oh-my-zsh
 `git commit` фиксирует все подготовленные изменения в истории Git
 
 - `git commit -m "Сообщение"` сообщение коммита
+- `git commit -am "Сообщение"` -a заменяет (add .)
 - `git commit --amend` позволяет изменить последний коммит (можно исправить сообщение или добавить забытые файлы)
-
-### Отмена изменений
-
-`git revert <commit>`
-
-`git reset`
-
-`git reset <commit>`
-
-- `--soft`
-- `--mixed`
-- `--hard`
-
-`git reset --soft @~2`
-
-`git reset` HEAD
-
-`git restore <file>`
-
-`git cle  an` -dxf
+- `--no-edit` не открывать редактор для сообщения коммита
+- `--date=now` перезаписать дату
+- `--author="Name <email>"` изменить автора
+- `--reset-author` сбросить автора на текущего
 
 ### Работа с ветками
 
 `git branch` – показать список веток.
+
 `git branch <name>` – создать новую ветку.
+
 `git branch -d <name>` – удалить ветку.
+
 `git checkout <branch>` – переключиться на ветку.
+
 `git checkout -b <new-branch>` – создать и переключиться на новую ветку.
+
 `git switch <ветка>` – переключиться на ветку (альтернатива checkout).
+
 `git merge <branch>` – слить изменения из указанной ветки.
+
 `git rebase <branch>` – применить изменения поверх другой ветки.
+
 `git cherry-pick <коммит>` – применить один коммит в текущую ветку.
 
 ### История и логи
 
 `git log`
 
-- `--oneline`
-- `--graph`
+- `git log --oneline`
+- `git log --graph`
 -
+`git log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- %an%C(reset)%C(auto)%d%C(reset)' --all`
 
-`--graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- %an%C(reset)%C(auto)%d%C(reset)' --all`
 `git show <commit>`
+
 `git blame <file>`
+
+### Отмена изменений
+
+`git revert <commit>` создаёт новый коммит откат, который отменяет изменения из указанного коммита, не удаляет коммит из
+истории, а вносит противоположные изменения, чтобы “перекрыть” его эффект
+
+`git reset`
+
+`git reset <commit>`
+
+- `git reset --soft <commit>`
+- `git reset --mixed <commit>`
+- `git reset --hard <commit>`
+- `git reset --soft @~2`
+- `git reset` HEAD
+
+`git restore <file>`
+
+`git clean` -dxf
 
 ### Удаленные репозитории
 
+`git clone <url>`
+
 `git remote`                   
+
 `git remote -v`                
+
 `git remote add <name> <url>`  
+
 `git fetch <remote>`           
+
 `git pull <remote> <branch>`   
+
 `git push <remote> <branch>`   
+
 `git push -u <remote> <branch>`
 
 ### Теги
 
 `git tag`                         
+
 `git tag <name>`                  
+
 `git tag -a <name> -m "Сообщение"`
+
 `git push <remote> --tags`
 
 ### Сохранение временных изменений
 
 `git stash`              
+
 `git stash pop`          
+
 `git stash list`         
+
 `git stash apply <stash>`
 
 ### Дополнительные
 
 `git submodule add <url>`                
+
 `git submodule update --init --recursive`
+
 `git help <команда>` – получить справку по команде.
+
 `git reflog` – показать историю всех изменений, включая удаленные коммиты.
+
 `git bisect` – поиск коммита, вызвавшего ошибку.
+
 `git gc` – очистка репозитория (удаление старых объектов).
+
 `git fsck` – проверка целостности репозитория.
 
 ## Области GIT
@@ -161,7 +192,7 @@ oh-my-zsh
 
 ## .gitattribute
 
-# Сброс кэша
+## Сброс кэша
 
 Если `.gitignore` не применяется - значит есть файлы которые git уже отслеживает.
 Нужно удалить файлы из индекса
@@ -169,8 +200,11 @@ oh-my-zsh
 ```bash
 git rm -r --cached .
 git add .
-git commit -m "Сброс кэша, обновление .gitignore"
+git commit -m "Restore cached + .gitignore"
 git push
 ```
 
+## Как правильно писать коммиты
+
+## Как правильно создавать ветки
 
