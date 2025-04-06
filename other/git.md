@@ -69,94 +69,103 @@ oh-my-zsh
 `git branch` – показать список веток.
 
 `git branch <name>` – создать новую ветку.
-
-`git branch -d <name>` – удалить ветку.
+- `git branch -d <name>` – удалить ветку.
 
 `git checkout <branch>` – переключиться на ветку.
-
-`git checkout -b <new-branch>` – создать и переключиться на новую ветку.
+- `git checkout -b <new-branch>` – создать и переключиться на новую ветку.
 
 `git switch <ветка>` – переключиться на ветку (альтернатива checkout).
 
 `git merge <branch>` – слить изменения из указанной ветки.
 
-`git rebase <branch>` – применить изменения поверх другой ветки.
+`git rebase <branch>` – переносит изменения из одной ветки на другую, переписывая историю коммитов. В отличие от merge, который создаёт новый коммит слияния, rebase "перемещает" ваши коммиты на вершину другой ветки
+- `git rebase -i HEAD~3` последние 3 коммита
 
 `git cherry-pick <коммит>` – применить один коммит в текущую ветку.
+- `git cherry-pick feature-branch~2` - Берём предпоследний коммит из feature-branch
+- `git cherry-pick abc1234..def5678` - Все коммиты между abc1234 и def5678 (исключая abc1234)
+
 
 ### История и логи
 
-`git log`
+`git log` показывает историю коммитов в репозитории
+- `git log --oneline` Краткий однострочный вывод
+- `git log --graph` С ASCII-графом ветвлений
+- `git log --decorate` Показывает ветки и теги
+- `git log --pretty=format:"%h - %an, %ar : %s` Кастомный формат
+- `git log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- %an%C(reset)%C(auto)%d%C(reset)' --all`
 
-- `git log --oneline`
-- `git log --graph`
--
-`git log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- %an%C(reset)%C(auto)%d%C(reset)' --all`
+`git show <commit>` Просмотр последнего коммита
+- `git show abc123` По хэшу (первые 6-7 символов достаточно)
+- `git show HEAD~2` Предпредпоследний коммит
+- `git show feature-branch` Последний коммит в ветке
+- `git show abc123..def456` сравнить два коммитам
+- `git show 123abc:src/app.js` просмотр файла из коммита
 
-`git show <commit>`
-
-`git blame <file>`
+`git blame <file>` показывает, кто и когда последний раз изменял каждую строку в файле
 
 ### Отмена изменений
 
-`git revert <commit>` создаёт новый коммит откат, который отменяет изменения из указанного коммита, не удаляет коммит из
-истории, а вносит противоположные изменения, чтобы “перекрыть” его эффект
+`git revert <commit>` создаёт новый коммит откат, который отменяет изменения из указанного коммита, не удаляет коммит из истории, а вносит противоположные изменения, чтобы “перекрыть” его эффект поверх старого коммита
 
-`git reset`
+`git reset <commit>` отменяет, удаляет коммиты. Работает на трех уровнях и позволяет управлять состоянием репозитория, индексом и рабочей директорией
+- `git reset --soft <commit>` сбрасывает только указатель HEAD, с сохранением удаленного в индекс (Не изменяет индекс (staging area), Не изменяет рабочие файлы)
+- `git reset --mixed <commit>` сбрасывает HEAD и индекс (Сбрасывает индекс, Сохраняет изменения в рабочих файлах)
+- `git reset --hard <commit>` сбрасывает HEAD, индекс и рабочую директорию (Сбрасывает индекс, Сбрасывает рабочие файлы)
+- `git reset @~2` удалить последние 2 коммита
 
-`git reset <commit>`
+Отмена сброса:
+`git reflog` Найти старый хэш
+`git reset <старый-хэш>` Вернуться к нему
 
-- `git reset --soft <commit>`
-- `git reset --mixed <commit>`
-- `git reset --hard <commit>`
-- `git reset --soft @~2`
-- `git reset` HEAD
+`git restore <file>` Отменять незакоммиченные изменения в рабочих файлах, Удалять файлы из staging area (индекса), Восстанавливать файлы из определённого коммита
 
-`git restore <file>`
-
-`git clean` -dxf
+`git clean -dxf` для удаления неотслеживаемых файлов из рабочей директории
+- `-n` Показать, какие файлы будут удалены (пробный запуск)
+- `-f` Принудительное удаление (обязательно для реального выполнения)
+- `-d` Удалять также неотслеживаемые директории
+- `-x` Удалять также игнорируемые файлы (из .gitignore)
+- `-X` Удалять ТОЛЬКО игнорируемые файлы
+- `-i` Интерактивный режим
 
 ### Удаленные репозитории
 
 `git clone <url>`
 
-`git remote`                   
+`git remote`
 
-`git remote -v`                
+`git remote -v`
 
-`git remote add <name> <url>`  
+`git remote add <name> <url>`
 
-`git fetch <remote>`           
+`git fetch <remote>`
 
-`git pull <remote> <branch>`   
+`git pull <remote> <branch>`
 
-`git push <remote> <branch>`   
+`git push <remote> <branch>`
 
 `git push -u <remote> <branch>`
 
 ### Теги
 
-`git tag`                         
+`git tag` используются для пометки важных моментов в истории коммитов
 
-`git tag <name>`                  
-
-`git tag -a <name> -m "Сообщение"`
-
-`git push <remote> --tags`
+...
 
 ### Сохранение временных изменений
 
-`git stash`              
+`git stash` позволяет временно сохранить незакоммиченные изменения, чтобы вы могли переключиться на другую ветку или выполнить другие операции, а затем вернуть эти изменения обратно
 
-`git stash pop`          
-
-`git stash list`         
-
-`git stash apply <stash>`
+- `git stash push -m "..."` сохранить с описанием
+- `git stash pop` Вернуть последние сохранённые изменения (и удалить из stash)
+- `git stash list` Просмотреть список сохранённых stash'ей
+- `git stash apply <stash>` Вернуть конкретный stash (без удаления)
+- `git stash drop stash@{1}` Удалить конкретный
+- `git stash clear ` Удалить все
 
 ### Дополнительные
 
-`git submodule add <url>`                
+`git submodule add <url>`
 
 `git submodule update --init --recursive`
 
@@ -207,4 +216,3 @@ git push
 ## Как правильно писать коммиты
 
 ## Как правильно создавать ветки
-
