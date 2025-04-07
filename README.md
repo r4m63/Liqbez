@@ -1,6 +1,6 @@
 # Liqbez – Документация по технологиям
 
-## Архитектура компьютера
+## Низкоуровневое 
 - [Компиляторы](architecture/compilers.md)
 - [Архитектура компьютера](architecture/computer-architecture.md)
 - [Сети](architecture/networks.md)
@@ -37,8 +37,6 @@
 - [Хостинг сервисов](linux/hosting.md)
 - [GitLab хостинг](linux/gitlab-hosting.md)
 - [Tmux](linux/tmux.md)
-
-
 
 ## С/С++
 
