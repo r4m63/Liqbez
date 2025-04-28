@@ -26,17 +26,25 @@
 - [Администрирование](linux/admin.md)
 - [Система Linux](linux/system.md)
 - [Диски и монтирование](linux/disks.md)
+Software:
+- [Tmux](linux/tmux.md)
+- [Ranger]()
+
 
 ## Software
-- [Git](other/git.md)
-- [Postgresql](other/postgresql.md)
+- [Git](software/git.md)
+- [Postgresql](software/postgresql.md)
 - [Nginx](linux/nginx.md)
-- [Деплой в Nginx](linux/deployment-nginx.md)
-- [SSL](linux/ssl.md)
+  - [Деплой в Nginx](linux/deployment-nginx.md) (внести в nginx)
+  - [SSL](linux/ssl.md) (внести в nginx)
 - [Docker](linux/docker.md)
-- [Хостинг сервисов](linux/hosting.md)
-- [GitLab хостинг](linux/gitlab-hosting.md)
-- [Tmux](linux/tmux.md)
+- [Deploy сервисов](linux/hosting.md)
+  - [GitLab хостинг](linux/gitlab-hosting.md)
 
 ## С/С++
 
+## Other
+- [GNU Autotools](other/gnu-autotools.md)
+- [Maven]()
+- [Make]()
+å
