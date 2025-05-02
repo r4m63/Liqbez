@@ -1,14 +1,3 @@
-@Entity – отмечает класс как JPA-сущность.
-@Id – указывает на первичный ключ.
-@GeneratedValue – автоматическая генерация ID.
-@GeneratedValue(strategy = GenerationType.IDENTITY)
-@Id
-@GeneratedValue(strategy = GenerationType.IDENTITY)  // Для автоинкремента (MySQL, PostgreSQL)
-// @GeneratedValue(strategy = GenerationType.SEQUENCE)  // Для последовательностей (Oracle)
-// @GeneratedValue(strategy = GenerationType.UUID)  // UUID
-private Long id;
-@Table – кастомизирует имя таблицы и схему.
-@Column – кастомизация колонки.
 @Enumerated – сохранение enum.
 @OneToMany, @ManyToOne, @OneToOne, @ManyToMany
 Всегда используй LAZY там, где возможно (иначе N+1 проблема).
@@ -171,7 +160,7 @@ Spring Data JPA и аудит
 | @PrePersist, @PostLoad                   | хуки жизненного цикла                                  |
 |                                          |                                                        |
 
-# Подробное описание работы
+# JPA specification
 
 ## `@Entity`
 
@@ -678,20 +667,15 @@ Form-объектам)
 
 `@Size(min = 1, max = 10) List<Product> products` Проверяет размер коллекции/массива
 
+# Вопросы
 
+## Где лучше задавать ограничения: в JPA-модели или в PostgreSQL?
 
-
-
-
-
-
-
-
-
-
-
-
-
+| Способ              | Плюсы                            | Минусы                       | Когда использовать              |
+|---------------------|----------------------------------|------------------------------|---------------------------------|
+| Только в JPA        | Простота, переносимость между БД | Нет гарантии на уровне БД    | Простые проекты, прототипы      |
+| Только в PostgreSQL | Максимальная надёжность          | Сложно поддерживать миграции | Критичные к данным системы      |
+| Комбинированный     | Баланс надёжности и гибкости     | Дублирование кода            | Большинство production-проектов |
 
 
 
