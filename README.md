@@ -26,6 +26,7 @@
 - [Администрирование](linux/admin.md)
 - [Система Linux](linux/system.md)
 - [Диски и монтирование](linux/disks.md)
+
 Software:
 - [Tmux](linux/tmux.md)
 - [Ranger]()
@@ -47,4 +48,3 @@ Software:
 - [GNU Autotools](other/gnu-autotools.md)
 - [Maven]()
 - [Make]()
-å

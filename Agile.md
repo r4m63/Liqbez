@@ -1,3 +1,20 @@
+<!-- toc -->
+
+- [Agile](#agile)
+    * [История](#%D0%B8%D1%81%D1%82%D0%BE%D1%80%D0%B8%D1%8F)
+    * [Ценности Agile (из Манифеста)](#%D1%86%D0%B5%D0%BD%D0%BD%D0%BE%D1%81%D1%82%D0%B8-agile-%D0%B8%D0%B7-%D0%BC%D0%B0%D0%BD%D0%B8%D1%84%D0%B5%D1%81%D1%82%D0%B0)
+    * [12 принципов Agile](#12-%D0%BF%D1%80%D0%B8%D0%BD%D1%86%D0%B8%D0%BF%D0%BE%D0%B2-agile)
+    * [Scrum](#scrum)
+    * [Kanban](#kanban)
+    * [Disciplined Agile Delivery (DAD)](#disciplined-agile-delivery-dad)
+    * [История](#%D0%B8%D1%81%D1%82%D0%BE%D1%80%D0%B8%D1%8F-1)
+    * [Когда использовать?](#%D0%BA%D0%BE%D0%B3%D0%B4%D0%B0-%D0%B8%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D1%82%D1%8C)
+    * [Lean](#lean)
+        + [fff](#fff)
+    * [XYQNYA](#xyqnya)
+
+<!-- tocstop -->
+
 # Agile
 
 **Agile** — это гибкий подход к разработке ПО, основанный на итеративной поставке ценного продукта и активном
@@ -179,3 +196,7 @@
 ## Lean
 
 Истоки в производственных системах Toyota (Toyota Production System)
+
+### fff
+
+## XYQNYA
