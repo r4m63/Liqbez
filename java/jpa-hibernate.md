@@ -1,31 +1,22 @@
-@Enumerated – сохранение enum.
+@Enumerated
 @OneToMany, @ManyToOne, @OneToOne, @ManyToMany
-Всегда используй LAZY там, где возможно (иначе N+1 проблема).
-Для @OneToMany по умолчанию LAZY, для @ManyToOne – EAGER (лучше явно указать LAZY).
 orphanRemoval = true – автоматическое удаление "осиротевших" записей.
 @BatchSize (Hibernate) – загрузка коллекций пачками.
-@OneToMany(mappedBy = "user")
-@BatchSize(size = 20)
-private List<Order> orders;
 @Fetch(FetchMode.SUBSELECT) – загрузка подзапросом вместо N+1.
 @OneToMany(mappedBy = "user")
 @Fetch(FetchMode.SUBSELECT)
 private List<Order> orders;
 @Embeddable + @Embedded
 @Embeddable
-public class Address {
-private String city;
-private String street;
-}
-@Entity
-public class User {
-@Embedded
-private Address address;
-}
 @Inheritance – стратегии наследования (SINGLE_TABLE, JOINED, TABLE_PER_CLASS).
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
-public abstract class BaseEntity { ... }
+
+Всегда используй LAZY там, где возможно (иначе N+1 проблема).
+Для @OneToMany по умолчанию LAZY, для @ManyToOne – EAGER (лучше явно указать LAZY).
+
+
+
 
 -----
 
@@ -162,68 +153,6 @@ Spring Data JPA и аудит
 
 # JPA specification
 
-## `@Entity`
-
-Помечает класс как сущность, т.е. объект, который может быть сохранён в базе данных.
-
-**Обязательные требования:**
-
-* Класс должен быть public или protected (не private или final).
-* Должен иметь конструктор без аргументов (public или protected).
-* Не должен быть final (Hibernate использует прокси для ленивой загрузки).
-* Поля должны быть доступны через геттеры/сеттеры (или public/protected).
-
-## `@Table`
-
-Используется вместе с `@Entity` для тонкой настройки маппинга сущности на таблицу базы данных.
-
----
-
-`name` Сущность маппится на таблицу app_users. Если не указано, JPA использует имя класса (User(class) → таблица user
-или User в зависимости от диалекта).
-
-```
-@Table(name = "app_users")
-```
-
----
-
-`schema` Таблица hr.employees. Если БД использует схемы.
-
-```
-@Table(name = "employees", schema = "hr")
-```
-
----
-
-`indexes` индексы для ускорения запросов, `name` – имя индекса в БД, `columnList` – колонки, по которым строится
-индекс (через запятую, если составной).
-
-```
-@Table(
-    name = "orders",
-    indexes = {
-        @Index(name = "idx_order_customer", columnList = "customer_id"),
-        @Index(name = "idx_order_status", columnList = "status")
-    }
-)
-```
-
----
-
-`uniqueConstraints` уникальные ограничения. Позволяет задать составные уникальные ключи (например, UNIQUE(email,
-phone)).
-
-```
-@Table(
-    name = "users",
-    uniqueConstraints = {
-        @UniqueConstraint(name = "uk_user_email", columnNames = "email"),
-        @UniqueConstraint(name = "uk_user_phone", columnNames = "phone")
-    }
-)
-```
-
 ### **Best Practice:**
 
 * Всегда указывайте name, если имя таблицы ≠ имени класса
@@ -256,140 +185,182 @@ phone)).
     }
     ```
 
-## `@Id`
-
-Помечает поле как первичный ключ (primary key) сущности.
-Обязательна для любой JPA-сущности. Должно быть непримитивным
-типом (Long, Integer, String, UUID и т.д.). Не должно быть final.
-
-## `@GeneratedValue`
-
-Указывает стратегию автоматической генерации значений первичного ключа.
-
 ---
 
-`strategy` Type - GenerationType
+## 1. Аннотация `@JoinColumn`
 
-- `GenerationType.AUTO` Hibernate сам выбирает стратегию, Обычно выбирает SEQUENCE или IDENTITY в зависимости от БД, Не
-  рекомендуется для продакшна из-за непредсказуемости
-- `GenerationType.IDENTITY` Использует автоинкремент базы данных (SERIAL), Значение генерируется при вставке записи
-- `GenerationType.SEQUENCE` Использует sequence базы данных, требует создания sequence в БД
-- `GenerationType.TABLE` Использует отдельную таблицу для генерации ID
+Аннотация `@JoinColumn` используется для явно указания столбца-связки (foreign key) в таблице, когда вы описываете
+отношение между сущностями. Чаще всего применяется вместе с `@ManyToOne`, `@OneToOne` или в обратной (владельческой)
+стороне `@OneToMany`/`@OneToOne`.
 
-```
-@Id
-@GeneratedValue(strategy = GenerationType.AUTO)
----------
-@Id
-@GeneratedValue(strategy = GenerationType.IDENTITY)
----------
-@Id
-@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq")
-@SequenceGenerator(name = "user_seq", sequenceName = "user_id_seq", allocationSize = 1)
----------
-@Id
-@GeneratedValue(strategy = GenerationType.TABLE, generator = "id_gen")
-@TableGenerator(name = "id_gen", table = "id_generator", pkColumnName = "gen_name", valueColumnName = "gen_value")
----------
-@Id
-@GeneratedValue(generator = "UUID")
-@GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-```
+### 1.1 Основное назначение
+
+- Указывает имя колонки в текущей таблице, которая хранит внешний ключ.
+- Позволяет детально сконфигурировать, какие именно свойства колонки (nullable, unique, insertable, updatable и т.д.)
+  будут применены.
+- Используется на «владельческой» стороне отношения (та, что содержит внешний ключ).
+
+### 1.2 Атрибуты `@JoinColumn`
+
+| Атрибут                | Тип                            | Значение по умолчанию                                    | Описание                                                                                                                                                                  |
+|------------------------|--------------------------------|----------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `name`                 | `String`                       | `""`                                                     | Имя столбца во «владельческой» таблице, содержащего FK. Если не указано, JPA сгенерирует имя по умолчанию: `<имя_поля>_<имя_первичного_ключа>` (например, `customer_id`). |
+| `referencedColumnName` | `String`                       | `""`                                                     | Имя столбца в «целевой» таблице (та, на которую ссылаются). По умолчанию — первичный ключ целевой сущности.                                                               |
+| `unique`               | `boolean`                      | `false`                                                  | Если `true`, для этого столбца будет добавлено ограничение `UNIQUE`.                                                                                                      |
+| `nullable`             | `boolean`                      | `true`                                                   | Определяет, может ли внешний ключ принимать значение `NULL`. Если `nullable = false`, будет `NOT NULL`.                                                                   |
+| `insertable`           | `boolean`                      | `true`                                                   | Если `false`, столбец не будет включён в SQL-операцию `INSERT`.                                                                                                           |
+| `updatable`            | `boolean`                      | `true`                                                   | Если `false`, столбец не будет включён в SQL-операцию `UPDATE`.                                                                                                           |
+| `columnDefinition`     | `String`                       | `""`                                                     | Позволяет задать свой SQL-фрагмент для создания столбца (например, тип или дефолт).                                                                                       |
+| `table`                | `String`                       | `""`                                                     | Имя таблицы, в которой находится этот столбец; чаще используется при маппинге на несколько таблиц (`@SecondaryTable`).                                                    |
+| `foreignKey`           | `javax.persistence.ForeignKey` | `@ForeignKey( value = ConstraintMode.PROVIDER_DEFAULT )` | Позволяет задать дополнительные параметры внешнего ключа (имя ограничения, правило `ON DELETE`/`ON UPDATE` и т.д.).                                                       |
+
+> **Примечание.** В более старых версиях JPA (до 2.1) атрибут `foreignKey` отсутствует.
+
+### 1.3 Какие параметры принимает и что они означают
+
+1. **`name`**
+
+- **Тип:** `String`
+- **Описание:** конкретное имя колонки FK в текущей таблице.
+- **Пример:**
+  ```java
+  @JoinColumn(name = "customer_id")
+  ```
+- **Если не указан:** JPA сделает `<имя_поля>_<pk_целевой_сущности>`. Например, если поле называется `customer` и у
+  сущности `Customer` PK — `id`, то столбец будет `customer_id`.
+
+2. **`referencedColumnName`**
+
+- **Тип:** `String`
+- **Описание:** явно указывает, на какой столбец целевой таблицы ссылается внешний ключ.
+- **Пример (если у `Customer` не `id`, а `uuid` в качестве PK):**
+  ```java
+  @JoinColumn(name = "customer_uuid", referencedColumnName = "uuid")
+  ```
+- **Если не указан:** автоматически берётся PK (обычно `id`).
+
+3. **`unique`**
+
+- **Тип:** `boolean`
+- **Описание:** если `true`, создаётся ограничение `UNIQUE` на уровне схемы. Используется редко, например, при
+  `@OneToOne`, если хотим гарантировать «один к одному» на уровне БД.
+- **Пример:**
+  ```java
+  @JoinColumn(name = "profile_id", unique = true)
+  ```
+
+4. **`nullable`**
+
+- **Тип:** `boolean`
+- **Описание:** если `false`, будет добавлено `NOT NULL` в DDL. По умолчанию `true` (разрешено `NULL`). Обычно для
+  обязательных связей (`optional = false`) ставят `nullable = false`.
+- **Пример:**
+  ```java
+  @JoinColumn(name = "customer_id", nullable = false)
+  ```
+
+5. **`insertable` / `updatable`**
+
+- **Тип:** `boolean`
+- **Описание:** управляют тем, включается ли колонка в SQL-запросы `INSERT` и/или `UPDATE`. Например, если хотите, чтобы
+  колонка заполнялась только через БД (триггеры) или внешние механизмы, можно поставить `insertable = false`.
+- **Пример:**
+  ```java
+  @JoinColumn(name = "order_type_fk", insertable = false, updatable = false)
+  ```
+- **Когда применяется:** очень редко. Чаще встречается в сценариях «внешние» или «рассчитанные» FK.
+
+6. **`columnDefinition`**
+
+- **Тип:** `String`
+- **Описание:** дает возможность задать «сырой» SQL-фрагмент при создании столбца. Например, если нужен тип `UUID` или
+  дефолтное значение.
+- **Пример:**
+  ```java
+  @JoinColumn(name = "customer_id", columnDefinition = "BIGINT DEFAULT 0")
+  ```
+
+7. **`table`**
+
+- **Тип:** `String`
+- **Описание:** название таблицы, в которой находится этот столбец, если сущность маппится на несколько таблиц (
+  используются `@SecondaryTable`).
+- **Пример:**
+  ```java
+  @SecondaryTable(name = "customer_details")
+  public class Customer {
+      @Id
+      private Long id;
+      // ...
+      @Column(table = "customer_details", name = "detail_info")
+      private String detailInfo;
+      // ...
+      @OneToOne
+      @JoinColumn(name = "passport_id", table = "customer_details")
+      private Passport passport;
+  }
+  ```
+
+8. **`foreignKey`** (JPA 2.1+)
+
+- **Тип:** `javax.persistence.ForeignKey`
+- **Описание:** дополнительные настройки внешнего ключа: имя ограничения, поведение `ON DELETE`/`ON UPDATE`, режим
+  `ConstraintMode.NO_CONSTRAINT` (чтобы не создавать, если внешний ключ моделируется вручную).
+- **Пример:**
+  ```java
+  @JoinColumn(
+      name = "order_id",
+      foreignKey = @ForeignKey(
+          name = "FK_ORDER_CUSTOMER",
+          value = ConstraintMode.CONSTRAINT
+      )
+  )
+  private Order order;
+  ```
+
+### 1.4 Пример использования `@JoinColumn`
+
+```java
+@Entity
+@Table(name = "orders")
+public class Order {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    // Один заказ связан с одним пользователем (владелец связи — Order)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(
+        name = "customer_id",           // имя колонки в таблице orders
+        referencedColumnName = "id",    // ссылается на столбец id из таблицы customers
+        nullable = false,               // NOT NULL
+        foreignKey = @ForeignKey(        // явно задаём имя FK-constraint
+            name = "FK_ORDER_CUSTOMER"
+        )
+    )
+    private Customer customer;
+
+    // остальные поля
+}
 
 ---
-
-`generator` Type - String, Имя генератора (для SEQUENCE или TABLE)
-
-```
-@GeneratedValue(generator = "seq_gen")
-```
-
----
-
-`@SequenceGenerator` Настраивает sequence для `GenerationType.SEQUENCE`
-
-```
-@Id
-@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq")
-@SequenceGenerator(
-    name = "employee_seq",      // Имя генератора (должно совпадать в @GeneratedValue)
-    sequenceName = "emp_seq",   // Имя sequence в БД
-    allocationSize = 50,        // Сколько значений зарезервировать за раз
-    initialValue = 1000         // Начальное значение
-)
-```
-
----
-
-`@TableGenerator` Настраивает таблицу для `GenerationType.TABLE`
-
-```
-@Id
-@GeneratedValue(strategy = GenerationType.TABLE, generator = "id_gen")
-@TableGenerator(
-    name = "id_gen",                // Имя генератора
-    table = "ID_GENERATOR",         // Имя таблицы
-    pkColumnName = "GEN_NAME",      // Колонка с именем генератора
-    valueColumnName = "GEN_VALUE",  // Колонка со значением
-    allocationSize = 10,            // Шаг увеличения
-    initialValue = 100              // Начальное значение
-)
-```
-
-## `@Column`
-
-Позволяет настраивать маппинг поля класса на столбец таблицы в базе данных. Если её не указывать, Hibernate использует
-значения по умолчанию (имя поля = имя столбца)
-
----
-
-`name` String Имя столбца в БД (если отличается от имени поля)
-
----
-
-`nullable` boolean Может ли поле быть NULL (по умолчанию true)
-
----
-
-`unique` boolean Должно ли поле быть уникальным (аналог UNIQUE в SQL)
-
----
-
-`length` int Максимальная длина для строк (аналог VARCHAR(255))
-
----
-
-`precision` int Общее количество цифр (для DECIMAL)
-
----
-
-`scale` int Количество цифр после запятой (для DECIMAL)
-
----
-
-`insertable` boolean Участвует ли поле в INSERT (по умолчанию true)
-
----
-
-`updatable` boolean Участвует ли поле в UPDATE (по умолчанию true)
-
----
-
-`columnDefinition` String Позволяет задать точный SQL-тип столбца
 
 ## `@ManyToOne`
 
 ```
+
 @Entity
 public class Comment {
-    @Id
-    @GeneratedValue
-    private Long id;
+@Id
+@GeneratedValue
+private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)  // Всегда LAZY для ManyToOne!
     @JoinColumn(name = "author_id")     // Столбец в таблице Comment
     private Author author;
+
 }
+
 ```
 
 `fetch = FetchType.LAZY` FetchType.LAZY (по умолчанию для @ManyToOne) или EAGER
@@ -403,16 +374,19 @@ public class Comment {
 ---
 
 ```
+
 @Entity
 public class Comment {
-    @Id
-    @GeneratedValue
-    private Long id;
+@Id
+@GeneratedValue
+private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)  // Всегда LAZY!
     @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_comment_user"))
     private User author;
+
 }
+
 ```
 
 ### Best Practices:
@@ -420,14 +394,8 @@ public class Comment {
 ✅ Всегда используйте FetchType.LAZY
 ✅ Явно указывайте @JoinColumn с nullable = false для обязательной связи
 ✅ Добавляйте именованные foreign keys (@ForeignKey)
-
-### Ошибки:
-
 ❌ Использование EAGER (риск N+1 проблемы)
 ❌ Отсутствие @JoinColumn (Hibernate сам создаст столбец с неочевидным именем)
-
-### Best Practices:
-
 ✅ Всегда используйте LAZY (ленивую загрузку), если не нужен EAGER.
 ✅ Добавляйте @JoinColumn для явного указания имени столбца.
 ✅ Для обязательной связи указывайте optional = false.
@@ -435,15 +403,18 @@ public class Comment {
 ## `@OneToMany`
 
 ```
+
 @Entity
 public class Author {
-    @Id
-    @GeneratedValue
-    private Long id;
+@Id
+@GeneratedValue
+private Long id;
 
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Book> books = new ArrayList<>();
+
 }
+
 ```
 
 `mappedBy = "author"`    Указывает поле в дочерней сущности, которое управляет связью
@@ -463,15 +434,18 @@ public class Author {
 ---
 
 ```
+
 @Entity
 public class User {
-    @Id
-    @GeneratedValue
-    private Long id;
+@Id
+@GeneratedValue
+private Long id;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Order> orders = new ArrayList<>();  // Инициализация обязательна!
+
 }
+
 ```
 
 ### Best Practices:
@@ -488,11 +462,12 @@ public class User {
 ## `@ManyToMany`
 
 ```
+
 @Entity
 public class Student {
-    @Id
-    @GeneratedValue
-    private Long id;
+@Id
+@GeneratedValue
+private Long id;
 
     @ManyToMany
     @JoinTable(
@@ -501,17 +476,20 @@ public class Student {
         inverseJoinColumns = @JoinColumn(name = "course_id")
     )
     private Set<Course> courses = new HashSet<>();
+
 }
 
 @Entity
 public class Course {
-    @Id
-    @GeneratedValue
-    private Long id;
+@Id
+@GeneratedValue
+private Long id;
 
     @ManyToMany(mappedBy = "courses")
     private Set<Student> students = new HashSet<>();
+
 }
+
 ```
 
 `mappedBy = "courses"`    Указывает, какая сторона управляет связью
@@ -531,11 +509,12 @@ public class Course {
 ---
 
 ```
+
 @Entity
 public class Student {
-    @Id
-    @GeneratedValue
-    private Long id;
+@Id
+@GeneratedValue
+private Long id;
 
     @ManyToMany
     @JoinTable(
@@ -546,17 +525,20 @@ public class Student {
         inverseForeignKey = @ForeignKey(name = "fk_student_course_course")
     )
     private Set<Course> courses = new HashSet<>();  // Set вместо List!
+
 }
 
 @Entity
 public class Course {
-    @Id
-    @GeneratedValue
-    private Long id;
+@Id
+@GeneratedValue
+private Long id;
 
     @ManyToMany(mappedBy = "courses")
     private Set<Student> students = new HashSet<>();
+
 }
+
 ```
 
 ### Best Practices:
@@ -586,14 +568,18 @@ CascadeType.DETACH - Отсоединить от контекста
 Правила каскадирования:
 
 ```
+
 // Сохранит/обновит/удалит все заказы при сохранении пользователя
 @OneToMany(mappedBy = "user", cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE})
 private List<Order> orders;
+
 ```
 
 ```
+
 @OneToMany(mappedBy = "author", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
 private List<Book> books;
+
 ```
 
 Best Practices:
@@ -603,10 +589,6 @@ Best Practices:
 Опасные сценарии:
 ⚠️ CascadeType.ALL на @ManyToMany может случайно удалить связанные сущности
 ⚠️ Отсутствие orphanRemoval при удалении из коллекции оставляет "висячие" записи
-
-### Как избежать N+1 проблемы?
-
-Проблема: при LAZY-загрузке Hibernate делает отдельный запрос для каждой дочерней сущности.
 
 # Java Bean Validation
 
@@ -667,9 +649,7 @@ Form-объектам)
 
 `@Size(min = 1, max = 10) List<Product> products` Проверяет размер коллекции/массива
 
-# Вопросы
-
-## Где лучше задавать ограничения: в JPA-модели или в PostgreSQL?
+# Где лучше задавать ограничения: в JPA-модели или в PostgreSQL?
 
 | Способ              | Плюсы                            | Минусы                       | Когда использовать              |
 |---------------------|----------------------------------|------------------------------|---------------------------------|
@@ -677,5 +657,65 @@ Form-объектам)
 | Только в PostgreSQL | Максимальная надёжность          | Сложно поддерживать миграции | Критичные к данным системы      |
 | Комбинированный     | Баланс надёжности и гибкости     | Дублирование кода            | Большинство production-проектов |
 
+# Hibernate
 
+## N+1 проблема в hibernate
 
+Возникает, когда у родительской сущности есть дочерние сущность. Приложение делает 1 запрос, чтобы взять родительскую
+сущность, а потом, чтобы подтянуть все дочерние сущность - выполняется по 1 запросу для каждой дочерней сущности.
+То есть сначала делает 1 select, чтобы взять всех родительских сущностей, а потом для каждой родительской сущности он
+будет делать отдельный select (с фильтром where на родительскую сущность).
+
+### Решение 1. Использовать LAZY (FetchType.LAZY)
+
+Это решит проблему - только если нам не надо использовать дочерние сущности и мы не будем их вызывать. Иначе - просто
+отложено позже выполнятся n+1 запросов для всех дочерних сущностей по каждому отдельному select.
+
+### Решение 2. Использовать Join Fetch
+
+Надо сделать чтобы Hibernate под капотом сделал sql запрос с join внутри.
+То есть надо сделать кастомный sql запрос с Join внутри и вызывать его - тогда будет выполняться 1 запрос.
+
+```java
+@Repository
+@ALLArgsConstructor
+public class CustomClientRepository {
+
+  @PersistenceContext
+  private final EntityManager entityManager;
+
+  public List<Client> findAllClientWithPayments) {
+    String jpql = "select c from Client c join fetch c.payments";
+    return entityManager.createQuery(jpql, Client.class)
+           .getResultList();
+  }
+｝
+```
+
+Так же можно и переопределить стандартный метод репозитория
+
+```java
+public interface ClientRepository extends JpaRepository<Client, Integer>
+
+  @Query("select c from Client c join fetch c.payments")
+  @Override 
+  List<Client> findAll();
+}
+```
+
+Или просто сделать свой метод
+
+```java
+public interface ClientRepository extends JpaRepository<Client, Integer>
+
+  @Query("select c from Client c join fetch c.payments")
+  List<Client> findAllWithPaments();
+}
+```
+
+### Решение 3. Использовать Entity Graph
+
+### Решение 4. Использовать Batch Size
+
+Hibernate тогда не будет делать join, а будет так же подгружать лениво и будет объединять пачками - батчами с указанным
+размером (компромисс между join и загрузкой лениво).
