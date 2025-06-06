@@ -1,0 +1,102 @@
+Optional — это контейнер для значения, который может содержать либо какое-то значение, либо быть пустым
+(не содержать значения). В Java это тип данных, который помогает избежать NullPointerException при работе с
+возможными null значениями. В контексте вашего DAO, Optional помогает четко указать, что результат может быть
+либо сущностью (например, UserEntity), либо отсутствовать (если пользователя с заданным идентификатором или
+именем нет).
+
+Преимущества Optional
+Избежание NullPointerException: Использование Optional помогает явно обрабатывать случаи, когда значение может
+отсутствовать, что предотвращает ошибки типа NullPointerException.
+
+Читаемость кода: Код становится более читаемым, так как Optional ясно показывает, что результат может быть
+пустым и требует дополнительной обработки (например, проверка на наличие значения).
+
+Улучшенная обработка отсутствующих значений: Optional предоставляет удобные методы для работы с отсутствующими
+значениями, такие как ifPresent(), orElse(), map() и т. д.
+
+
+Optional<UserEntity> getUserById(Long userId);
+Optional<UserEntity> getUserByUsername(String username);
+
+
+
+Если вы хотите вернуть объект пользователя, но при этом не уверены, что пользователь с таким id или
+username существует, вы оборачиваете результат в Optional:
+
+
+public Optional<UserEntity> getUserById(Long userId) {
+    UserEntity user = entityManager.find(UserEntity.class, userId);
+    return Optional.ofNullable(user);  // Если user == null, вернется Optional.empty()
+}
+
+
+
+Методы Optional
+isPresent() — проверяет, есть ли значение внутри Optional:
+Optional<UserEntity> user = getUserById(1L);
+if (user.isPresent()) {
+    System.out.println("User exists");
+}
+
+ifPresent() — выполняет действие, если значение присутствует:
+user.ifPresent(u -> System.out.println(u.getUsername()));  // Выводит имя пользователя, если оно существует
+
+orElse(T other) — возвращает значение, если оно присутствует, или задает значение по умолчанию, если оно отсутствует:
+UserEntity user = getUserById(2L).orElse(new UserEntity());  // Возвращает нового пользователя, если пользователь не найден
+
+
+orElseThrow(Supplier<? extends X> exceptionSupplier) — если значение отсутствует, выбрасывает исключени
+UserEntity user = getUserById(3L).orElseThrow(() -> new UserNotFoundException("User not found"));
+
+map(Function<? super T, ? extends U> mapper) — если значение присутствует, применяет функцию к нему:
+Optional<String> username = getUserById(1L).map(UserEntity::getUsername);
+
+
+flatMap(Function<? super T, Optional<U>> mapper) — аналогичен map, но функция должна возвращать Optional:
+Optional<String> username = getUserById(1L).flatMap(u -> Optional.ofNullable(u.getUsername()));
+
+filter(Predicate<? super T> predicate) — если значение присутствует и соответствует условию, возвращает его, иначе — пустой Optional:
+Optional<UserEntity> user = getUserById(1L).filter(u -> u.getUsername().equals("admin"));
+
+
+
+Когда использовать Optional?
+Для возвращаемых значений, которые могут быть пустыми: Если результат выполнения метода может быть не найден
+(например, пользователь с таким ID не существует), Optional является хорошим выбором.
+Для лучшей обработки отсутствующих значений: В отличие от использования null, Optional четко показывает, что метод
+может вернуть пустое значение.
+Когда не стоит использовать Optional?
+Для полей в объектах: Не следует использовать Optional для полей класса, так как это усложняет код. Лучше использовать
+обычные поля и делать проверки на null, если это необходимо.
+Для параметров методов: Не рекомендуется передавать Optional как параметры методов. Лучше использовать его для
+возвращаемых значений, где это действительно имеет смысл.
+Заключение
+Optional предоставляет удобный способ обработки возможных null значений, улучшая читаемость и надежность кода.
+В вашем примере использования Optional<UserEntity>, вы явно показываете, что результат может быть либо сущностью
+пользователя, либо отсутствовать, и таким образом облегчаете дальнейшую обработку этих данных.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

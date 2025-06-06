@@ -1,0 +1,72 @@
+                    JWT
+        обычная закодированная строка
+
+first_part.second_part.third_part
+
+first_part:                 second_part:                        third_part:
+{                           {                                   {
+    "alg": "HS512",             "id": "1",                          "secret": "КАКАЯ-ТО_СТРОКА",
+    "typ": "JWT"                "username": "username"          }
+}                               "role": ["admin", "manager"]
+                            }
+
+(first_part + second_part) = third_part
+
+access token (15-30 минут) - для доступа к сервису - в localstorage
+
+refresh token (15-60 дней) - для обновления access - httpOnly cookie - сохраняется в бд на сервера
+
+
+
+client -> server: {email, password}
+server: generate access + refresh tokens
+server -> client: {access token -> save to localstorage, refresh token server already set to cookie}
+client -> server: GET /api/* headers: Authorization: ${accessToken}
+server: check accessToken
+        if valid
+            {body}
+            200
+        else
+            401
+client:
+    обработчик на 401 -> api/refresh cookie: refreshToken
+
+server:
+    check refresh token
+    send new generated access + refresh tokens
+
+
+
+
+
+
+
+
+
+При аутентификации:
+
+После успешной аутентификации пользователь получает access token и refresh token.
+Access token обычно имеет короткий срок действия (например, 15 минут), а refresh token — более длительный (например, 1 месяц).
+При обновлении access token:
+
+Пользователь отправляет refresh token на сервер.
+Сервер проверяет, существует ли этот refresh token в базе данных и действителен ли он.
+Если всё в порядке, сервер создает новый access token и, возможно, новый refresh token.
+При выходе:
+
+Удалите refresh token из базы данных, чтобы предотвратить его дальнейшее использование.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

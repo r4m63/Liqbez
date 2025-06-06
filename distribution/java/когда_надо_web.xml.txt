@@ -1,0 +1,59 @@
+В проекте с JAX-RS (Java API for RESTful Web Services) веб-сервисами, файл web.xml не всегда обязателен, но его наличие
+или отсутствие зависит от используемого контейнера и структуры вашего проекта.
+
+Когда нужно web.xml?
+Если вы используете контейнер, не поддерживающий аннотации JAX-RS:
+
+В старых версиях сервлет-контейнеров, которые не поддерживают автоматическую регистрацию JAX-RS,
+вам нужно будет конфигурировать веб-сервис вручную в web.xml.
+Пример конфигурации в web.xml:
+
+<web-app xmlns="http://java.sun.com/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
+                             http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+         version="3.0">
+    <display-name>My JAX-RS Web App</display-name>
+
+    <servlet>
+        <servlet-name>JAX-RS Servlet</servlet-name>
+        <servlet-class>org.glassfish.jersey.servlet.ServletContainer</servlet-class>
+        <init-param>
+            <param-name>jersey.config.server.provider.packages</param-name>
+            <param-value>com.myapp.rest</param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>JAX-RS Servlet</servlet-name>
+        <url-pattern>/api/*</url-pattern>
+    </servlet-mapping>
+</web-app>
+
+Здесь вы указываете имя сервлета (org.glassfish.jersey.servlet.ServletContainer) и пакеты,
+которые содержат ваши ресурсы JAX-RS.
+
+Если ваш контейнер уже поддерживает JAX-RS и у вас нет необходимости в дополнительных настройках:
+
+Современные серверы, такие как WildFly, Payara, TomEE и другие, поддерживают JAX-RS "из коробки" и могут
+автоматически обнаружить и зарегистрировать ваши ресурсы через аннотации (@Path, @GET, @POST и другие).
+В таком случае web.xml может не быть необходимым, и вы можете полностью полагаться на аннотации для
+настройки вашего приложения.
+
+
+
+
+Когда не нужен web.xml?
+Если вы используете контейнеры с автоматической поддержкой JAX-RS:
+
+В контейнерах, таких как WildFly, Payara, TomEE, JAX-RS может быть автоматически конфигурирован через аннотации,
+и вам не нужно указывать сервлет в web.xml.
+В этом случае, вы можете просто использовать аннотацию @ApplicationPath на главном классе вашего приложения,
+чтобы указать основной путь для всех REST-ресурсов.
+
+Если вы используете Java EE 7 и выше с JAX-RS:
+
+Если ваш проект уже настроен на использование Java EE и контейнер поддерживает спецификацию JAX-RS
+(например, GlassFish, WildFly), то web.xml становится избыточным, и вы можете полностью полагаться
+на аннотации и конфигурации классов.
