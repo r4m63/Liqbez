@@ -2,7 +2,7 @@
 
 ### Java
 
-- [Java Core](distribution/java/java-core.md)
+- [Java Core]()
     - [JDK, JRE, JVM]()
     - [Collection API]()
     - [I/O]()
@@ -12,10 +12,14 @@
     - [Networking]()
     - [Security&Encryption]()
     - [Networking]()
-    - [Паттерны проектирования](distribution/java/patterns.md)
-    - [ООП](distribution/java/oop.md)
-- [Java EE](distribution/java/java-ee.md)
-- [Spring](distribution/java/spring.md)
+    - [Паттерны проектирования]()
+    - [ООП]()
+- [Java EE]()
+    - Servlets & JSP
+    - JPA & CDI
+    - EJB, JMS
+    - JAX-RS (REST)
+- [Spring]()
     - [Spring Boot]()
     - [Spring MVC]()
     - [Spring Data]()
@@ -33,37 +37,48 @@
 ### Software Engineering
 
 - [Requirements Engineering]()
+    - Сбор и анализ требований (Elicitation)
+    - Формат SRS (IEEE 830)
+    - User Stories & Acceptance Criteria
+    - Traceability Matrix
 - [System Design]()
-    - [Веб-архитектура](distribution/web/web-architecture.md)
+    - [Web Architecture]()
+    - High-Level Architecture (монолит vs микросервисы)
+    - C4 Model (Context, Container, Component)
+    - Web Architecture (HTTP, API Gateway)
+    - NFR: масштабируемость, отказоустойчивость, безопасность
+    - ADR (Architecture Decision Records)
 - [Project Management]()
+    - SDLC модели (Waterfall, Agile, Spiral)
+    - Scrum: роли и церемонии
+    - Kanban & Scrumban
+    - WBS & Gantt Charts
+    - Risk & Change Management
 
 ### Linux
 
-- [Администрирование](distribution/linux/admin.md)
-- [Система Linux](distribution/linux/system.md)
-- [Диски и монтирование](distribution/linux/disks.md)
-
-### Software
-
-- [Tmux](distribution/linux/tmux.md)
+- [Администрирование]()
+- [Система Linux]()
+- [Диски и монтирование]()
+- [Service Deployments]()
+- [Nginx]()
+- [Docker]()
+- [Tmux]()
 - [Ranger]()
 
-- [Git](distribution/software/git.md)
-- [Postgresql](distribution/software/postgresql.md)
-- [Nginx](distribution/linux/nginx.md)
-    - [Деплой в Nginx](distribution/linux/deployment-nginx.md) (внести в nginx)
-    - [SSL](distribution/linux/ssl.md) (внести в nginx)
-- [Docker](distribution/linux/docker.md)
-- [Deploy сервисов](distribution/linux/hosting.md)
-    - [GitLab хостинг](distribution/linux/gitlab-hosting.md)
+### Tools
 
-### С/С++
+- [Git](docs/tools/git.md)
+- [SSH, rsync]()
+- [Monitoring & Logging (Prometheus, Grafana)]()
 
-### Other
+### Build Tools
 
-- [GNU Autotools](distribution/other/gnu-autotools.md)
+- [GNU Autotools]()
 - [Maven]()
 - [Make]()
+
+### С/С++
 
 ### Low-Level
 
@@ -73,6 +88,6 @@
 - [Архитектура компьютера](distribution/architecture/computer-architecture.md)
     - [CPU (Центральный процессор)](distribution/architecture/cpu.md)
     - [GPU (Графический процессор)](distribution/architecture/gpu.md)
-    - [TPU (Тензорный процессор)](distribution/architecture/tpu.md)
+    - [TPU (Тензорный процессор)](docs/low-level/tpu.md)
 - [Сети](distribution/architecture/networks.md)
 - [Операционные системы](distribution/architecture/os.md)
