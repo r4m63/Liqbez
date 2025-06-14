@@ -6,7 +6,6 @@ multipart/form-data
 application/x-www-form-urlencoded
 text/plain
 
-
 -------------------
 application/json - Обычный JSON
 application/ld+json - JSON-LD (Linked Data)
@@ -87,19 +86,3 @@ application/x-font-woff - WOFF-шрифты
 application/x-font-woff2 - WOFF2-шрифты
 application/x-httpd-php - PHP-код
 application/vnd.apple.installer+xml - macOS Installer
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
