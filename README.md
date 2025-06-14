@@ -37,23 +37,20 @@
 ### Software Engineering
 
 - [Requirements Engineering]()
-    - Сбор и анализ требований (Elicitation)
-    - Формат SRS (IEEE 830)
-    - User Stories & Acceptance Criteria
-    - Traceability Matrix
-- [System Design]()
-    - [Web Architecture]()
-    - High-Level Architecture (монолит vs микросервисы)
-    - C4 Model (Context, Container, Component)
-    - Web Architecture (HTTP, API Gateway)
-    - NFR: масштабируемость, отказоустойчивость, безопасность
-    - ADR (Architecture Decision Records)
+- [System Design](./docs/software-engineering/system-design/system-design.md)
+    - [Deployment/Topology (Macro-Architecture)](./docs/software-engineering/system-design/macro-deployment-architecture.md)
+    - [Communication & API Style (Macro-Architecture)](./docs/software-engineering/system-design/macro-communication-api-style-architecture.md)
+    - [Data Architecture]()
+    - [Consistency & Transactions]()
+    - [Scaling & Performance]()
+    - [Fault-Tolerance & Resilience]()
+    - [Security Architecture]()
+    - [Observability]()
+    - [Code-Level (Micro-Architecture)](./docs/software-engineering/system-design/micro-code-architecture.md)
+    - [Build & Delivery]()
+    - [Infrastructure Platform]()
+    - [Governance & Compliance]()
 - [Project Management]()
-    - SDLC модели (Waterfall, Agile, Spiral)
-    - Scrum: роли и церемонии
-    - Kanban & Scrumban
-    - WBS & Gantt Charts
-    - Risk & Change Management
 
 ### Linux
 
