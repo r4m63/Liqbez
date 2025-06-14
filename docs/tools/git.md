@@ -1,4 +1,3 @@
-
 # GIT
 
 Git - распределенная система контроля версий, потому что в ней не требуется центральный сервер, у каждого разработчика
@@ -100,6 +99,7 @@ oh-my-zsh
 - `git log --decorate` Показывает ветки и теги
 - `git log --pretty=format:"%h - %an, %ar : %s` Кастомный формат
 -
+
 `git log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- %an%C(reset)%C(auto)%d%C(reset)' --all`
 
 `git show <commit>` Просмотр последнего коммита
@@ -302,12 +302,11 @@ Type, scope и description вместе составляют заголовок 
    ``refactor(Block.ts): update render method (#67)``
 3. Все сообщения коммитов из сливаемой ветки вносятся в тело коммита.
 
-
-    docs(readme.md): add documentation about project (#3) 
+   docs(readme.md): add documentation about project (#3)
 
     * docs(workFlow.md): fix name of developing branch
     * chore(package.json): add commitlint to devDependencies
-    Some extra notes.
+      Some extra notes.
 
 ### Тип коммита
 
@@ -336,8 +335,9 @@ BREAKING CHANGE: указывается в футере и автоматиче�
 
 ## Как правильно создавать ветки и вести репозиторий
 
-- GitLab Flow
 - Git Flow
+- GitLab Flow
+- GitРги Flow
 - Trunk-Based Development
 - Forking Workflow
 - Centralized Workflow
