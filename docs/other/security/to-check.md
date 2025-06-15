@@ -8,4 +8,3 @@
 - https://www.kernel.org/doc/html/v4.16/process/howto.html
 - https://uneex.ru/
 - https://habr.com/ru/companies/sberbank/articles/353746/
-- 

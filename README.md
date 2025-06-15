@@ -91,3 +91,8 @@
     - [TPU (Тензорный процессор)](docs/low-level/computer-architecture/tpu.md)
 - Сети
 - Операционные системы
+
+### Other
+
+- [Автоматическое оглавление Markdown](./docs/other/md-auto-contents-table.md)
+- [Шаблон README.MD](./docs/other/readme-sample.md)
