@@ -1,10 +1,15 @@
-# Деплой сервисов в linux системах
 
-# Nextcloud
 
-### Compose file
 
-File `docker-compose.yml`
+
+
+# Деплой сервисов в linux
+
+## Nextcloud
+
+### Docker deploy
+
+#### docker-compose.yml
 
 ```
 services:
@@ -64,13 +69,13 @@ environment:
     - NEXTCLOUD_TRUSTED_DOMAINS=ваш_домен.com,localhost,192.168.xxx.xxx
 ```
 
-### Запуск контейнера
+Запуск контейнера:
 
 ```
 docker compose up -d --force-recreate
 ```
 
-### Добавить доверенные доменны для деплоя
+Добавить доверенные доменны для деплоя:
 
 Добавить в `vim /mnt/vortex/nextcloud/config/config.php`
 
@@ -83,14 +88,14 @@ docker compose up -d --force-recreate
   ),
 ```
 
-После изменений в volumes - надо делать `docker restart <container_name>`
+После изменений в volumes - `docker restart <container_name>`
 
-### SSL сертификаты
+#### SSL сертификаты
 
 Добавить в `vim /mnt/vortex/nextcloud/config/config.php`
 
 ```
-'overwrite.cli.url' => 'https://domain.ru',
+'overwrite.cli.url' => 'https://example-domain.ru',
 'overwriteprotocol' => 'https',
 ```
 
@@ -112,13 +117,13 @@ server {
 
 `sudo dnf install certbot python3-certbot-nginx` - для fedora dnf install certbot
 
+`sudo pacman -S certbot certbot-nginx` - для archlinux
+
 Выдать сертификат
 
 `sudo certbot --nginx`
 
-либо
-
-`sudo certbot --nginx -d cloud.ramil21.ru`
+`sudo certbot --nginx -d cloud.domain-example.ru`
 
 Проверка
 
@@ -154,7 +159,7 @@ server {
 }
 ```
 
-### Ошибка загрузки больших данных - ограничение nginx body 
+### Ошибка загрузки больших данных - ограничение nginx body
 
 ```
 http {
@@ -164,12 +169,13 @@ http {
     ...
 ```
 
+## Gitlab
 
-# Gitlab
+## Wireguard
 
-# Wireguard
+### Docker deploy
 
-## Docker deploy
+#### docker-compose.yml
 
 Задать хэшированный пароль
 
@@ -215,3 +221,5 @@ net.ipv6.conf.all.forwarding=1
 ```
 AllowedIPs = 0.0.0.0/0, ::/0, 192.168.0.0/24
 ```
+
+НО, иногда не работает, и придется прокидывать порт через ssh -L

@@ -4,7 +4,7 @@
 
 - Java Core
     - JDK, JRE, JVM
-    - Collection API
+    - [Collection API](/docs/java/java-core/collection-api.md)
     - I/O
     - Exceptions
     - Multithreading Concurrency

@@ -1,5 +1,58 @@
 # Communication & API Style (Macro-Architecture): Архитектура клиент-серверного взаимодействия веб приложений
 
+- REST – ~60–80 % проектов
+- GraphQL – ~20–30 % (быстрый рост)
+- gRPC – ~10–20 % (корпоративные микросервисы)
+- WebSocket / SSE / Webhook – по потребностям реального времени
+- MQTT / AMQP – IoT и message-driven системы
+- SOAP / CORBA / XML-RPC – почти не используются в новых разработках
+
+### Клиент-серверные протоколы и стили взаимодействия
+
+- **REST API**
+- **GraphQL**
+- **RPC** (JSON-RPC, XML-RPC)
+- **gRPC**
+- **SOAP**
+- **tRPC**
+- **OData**
+- **Apache Thrift**
+- **RSocket**
+
+### Двухсторонние и push-механизмы
+
+- **WebSocket**
+- **Server-Sent Events (SSE)**
+- **Webhooks**
+- **Long Polling / HTTP Polling**
+- **WebTransport** (over HTTP/3)
+- **WebRTC Data Channels**
+
+### Сообщенческие и IoT-ориентированные шины
+
+- **MQTT**
+- **AMQP**
+- **STOMP**
+- **JMS** (Java Message Service)
+- **CoAP** (Constrained Application Protocol)
+- **XMPP** (eXtensible Messaging and Presence Protocol)
+
+### Устаревшие / нишевые
+
+- **CORBA**
+- **XML-RPC** (если отдельно от RPC)
+- **DCE/RPC**
+
+---
+
+> **Примечание:**
+> - Некоторые технологии перекрываются по функциональности (например, JSON-RPC vs gRPC), выбор зависит от требований к
+    типу данных, производительности, экосистеме и поддержке в языке/фреймворке.
+> - Для streaming- или realtime-приложений часто комбинируют несколько стилей (например, REST для CRUD + WebSocket/SSE
+    для оповещений).
+> - Новые стандарты (HTTP/2, HTTP/3, QUIC) улучшают и оптимизируют каналы передачи, но сами по себе являются транспортом
+    для вышеперечисленных протоколов.
+
 ## REST API
 
 **REST API** - это архитектурный стиль клиент-серверного взаимодействия, который определяет, по каким правилам

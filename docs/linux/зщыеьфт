@@ -1,0 +1,82 @@
+version: "3.9"
+
+services:
+  mailserver:
+    image: ghcr.io/docker-mailserver/docker-mailserver:latest
+    container_name: mailserver
+    # ------------------------------------------------------------
+    # Hostname + домен формируют баннер SMTP и имя в сертификате.
+    # «mail» — это предпочтительный поддомен для MX.
+    # Замените example.com на свой **основной** домен.
+    # ------------------------------------------------------------
+    hostname: mail               # <— короткое имя
+    domainname: ramil21.ru      # <— базовый домен (замените)
+
+    restart: always
+
+    # ------------------------------------------------------------
+    # Порт‑форвардинг: оставьте включённым как минимум 25 и 587.
+    # 465 (SMTPS) — для старых клиентов; 993 — IMAPS.
+    # ------------------------------------------------------------
+    ports:
+      - "25:25"      # SMTP (почтовые серверы между собой)
+      - "587:587"    # Submission/STARTTLS (современные клиенты)
+      - "465:465"    # SMTPS (опционально)
+      - "993:993"    # IMAPS (клиенты)
+
+    # ------------------------------------------------------------
+    # Если любите хранить секреты отдельно, замените блок environment
+    # на   env_file: mailserver.env   и перенесите переменные туда.
+    # ------------------------------------------------------------
+    environment:
+      # === базовое ===
+      TZ: "Europe/Berlin"               # <— таймзона хоста
+      DMS_DOMAIN: "ramil21.ru"         # <— основной домен (исп. для DKIM)
+      POSTMASTER_ADDRESS: "postmaster@ramil21.ru"  # <— почта админа
+
+      # === TLS ===
+      SSL_TYPE: "letsencrypt"           # let’s encrypt | custom | manual
+      LETSENCRYPT_DOMAIN: "mail.ramil21.ru"  # CN/SAN сертификата
+      LETSENCRYPT_EMAIL: "admin@ramil21.ru"  # куда LE шлёт уведомления
+      OVERRIDE_HOSTNAME: "mail.ramil21.ru"   # баннер SMTP (FQDN)
+
+      # === безопасность и анти‑спам ===
+      ENABLE_CLAMAV: "0"            # 1, если нужен антивирус (тяжёлый)
+      ENABLE_SPAMASSASSIN: "1"
+      ENABLE_FAIL2BAN: "1"
+      ENABLE_OPENDKIM: "1"
+      ENABLE_POSTSCREEN: "1"
+      SPOOF_PROTECTION: "1"
+
+      # === прочее ===
+      PERMIT_DOCKER: "network"      # контейнеры из той же сети могут слать почту
+      ONE_DIR: "1"                  # складывать всё в /tmp/docker-mailserver (проще бэкапить)
+      LOG_LEVEL: "info"             # debug | trace | info | warn | error
+
+    # ------------------------------------------------------------
+    # Тома: переносятся на новый сервер вместе с compose‑файлом —
+    # вся почта и конфиги останутся нетронутыми.
+    # ------------------------------------------------------------
+    volumes:
+      - maildata:/var/mail               # письма пользователей
+      - mailstate:/var/mail-state        # состояние служб (dovecot, rspamd…)
+      - maillogs:/var/log/mail           # логи
+      - ./config/:/tmp/docker-mailserver # ваши конфиги, скрипты, DKIM‑ключи
+      # - ./ssl/:/etc/ssl/mail:ro        # подключите, если SSL_TYPE=custom
+
+    # ------------------------------------------------------------
+    # (опционально) Объединённая пользовательская сеть, чтобы
+    # веб‑приложения из других контейнеров могли слать почту локально.
+    # ------------------------------------------------------------
+    # networks:
+    #   - mailnet
+
+volumes:
+  maildata:
+  mailstate:
+  maillogs:
+
+# networks:
+#   mailnet:
+#     driver: bridge
+
