@@ -27,8 +27,8 @@
 
 ### JS
 
-- Js core
-- React
+- [Js core](./docs/js/java-script.md)
+- [React](./docs/js/react.md)
 
 ### Database
 
