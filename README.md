@@ -37,7 +37,7 @@
 ### Software Engineering
 
 - Requirements Engineering
-- [System Design](./docs/software-engineering/system-design/system-design.md)
+- [System Design](./docs/software-engineering/system-design/README.md)
     - [Deployment/Topology (Macro-Architecture)](./docs/software-engineering/system-design/macro-deployment-architecture.md)
     - [Communication & API Style (Macro-Architecture)](./docs/software-engineering/system-design/macro-communication-api-style-architecture.md)
     - Data Architecture
@@ -54,11 +54,11 @@
 
 ### Linux
 
+- [Nginx](docs/linux/nginx.md)
 - Администрирование
 - Система Linux
 - Диски и монтирование
 - Service Deployments
-- Nginx
 - Docker
 - Tmux
 - Ranger

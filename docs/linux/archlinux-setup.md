@@ -18,30 +18,6 @@ sudo systemctl enable --now cockpit.socket
 
 ---
 
-# Nginx
-
-```
-sudo pacman -Syu
-sudo pacman -S nginx
-sudo systemctl start nginx
-sudo systemctl enable nginx
-systemctl status nginx
-```
-
-# редактируем конфиги → затем
-
-sudo nginx -t # убедиться, что «syntax is ok»
-sudo systemctl reload nginx # мягкая перезагрузка без простоя
-
-sudo nginx -t Проверяет синтаксис текущего конфигурационного файла (/etc/nginx/nginx.conf) и всех файлов, подключённых
-через include.
-sudo nginx -t -q То же, но выводит сообщения только об ошибках (quiet-режим).
-sudo nginx -t -c /путь/к/файлу.conf Проверяет указанный альтернативный конфиг вместо дефолтного.
-sudo nginx -T Dump-режим: выводит итоговый объединённый конфиг и сразу проверяет его синтаксис (удобно для отладки
-include).
-
----
-
 # Docker
 
 ```bash

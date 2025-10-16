@@ -1,0 +1,750 @@
+почему эти классы final?
+
+public final class GridTablePredicateBuilder {
+public final class DateParsers {
+public final class ColumnMapper {
+ChatGPT сказал:
+
+Коротко: эти классы помечены final, потому что они — утилитарные (статические хелперы без состояния) и не предназначены для наследования.
+
+Почему это ок / полезно именно для
+
+GridTablePredicateBuilder
+
+DateParsers
+
+ColumnMapper
+
+Зачем final у утилитарных классов
+
+Запрет наследования
+Эти классы предоставляют набор статических методов и не имеют расширяемого контракта. Наследование тут не дает пользы и только открывает путь к «странным» иерархиям.
+
+Явное намерение автора
+Сигнализирует: «не расширяйте меня, используйте как есть». Это повышает читаемость/понимание API.
+
+Безопасность и сопровождение
+Никаких неожиданных переопределений. Меньше сценариев для отладки.
+
+(Слабо) оптимизация
+Для обычных методов final помогает JVM де-виртуализировать вызовы. Для статических это не важно, но наличие final в любом случае не вредит.
+
+Обязательный спутник — приватный конструктор
+
+Помимо final, в таких классах обычно делают:
+
+public final class DateParsers {
+    private DateParsers() {
+        throw new AssertionError("No instances");
+    }
+
+    public static LocalDate tryParseLocalDate(String s) { ... }
+}
+
+
+Это не даёт никому создать экземпляр: new DateParsers().
+
+(Либо можно использовать Lombok @UtilityClass, который сделает и final, и приватный конструктор автоматически.)
+
+Почему конкретно эти три — final
+
+GridTablePredicateBuilder — фабрика Predicate/Criteria-фильтров. Никакого состояния, всё статично. Наследовать бессмысленно; если понадобится вариативность, лучше стратегиями/композицией.
+
+DateParsers — чистые функции парсинга дат. Утилитарный класс по определению.
+
+ColumnMapper — маппинг colId (UI) → entityPath (JPA). Сейчас это статичная карта и хелперы. Пока логика неизменна — final оправдан.
+Если позже потребуется конфигурируемый маппинг (для разных таблиц/тенантов), тогда:
+
+выдели интерфейс ColumnMapperStrategy,
+
+сделай реализации и подавай их через DI в сервис/DAO.
+В таком случае утилитарный final ColumnMapper заменится на интерфейс + бины.
+
+Когда не ставить final
+
+Когда ты осознанно проектируешь расширяемый API: нужен интерфейс/абстрактный класс и полиморфизм.
+
+Когда для тестов надо мокать класс напрямую (финальные классы сложнее мокать без дополнительной настройки — хотя современные фреймворки это умеют).
+
+Альтернативы
+
+Sealed classes (Java 17+) — если нужна строгая, но контролируемая иерархия.
+
+Интерфейс + реализация — для стратегий и конфигураций.
+
+Package-private класс — если задача ограничена пакетом и не нужна публичность.
+
+Итог: для утилитарных статических хелперов final + private constructor — хороший, общепринятый паттерн. Оставляй так, пока не появится реальная потребность в заменяемости/расширяемости (тогда — интерфейс/DI).
+
+Вы сказали:
+теперь скажи, каждый из этих уровней как ты говорил
+
+
+Уровень представления (Presentation / Interface)
+	•	controller (ru.company.app.controller)
+	•	Что это: JAX-RS ресурсы (REST-эндпоинты), иногда MVC/JSF, а также WebSocket endpoints можно считать частью интерфейса.
+	•	Задачи: принять HTTP/WebSocket запрос, провалидировать вход (Bean Validation на DTO), распарсить параметры/пагинацию/фильтры, вызвать сервисы, собрать HTTP-ответ/статус/заголовки.
+	•	Чего не должно быть: бизнес-логики и доступа к БД.
+	•	ws (ru.company.app.ws)
+	•	Что это: WebSocket endpoints/hub, рассылка уведомлений клиентам.
+	•	Задачи: при событиях в домене — принять доменное событие/сигнал от сервиса и переслать подписчикам (broadcast/targeted).
+	•	Чего не должно быть: работа с БД, бизнес-правила.
+
+Уровень приложения/доменной логики (Application / Service Layer)
+	•	service (ru.company.app.service)
+	•	Что это: фасады/Use-Case-сервисы, orchestration.
+	•	Задачи: бизнес-правила, транзакционные границы, координация нескольких DAO, доменных операций и внешних интеграций; публикация событий (например, дернуть wsHub.broadcast(...) после успешного save).
+	•	Тут уместно: @Transactional (если не EJB), валидация бизнес-инвариантов, idempotency, конкуренция/блокировки (optimistic/pessimistic), доменные ошибки → маппятcя на HTTP в ExceptionMapper.
+	•	Чего не должно быть: JPA-кода (Criteria/HQL/EntityManager) — это ответственность DAO.
+
+Уровень доступа к данным (Persistence / Storage)
+	•	dao (ru.company.app.dao)
+	•	Что это: репозитории/DAO, инкапсулирующие JPA/Hibernate.
+	•	Задачи: CRUD, запросы (Criteria/HQL/Native/Stored procedures), пагинация. Возвращают entities и/или узкоспециализированные проекции.
+	•	Практика: @PersistenceContext EntityManager — здесь. Ниже — только сущности и маппинг.
+	•	model / entity (ru.company.app.model)
+	•	Что это: JPA-сущности (и value-объекты @Embeddable).
+	•	Задачи: маппинг на таблицы, базовые инварианты уровня данных, @PrePersist и пр.
+	•	Чего не должно быть: логики, требующей инфраструктуры (сеть/файлы/DAO). Лёгкие доменные методы — допустимы.
+
+Контракты и транспортные объекты
+	•	dto (ru.company.app.dto)
+	•	Что это: объекты для входа/выхода в API.
+	•	Задачи: срезы полей для UI/интеграций, валидация входа (@NotNull, @Pattern), не тянут за собой ленивых связей.
+	•	Сопровождается мапперами: отдельный mapper-пакет или MapStruct для Entity ⇄ DTO.
+
+Технические/сквозные компоненты
+	•	filter (ru.company.app.filter)
+	•	Что это: JAX-RS ContainerRequestFilter/ContainerResponseFilter, Servlet filters.
+	•	Задачи: аутентификация/авторизация, трейсинг, CORS, аудит, логирование, метрики.
+	•	Чего не должно быть: бизнес-логики.
+	•	util (ru.company.app.util)
+	•	Что это: чистые утилиты (форматтеры/парсеры дат, конверторы), константы.
+	•	Рекомендация: дробить по доменам: util.time, util.json, util.aggrid, чтобы «помойка-util» не росла бесконтрольно.
+	•	(опционально) exception: ваши доменные исключения и @Provider ExceptionMapper → единый JSON-ответ об ошибке.
+	•	(опционально) config: CDI-провайдеры конфигурации, @ApplicationScoped настройки.
+	•	(опционально) events/interceptors: CDI события для отложенных реакций; перехватчики кросс-кат. логики.
+
+
+вот эти все уровни а именно:
+
+controller
+service
+dao
+dto
+filter
+ws
+util
+
+какими они должны быть бинами? EJB? CDI? Managed Beans?
+
+какими они по правилам и по best practice должны быть ?
+
+ChatGPT сказал:
+Думал на протяжении 10s
+
+Отличный вопрос. В современной Jakarta EE (9/10/11) «стандартные» Managed Beans (@ManagedBean) уже считаются устаревшим стилем. CDI — это базовый способ управлять бинами, а EJB используют точечно, когда действительно нужны их особенности (таймеры, MDB, remoting и пр.).
+
+Ниже — что лучше использовать для каждого вашего слоя, с краткими пояснениями и примерами аннотаций.
+
+Что чем делать (best practice)
+controller (REST-контроллеры)
+
+Тип бина: CDI
+
+Аннотации: @Path, @RequestScoped (или @ApplicationScoped для чисто статeless обработчиков), @Produces, @Consumes, @Inject сервисов.
+
+Почему: JAX-RS ресурсы по спецификации CDI-совместимы; бизнес-логику держим вне контроллера.
+
+@RequestScoped
+@Path("/vehicle")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public class VehicleController {
+    @Inject VehicleService service;
+    // endpoints...
+}
+
+ws (WebSocket)
+
+Тип бина: сам endpoint — @ServerEndpoint (управляется контейнером WebSocket),
+вспомогательный «hub» для рассылок — CDI @ApplicationScoped.
+
+Почему: в endpoint’е логика приёма/отправки; общую рассылку и хранение Session’ов лучше держать в отдельном CDI-синглтоне.
+
+@ApplicationScoped
+public class VehicleWsHub {
+    // хранение сессий, broadcast(...)
+}
+
+@ServerEndpoint("/ws/vehicle")
+public class VehicleEndpoint {
+    @Inject VehicleWsHub hub; // в современных серверах CDI-инъекция в WS работает
+    // onOpen/onMessage/onClose -> делегируем hub
+}
+
+service (доменная логика, orchestration)
+
+Тип бина: CDI
+
+Аннотации: @ApplicationScoped (или @Dependent + инстанцирование через CDI), транзакции — @Transactional (из jakarta.transaction) на методах/классе.
+
+Почему: сервис — граница транзакции и место бизнес-правил. EJB не обязателен: транзакции можно управлять @Transactional. EJB стоит брать только если нужны конкретные фичи EJB (см. ниже).
+
+@ApplicationScoped
+@Transactional
+public class VehicleService {
+    @Inject VehicleDao vehicleDao;
+    @Inject VehicleWsHub wsHub;
+    // бизнес-методы, orchestration нескольких DAO
+}
+
+dao (репозитории / доступ к данным)
+
+Тип бина: CDI
+
+Аннотации: @ApplicationScoped, @PersistenceContext для EntityManager.
+
+Почему: DAO инкапсулирует JPA/Hibernate. Транзакции — снаружи (на сервисе). Можно и на DAO ставить @Transactional(Transactional.TxType.MANDATORY) если хотите жёстко требовать «транзакция обязана уже быть открыта».
+
+@ApplicationScoped
+public class VehicleDao {
+    @PersistenceContext(unitName = "studsPU")
+    EntityManager em;
+    // CRUD, Criteria/HQL, пагинация
+}
+
+
+Примечание: Ещё 5–7 лет назад было нормой делать DAO как @Stateless EJB ради «автомата» транзакций. Сейчас, когда есть @Transactional в CDI, — чаще выбирают CDI + @Transactional.
+
+dto
+
+Тип бина: обычные POJO, не CDI/EJB.
+
+Аннотации: Bean Validation (@NotNull, @Size и т.п.).
+
+Почему: DTO — транспорт. Не должен быть управляемым контейнером компонентом.
+
+filter
+
+Тип бина: CDI-совместимые JAX-RS-фильтры/интерцепторы.
+
+Аннотации: @Provider, @Priority, опционально @ApplicationScoped.
+
+Почему: это сквозная инфраструктура (логирование, аутентификация и т.д.).
+
+@Provider
+@Priority(Priorities.AUTHENTICATION)
+public class AuthFilter implements ContainerRequestFilter {
+    @Inject AuthService auth; // CDI
+    public void filter(ContainerRequestContext ctx) { ... }
+}
+
+util
+
+Тип бина: вообще не бины.
+
+Рекомендация: final класс, приватный конструктор, только статические методы (или Lombok @UtilityClass).
+
+Почему: чистые функции/константы, никакой инъекции.
+
+Когда всё-таки EJB?
+
+Используйте EJB точечно, если вам нужны его специфические возможности:
+
+Асинхронные вызовы: @Asynchronous (хотя в современном Jakarta есть Concurrency Utilities/ManagedExecutorService).
+
+Таймеры: EJB Timer Service (@Schedule, TimerService).
+
+MDB (message-driven beans): если используете старое JMS API/архитектуру.
+
+Remote EJB: распределённые вызовы между JVM.
+
+Если ничего из этого не нужно — CDI + @Transactional обычно полностью закрывают потребности.
+
+Резюме по слоям и аннотациям
+Слой	Тип	Где транзакции	Основные аннотации
+controller	CDI bean	нет	@Path, @RequestScoped, @Inject
+ws	Endpoint + CDI	нет	@ServerEndpoint + @ApplicationScoped hub
+service	CDI bean	да	@ApplicationScoped, @Transactional, @Inject
+dao	CDI bean	обычно «под» сервисом	@ApplicationScoped, @PersistenceContext
+dto	POJO	—	Bean Validation (@NotNull, ...)
+filter	CDI/JAX-RS	нет	@Provider, @Priority, @Inject
+util	статические	—	final + private ctor / @UtilityClass
+
+Так вы получаете чистую, современную, «CDI-центричную» архитектуру Jakarta EE. EJB — по необходимости, а не по привычке.
+
+Вы сказали:
+окей, как CDI бин например на классы Service какие аннотации мне использовать чтобы обозначить его как CDI бин?
+ChatGPT сказал:
+Думал на протяжении 10s
+
+Коротко: чтобы ваш Service стал CDI-бином, достаточно дать ему bean-defining scope из CDI. Чаще всего — @ApplicationScoped. Плюс используйте @Inject для зависимостей и при необходимости @Transactional для транзакций.
+
+Вот минимальный «правильный» пример:
+
+import jakarta.enterprise.context.ApplicationScoped;   // CDI scope
+import jakarta.inject.Inject;                          // CDI injection
+import jakarta.transaction.Transactional;              // JTA transactions
+
+@ApplicationScoped                 // делает класс CDI-бином, живущим весь runtime приложения
+@Transactional                     // (опц.) все методы под транзакцией; можно ставить точечно на метод
+public class VehicleService {
+
+    @Inject
+    VehicleDao vehicleDao;          // обычная CDI-инъекция DAO (который сам тоже CDI-бин)
+
+    public void createVehicle(VehicleDto dto) {
+        // бизнес-логика
+        vehicleDao.save(...);
+    }
+}
+
+Какие аннотации бывают и когда их ставить
+
+@ApplicationScoped — один экземпляр на всё приложение (часто для сервисов/DAO/hub-ов).
+
+@RequestScoped — новый экземпляр на каждый HTTP-запрос (для контроллеров/ресурсов, если им нужен state на время запроса).
+
+@SessionScoped / @ConversationScoped — реже для web-состояния.
+
+@Dependent — без собственного scope (lifecycle «как у клиента»); использовать осознанно.
+
+@Named — (опц.) если нужно обращаться к бину из EL/JSF.
+
+@Inject — внедрение зависимостей.
+
+@Transactional (из jakarta.transaction) — границы транзакций на классе или методах сервиса.
+
+Важно: в современных серверах CDI бины автоматически обнаруживаются, если у класса есть bean-defining аннотация (например, любая из scope-аннотаций выше). beans.xml обычно не нужен, но если у вас специфичная настройка discovery, убедитесь, что она не отключает обнаружение.
+
+Для DAO
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
+@ApplicationScoped
+public class VehicleDao {
+    @PersistenceContext(unitName = "studsPU")
+    EntityManager em;
+
+    // CRUD...
+}
+
+
+Этого достаточно, чтобы и сервис, и DAO были CDI-бинами и корректно инжектились друг в друга.
+
+Вы сказали:
+как работает @Transactional?
+то есть можно поставить над классом -- тогда все его методы будут выполняться от и до в транзакции, а можно и на сам метод поставить @Transactional? как это работает?
+ChatGPT сказал:
+
+Да, именно так 👍 Давай подробно разберём, как работает @Transactional в Jakarta EE / JTA:
+
+1. Что делает @Transactional
+
+Аннотация управляет границами транзакции. Она говорит контейнеру (WildFly, Payara, Quarkus и т.д.), где начинать и где завершать транзакцию.
+
+Когда метод, помеченный @Transactional, вызывается:
+
+Контейнер проверяет, есть ли уже активная транзакция.
+
+В зависимости от атрибута propagation (по умолчанию REQUIRED):
+
+если транзакция есть → использовать её;
+
+если нет → открыть новую перед вызовом метода.
+
+После завершения метода контейнер делает commit или rollback (если выброшено RuntimeException или ошибка).
+
+2. На классе vs на методе
+
+Если поставить @Transactional на классе,
+→ все публичные методы будут выполняться внутри транзакции с заданной политикой.
+
+Если поставить @Transactional на конкретном методе,
+→ правило действует только на этот метод (и перекрывает правило класса, если оно есть).
+
+Пример:
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+
+@ApplicationScoped
+@Transactional   // все методы этого класса выполняются в транзакции
+public class VehicleService {
+
+    public void createVehicle(VehicleDto dto) {
+        // транзакция начнется ДО вызова метода
+        // dao.save(...) попадет в одну транзакцию
+    }
+
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void auditLog(String msg) {
+        // тут будет ОТДЕЛЬНАЯ транзакция, даже если внешний метод уже в транзакции
+    }
+}
+
+3. Типы транзакций (TxType)
+
+@Transactional поддерживает разные политики (TxType):
+
+REQUIRED (по умолчанию) — использовать текущую транзакцию или создать новую, если её нет.
+
+REQUIRES_NEW — всегда создать новую, даже если есть активная.
+
+MANDATORY — метод требует активной транзакции, иначе ошибка.
+
+SUPPORTS — если транзакция есть → использовать, если нет → выполнить без транзакции.
+
+NOT_SUPPORTED — всегда выполнять без транзакции (приостанавливает текущую).
+
+NEVER — ошибка, если есть транзакция.
+
+4. Rollback правила
+
+Если метод выбрасывает unchecked exception (RuntimeException, Error), транзакция автоматически откатывается.
+
+Если выбрасывается checked exception (Exception), то rollback не произойдёт, если только явно не указать:
+
+@Transactional(rollbackOn = {Exception.class})
+
+5. Где правильно использовать
+
+Service-слой → ставить @Transactional, потому что здесь бизнес-операции и работа с несколькими DAO.
+
+DAO → обычно не нужно явно ставить @Transactional, потому что DAO вызывается из сервиса, а транзакция уже «открыта». DAO просто использует EntityManager, который участвует в текущей транзакции.
+
+🔑 Итого:
+
+@Transactional на классе → транзакция на все публичные методы.
+
+@Transactional на методе → транзакция только там (и перекрывает поведение класса).
+
+Контейнер сам начинает/заканчивает транзакцию и решает, откатывать или коммитить.
+
+Хочешь, я покажу, как у тебя правильно будет выглядеть VehicleService с @Transactional, а DAO останется без транзакций?
+
+Вы сказали:
+@Transactional ставится над service? или над dao классами? или не важно?
+ChatGPT сказал:
+
+Коротко: ставь @Transactional на сервисах, а на DAO — обычно не нужно.
+
+Вот почему и как:
+
+Где должна быть граница транзакции
+
+Сервис-слой — правильное место для границ транзакций.
+Сервис orchestration-ит несколько DAO/интеграций в одну бизнес-операцию (create/update/delete и т.д.). Именно это «атомарная» единица работы → тут логично начинать/коммитить/откатывать транзакцию.
+
+DAO — обычно без @Transactional.
+DAO просто выполняет запросы через EntityManager. Он автоматически участвует в текущей транзакции, открытой сервисом (container-managed, JTA). Если поставить транзакции на DAO, можно получить «дробление» операций на куски и потерять атомарность.
+
+Когда допустимо на DAO
+
+Небольшие pet-проекты с очень простыми случаями (каждый DAO-метод — автономная операция).
+
+Узкие спец-методы, которые осознанно должны идти своей транзакцией (например, аудит): тогда помечают конкретный метод @Transactional(REQUIRES_NEW).
+
+Если у тебя EJB
+
+Для @Stateless/@Singleton EJB транзакции по умолчанию REQUIRED (CMT).
+В таком случае @Transactional не обязателен — поведение уже есть. Если ты на CDI-сервисах (без EJB), тогда используешь @Transactional (JTA).
+
+Рекомендованный шаблон
+// Service (CDI) — границы транзакции здесь
+@ApplicationScoped
+@Transactional // можно на классе, а при необходимости — переопределить на методах
+public class VehicleService {
+    @Inject VehicleDao vehicleDao;
+    @Inject AuditDao auditDao;
+
+    public void createVehicle(VehicleDto dto) {
+        var v = VehicleMapper.toEntity(dto, null);
+        vehicleDao.save(v);           // участвует в текущей транзакции
+        auditDao.log("created " + v.getId()); // тоже в той же транзакции
+    }
+
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void logSafely(String msg) {
+        auditDao.log(msg); // отдельная транзакция
+    }
+}
+
+// DAO — без @Transactional
+@ApplicationScoped
+public class VehicleDao {
+    @PersistenceContext(unitName = "studsPU")
+    EntityManager em;
+
+    public Vehicle save(Vehicle v) {
+        if (v.getId() == null) { em.persist(v); return v; }
+        return em.merge(v);
+    }
+}
+
+Про чтение/селекты
+
+В JTA нет стандартного readOnly. Для «просто чтения» можно ставить на метод @Transactional(SUPPORTS) (использует транзакцию, если она уже есть; не открывает новую). Для большинства JPA-провайдеров селекты внутри активной транзакции безопаснее (и иногда быстрее).
+
+Где не ставить
+
+На контроллерах (слишком «высоко»: может держать транзакцию вокруг веб-слоя, сетевых вызовов, сериализации).
+
+На каждом DAO-методе по умолчанию (слишком «низко»: ломает атомарность, затрудняет композицию нескольких DAO в одну операцию).
+
+Итог: транзакции — это часть бизнес-операций → держи их на сервисах; DAO — тонкий доступ к данным, участвует в транзакции сервиса.
+
+
+
+========================================================================================================================
+
+РАЗНИЦА CDI и EJB
+
+В Jakarta EE и EJB, и CDI бины — это управляемые контейнером объекты, но у них разная «миссия» и разный набор встроенных фич.
+
+🔑 CDI (Contexts and Dependency Injection)
+
+Главная цель: внедрение зависимостей (DI), управление жизненным циклом и контекстами (request, session, application, conversation).
+
+Что умеет CDI-бин (например, @ApplicationScoped, @RequestScoped, @Dependent):
+
+Автоматическое создание/уничтожение в зависимости от контекста (HTTP-запрос, сессия и т.п.).
+
+Гибкие механизмы DI: @Inject, @Produces, @Qualifier, @Alternative.
+
+Интерсепторы (@Interceptor, @AroundInvoke) и декораторы.
+
+CDI Events (@Observes, @ObservesAsync).
+
+Расширяемость через portable extensions (SPI).
+
+Чего в CDI нет «из коробки»:
+
+Управления транзакциями (нужно добавлять @Transactional через JTA).
+
+Таймеров, асинхронных методов.
+
+Встроенных распределённых возможностей (кластеринг, remote).
+
+CDI = лёгкие, модульные, гибкие бины для glue-code, DI и доменной логики.
+
+🔑 EJB (Enterprise Java Beans)
+
+Главная цель: дать готовый «enterprise-набор» (транзакции, безопасность, таймеры, распределённость).
+
+Типы: @Stateless, @Stateful, @Singleton, @MessageDriven.
+
+Что добавляют EJB поверх CDI:
+
+Транзакции по умолчанию (Container Managed Transactions, REQUIRED).
+→ Не нужно явно писать @Transactional, всё уже работает.
+
+Concurrency control: пуллинг статлесс-бинов, синхронизация для синглтонов.
+
+Timers: встроенный планировщик задач (@Schedule, TimerService).
+
+Asynchronous methods: @Asynchronous — метод уходит в отдельный поток.
+
+Security: декларативная ролевая безопасность (@RolesAllowed, @PermitAll).
+
+Remote access: возможность вызывать EJB удалённо через RMI/IIOP (хотя в реальной жизни сейчас почти не используется).
+
+Недостатки:
+
+Тяжелее и более «жёсткие» по сравнению с CDI.
+
+Меньше гибкости (например, только три вида жизненного цикла: stateless/stateful/singleton).
+
+Исторически ассоциируются с «старым Java EE монолитом».
+
+📊 Сравнение (реально, в работе)
+Фича	CDI бин	EJB бин
+DI / Scopes	✅ (очень гибкие)	Ограниченные (stateless/stateful)
+Транзакции	через @Transactional	✅ вшито, REQUIRED по умолчанию
+Таймеры	❌	✅ @Schedule
+Асинхронные вызовы	❌	✅ @Asynchronous
+Security (role-based)	через Interceptors	✅ встроено (@RolesAllowed)
+Remote / кластеринг	❌	✅ (но редко используется сейчас)
+Events	✅ CDI Events	❌ (нужно через JMS/обычное API)
+Лёгкость/совместимость	✅ современный стандарт	более тяжёлые, исторический багаж
+🧭 Как делают сейчас (Jakarta EE 10+)
+
+CDI = базовый фундамент (всё — CDI бин: сервисы, DAO, фильтры, утилиты).
+
+EJB используют только когда реально нужен их «enterprise-набор», например:
+
+Удобные таймеры → @Singleton @Schedule.
+
+Автоматические транзакции без JTA boilerplate.
+
+Асинхронные методы с retry.
+
+Всё остальное → CDI.
+
+👉 Итог:
+
+Если тебе нужны просто сервисы/DAO, DI и транзакции → бери CDI + JTA (@Transactional).
+
+Если нужны таймеры, асинхронность, declarative security, pooling → имеет смысл EJB.
+
+В Jakarta EE 10+ многие фичи EJB уже переносятся в CDI/стандарт (например, транзакции через jakarta.transaction.Transactional), поэтому тренд → CDI-first.
+
+
+========================================================================================================================
+
+ТИПЫ БИНОВ:
+
+В Jakarta EE 11 у тебя есть несколько «семейств» бинов, которые управляются контейнером. У каждого своя роль. Давай разложу:
+
+🔹 1. CDI Managed Beans (Contexts and Dependency Injection)
+
+Аннотации-сScope’ы:
+
+@ApplicationScoped – живёт всё приложение (singleton, но управляется CDI).
+
+@SessionScoped – на время HTTP-сессии.
+
+@RequestScoped – на время HTTP-запроса.
+
+@ConversationScoped – более «длинные» диалоги (редко используется).
+
+@Dependent – без собственного контекста, «живёт столько, сколько живёт потребитель».
+
+Особенности:
+
+Любой POJO может стать CDI-бином, если у него есть аннотация scope и он находится в bean-discovery archive.
+
+Поддержка @Inject, событий (@Observes), интерсепторов, декораторов.
+
+🔹 2. EJB (Enterprise Java Beans)
+
+(В Jakarta EE 11 тоже остались, хотя тренд уходит в CDI.)
+
+Типы:
+
+@Stateless – не хранит состояние, пуллинг контейнером.
+
+@Stateful – хранит состояние конкретного клиента (например, shopping cart).
+
+@Singleton – один на всё приложение, можно синхронизировать доступ.
+
+@MessageDriven – реагирует на JMS-сообщения (очереди/топики).
+
+Особенности:
+
+Автоматические транзакции (CMT).
+
+Безопасность (@RolesAllowed).
+
+Асинхронность (@Asynchronous).
+
+Таймеры (@Schedule).
+
+Возможность remote-вызовов.
+
+🔹 3. JAX-RS Resource Beans (REST endpoints)
+
+Аннотации: @Path, @GET, @POST, @PUT, @DELETE.
+
+Технически — это CDI-бин (@RequestScoped по умолчанию).
+
+Используются для REST API.
+
+🔹 4. Servlets / Filters / Listeners
+
+Servlet (@WebServlet) – обработка HTTP-запросов низкоуровнево.
+
+Filter (@WebFilter) – перехват/обработка запросов и ответов (CORS, логирование, аутентификация).
+
+Listener (@WebListener) – слушатели событий в контейнере (создание/удаление сессий, запуск приложения).
+
+🔹 5. WebSocket Endpoints
+
+@ServerEndpoint – серверный WebSocket (общение с клиентами в реальном времени).
+
+Можно инжектить CDI/EJB-бины внутрь.
+
+🔹 6. Faces / MVC Beans (если используешь JSF или Jakarta MVC)
+
+JSF Managed Beans (@Named, @ViewScoped, @SessionScoped, и т.д.).
+
+Сейчас это обычно CDI-бин с @Named, который доступен в EL (#{bean.property}).
+
+🔹 7. JPA Entities и Embeddables
+
+@Entity – маппинг на таблицу.
+
+@Embeddable – встраиваемый объект-значение (value object).
+
+@MappedSuperclass – базовый класс для сущностей.
+⚠️ Это не совсем «бин», но управляется JPA-контейнером.
+
+🔹 8. Bean Validation Beans
+
+Классы с аннотациями @NotNull, @Size, @Positive и т.д.
+
+Используются вместе с CDI/DTO/Entity для валидации.
+
+🔹 9. Other Jakarta EE Managed Components
+
+JMS Message-Driven Beans (@MessageDriven).
+
+Connectors (@Connector, JCA).
+
+Batch beans (Jakarta Batch API — @BatchProperty, ItemReader, ItemWriter).
+
+📊 Итого (главные группы бинов в Jakarta EE 11):
+
+CDI бины (универсальный стандарт, DI, события, scopes).
+
+EJB бины (транзакции, таймеры, асинхронность, remote).
+
+REST ресурсы (JAX-RS).
+
+Servlet/Filter/Listener.
+
+WebSocket endpoints.
+
+Faces/MVC бины (UI).
+
+JPA Entities (persisted objects).
+
+Bean Validation (валидация данных).
+
+Специализированные: Batch, JMS, JCA connectors.
+
+========================================================================================================================
+
+| Тип бина                    | Основные аннотации                                                                                      | Когда применять                                                                                                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CDI бины (DI/Scopes)**    | `@ApplicationScoped`, `@RequestScoped`, `@SessionScoped`, `@ConversationScoped`, `@Dependent`, `@Named` | Универсальные сервисы, утилиты, фасады бизнес-логики, доступные через DI. `@Named` — если бин нужен в JSF/EL.                                                             |
+| **EJB (Enterprise Beans)**  | `@Stateless`, `@Stateful`, `@Singleton`, `@MessageDriven`, `@Asynchronous`, `@Schedule`                 | Когда нужны: автоматическое управление транзакциями (CMT), таймеры, асинхронность, JMS, remote-вызовы. Например: банковские транзакции, job scheduler, очередь сообщений. |
+| **JAX-RS ресурсы (REST)**   | `@Path`, `@GET`, `@POST`, `@PUT`, `@DELETE`, `@Consumes`, `@Produces`                                   | API-эндпоинты для фронтенда или интеграции. Обычно `@RequestScoped`. Пример: `/api/vehicles`.                                                                             |
+| **Servlet**                 | `@WebServlet`                                                                                           | Низкоуровневый доступ к HTTP (нужно редко, если не хватает JAX-RS). Пример: отдача бинарных файлов.                                                                       |
+| **Filter (Servlet Filter)** | `@WebFilter`                                                                                            | Перехват HTTP-запросов/ответов. Для CORS, логирования, аутентификации.                                                                                                    |
+| **Listener**                | `@WebListener`                                                                                          | Отслеживание событий контейнера (создание сессий, запуск/остановка приложения).                                                                                           |
+| **WebSocket endpoint**      | `@ServerEndpoint`                                                                                       | Реалтайм-общение с клиентами (чат, уведомления, обновления таблиц в UI).                                                                                                  |
+| **JSF / MVC Managed Beans** | `@Named`, `@ViewScoped`, `@SessionScoped`, `@RequestScoped`                                             | Когда работаешь с Jakarta Faces/MVC и нужно биндить данные прямо в представление (`#{bean.property}`).                                                                    |
+| **JPA Entities**            | `@Entity`, `@Table`, `@Id`, `@GeneratedValue`, `@Embeddable`, `@MappedSuperclass`                       | Маппинг бизнес-объектов на таблицы БД. Только данные и простая логика.                                                                                                    |
+| **Bean Validation**         | `@NotNull`, `@Size`, `@Positive`, `@Pattern`, `@Email`                                                  | Для валидации DTO, форм, входных параметров REST. Автоматически интегрируется с JAX-RS, CDI, JPA.                                                                         |
+| **Batch (Jakarta Batch)**   | `@BatchProperty`, `ItemReader`, `ItemWriter`, `Job`, `Step`                                             | Массовая обработка данных (ETL, миграции, отчёты).                                                                                                                        |
+| **JMS / MDB**               | `@MessageDriven`                                                                                        | Асинхронная обработка сообщений из JMS очередей/топиков (например, логирование, уведомления).                                                                             |
+| **JCA Connector**           | `@Connector`, `@ActivationSpec`                                                                         | Когда нужно интегрироваться с внешними системами через Resource Adapter (редко используется напрямую).                                                                    |
+
+========================================================================================================================
+
+📌 Best practice в Jakarta EE 11:
+
+CDI — универсальный DI, используем «по умолчанию».
+
+EJB — только если нужны их специфические фичи (транзакции, таймеры, remote).
+
+REST/WebSocket — часть интерфейса, обычно CDI-managed.
+
+DAO — CDI/EJB @ApplicationScoped, в них @PersistenceContext EntityManager.
+
+Service — CDI/EJB @ApplicationScoped или @Stateless, бизнес-логика, orchestration.
+
+========================================================================================================================
