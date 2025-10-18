@@ -15,11 +15,13 @@
     - Паттерны проектирования
     - ООП
 - Java EE
-    - Servlets & JSP
+    - Servlets
+    - JSP
     - JPA & CDI
     - EJB, JMS
     - JAX-RS (REST)
 - Spring
+    - Spring Core
     - Spring Boot
     - Spring MVC
     - Spring Data
@@ -33,6 +35,7 @@
 ### Database
 
 - [Postgresql](./docs/database/postgresql.md)
+- Redis
 
 ### Software Engineering
 
@@ -55,6 +58,7 @@
 ### Linux
 
 - [Nginx](docs/linux/nginx.md)
+- [Git](docs/tools/git.md)
 - Администрирование
 - Система Linux
 - Диски и монтирование
@@ -65,7 +69,6 @@
 
 ### Tools
 
-- [Git](docs/tools/git.md)
 - SSH
 - rsync
 - Monitoring & Logging (Prometheus, Grafana)

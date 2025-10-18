@@ -126,7 +126,7 @@ server {
 
 
 ```
-sudo ln -s /etc/nginx/sites-available/example.com /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/example.com /etc/nginx/sites-enabled/example.com
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -137,4 +137,6 @@ sudo systemctl reload nginx
 sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d example.com
 ```
+
+`sudo systemctl enable --now certbot-renew.timer`
 

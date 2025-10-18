@@ -1,3 +1,223 @@
+# JSF
+
+Структура JSF приложения
+
+- JSP или XHTML страницы, содержащие компоненты GUi
+
+- Библиотека тегов - в них лежат доступные компоненты(теги) JSF
+
+- Управляемые бины
+
+- Дополнительные объекты (компоненты, конвертеры и валидаторы)
+
+- Дополнительные теги
+
+- Конфигурация - faces-config.xml (опционально, или аннотации)
+
+- Дескриптор развертывания - web.xml
+
+---
+
+бины управляются контенером - JSF runtime, не программистом
+
+MVC-модель JSF
+
+FacesServlet (как работает)
+
+конфигурация FacesServlet в web.xml
+
+Страницы и компоненты UI
+
+- Интерфейс строится из компонентов
+- Компоненты расположены на Facelets-шаблонах или JSP страницах
+- Компоненты реализуют интерфейс javax.faces.component.UIComponent
+- Можно создавать собственные компоненты
+- Компоненты на странице объединены в древовидную структуру - представление
+- Корневым элементов представления является экземпляр класса javax.faces.component.UIViewRoot.
+
+Пример:
+
+```xhtml
+<? xml version="1.0" encoding="UTF-8"?>
+<! DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+    xmlns:f="http://java.sun.com/jsf/core"
+    xmlns:h="http://java.sun.com/jsf/html">
+<h:body>
+    <h3>JSF 2.0 + Ajax Hello World Example</h3>
+    <h:form>
+        <h:inputText id="name" value="#{helloBean.name}"></h:inputText>
+        <h:commandButton value="Welcome Me">
+            <f:ajax execute="name" render="output" />
+        </h:commandButton>
+        <h2>
+            <h:outputText id="output" value="#{helloBean.sayWelcome}" />
+        </h2>
+    </h:form>
+</h:body>
+</html>
+```
+
+теги обычного html, подключен без тега, просто xmlns
+
+    xmlns="http://www.w3.org/1999/xhtml"
+
+дополнительные namespaces jsf/core под переменной f
+
+    xmlns:f="http://java.sun.com/jsf/core"
+
+дополнительные namespaces jsf/html под переменной h
+
+    xmlns:h="http://java.sun.com/jsf/html">
+
+
+есть клиент, где работает бразур и он не видит всех jsf теги, браузер на вход получает html, из xhtml FacesServlet преобразует в html путем цикла из xml (xhtml) переводит в html
+
+на каждой итерации запроса, FacesServlet занимается синхронизщацией состояния представления xhtml и DOM моделью html на клиенте
+
+приложение постоянно крутится в цикле и синхронизирует состояние
+
+
+## Навигация между страницами JSF
+
+Есть три способа
+
+1. Правила задаются в файле faces-config.xml:
+
+```xml
+<navigation-rule>
+    <from-view-id>/pages/a.xhtml</from-view-id>
+    <navigation-case>
+        <from-outcome>doRedirect</from-outcome>
+        <to-view-id>/pages/b.xhtml</to-view-id>
+    </navigation-case>
+    <navigation-case>
+        <to-view-id>/pages/c.xhtml</to-view-id>
+    </navigation-case>
+</navigation-rule>
+```
+
+То есть мы на странице a.xhtml вызываем doRedirect и переходим на страницу b.xhtml
+
+Этим способом мы можем задать свои URL, а не example.xhtml
+
+Пример перенаправления на другую страницу:
+
+```xml
+<h:commandButton id="submit" action="doRedirect" value="Submit" />
+```
+
+2. Правила задаются в методе action:
+
+```xml
+<h:commandButton id="submit" action="page/b.xhtml" value="Submit" />
+```
+
+## Управляемые бины
+
+- Содержат параметры и методы для обработки данных с компонентов
+
+- Используются для обработки событий UI и валидации данных
+
+- Жизненным циклом управляет JSF Runtime Envronment
+
+- Доступ из JSF-страниц осуществляется с помощью элементов EL
+
+- Конфигурация задаётся в faces-config.xml (JSF 1.Х), либо с помощью аннотаций (JSF 2.0)
+
+
+Пример:
+
+```java
+import javax.faces.bean.ManagedBean;
+import javax.faces.bean. SessionScoped;
+import java.io.Serializable;
+@ManagedBean
+@SessionScoped
+public class HelloBean implements Serializable {
+    private static final long serialVersionUID = 1L;
+    private String name;
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+    public String getSayWelcome(){
+        if("".equals(name) || name == null){
+            return "";
+        } else {
+            return "Ajax message : Welcome " + name;
+        }
+    }
+}
+```
+
+@ManagedBean - управляемый бин
+
+@SessionScoped - область видимости
+
+Конекст (scope) управляемых бинов
+
+Задаётся через faces-config.xml или с помощью аннотации.
+
+6 вариантов конфигурации:
+
+@NoneScoped - контекст не определён, жизненным циклом управляют другие бины.
+
+@RequestScoped (применяется по умолчанию) - контекст - запрос.
+
+@ViewScoped (JSF 2.0) - контекст - страница.
+
+@SessionScoped - контекст - сессия.
+
+@ApplicationScoped - контекст - приложение.
+
+@CustomScoped (JSF 2.0) - бин сохраняется в Мар; программист сам управляет его жизненным циклом.
+
+Конфигурация управляемых бинов
+
+Способ 1 - через faces-config.xml:
+
+```xml
+<managed-bean>
+    <managed-bean-name>customer</managed-bean-name>
+    <managed-bean-class>CustomerBean</managed-bean-class>
+    <managed-bean-scope>request</managed-bean-scope>
+    <managed-property>
+        <property-name>areaCode</property-name>
+        <value>#{initParam.defaultAreaCode}</value>
+    </managed-property>
+</managed-bean>
+```
+
+Способ 2 (JSF 2.0) - с помощью аннотаций:
+
+```java
+@ManagedBean(name="customer")
+@RequestScoped
+public class CustomerBean {
+    ...
+    @ManagedProperty(value="#{initParam.defaultAreaCode}" name="areaCode")
+    private String areaCode;
+    ..
+}
+```
+
+Доступ к управляемым бинам со страц приложения
+
+Осуществляется с помощью EL-выражений:
+
+```xhtml
+<h:inputText value="#{user.name}" validator="#{user.validate}" />
+<h:inputText binding="#{user.nameField}" />
+<h:commandButton action="#{user.save}" value="Save" />
+```
+
+
+---
+
 Технология JavaServer Faces. Особенности, отличия от сервлетов и JSP, преимущества и недостатки. Структура JSF-приложения.
 Использование JSP-страниц и Facelets-шаблонов в JSF-приложениях.
 JSF-компоненты - особенности реализации, иерархия классов. Дополнительные библиотеки компонентов. Модель обработки событий в JSF-приложениях.
@@ -140,7 +360,7 @@ import javax.faces.bean.RequestScoped;
 @ManagedBean
 @RequestScoped
 public class UserBean {
-    private String username;
+private String username;
 
     public String getUsername() {
         return username;
@@ -319,23 +539,23 @@ UIPanel: Для группировки компонентов (h:panelGroup).
 JSF поддерживает сторонние библиотеки компонентов, которые значительно расширяют стандартные возможности. Вот наиболее популярные:
 
 1. PrimeFaces
-Одна из самых популярных библиотек для JSF.
-Обеспечивает более 100 готовых компонентов, включая таблицы, диаграммы, календарь, меню, карусели и др.
-Поддержка AJAX и адаптивного дизайна.
+   Одна из самых популярных библиотек для JSF.
+   Обеспечивает более 100 готовых компонентов, включая таблицы, диаграммы, календарь, меню, карусели и др.
+   Поддержка AJAX и адаптивного дизайна.
 2. RichFaces
-Библиотека от JBoss, ориентированная на улучшение интерфейса.
-Включает расширенные компоненты, такие как деревья, вкладки и фильтры.
-Плотная интеграция с серверной логикой JSF.
+   Библиотека от JBoss, ориентированная на улучшение интерфейса.
+   Включает расширенные компоненты, такие как деревья, вкладки и фильтры.
+   Плотная интеграция с серверной логикой JSF.
 3. ICEfaces
-Специализируется на поддержке AJAX и рендеринге компонентов в реальном времени.
-Подходит для приложений с высокими требованиями к интерактивности.
+   Специализируется на поддержке AJAX и рендеринге компонентов в реальном времени.
+   Подходит для приложений с высокими требованиями к интерактивности.
 4. OmniFaces
-Это не библиотека компонентов, а набор утилит и расширений для JSF.
-Упрощает работу с JSF, предоставляя вспомогательные функции, такие как оптимизация навигации, кэширование и работа с ViewScoped.
+   Это не библиотека компонентов, а набор утилит и расширений для JSF.
+   Упрощает работу с JSF, предоставляя вспомогательные функции, такие как оптимизация навигации, кэширование и работа с ViewScoped.
 5. BootsFaces, MaterialFaces
-Обеспечивают интеграцию компонентов с CSS-фреймворками (например, Bootstrap, Material Design).
-Модель обработки событий в JSF-приложениях
-JSF использует событийно-ориентированную модель для обработки взаимодействий пользователя.
+   Обеспечивают интеграцию компонентов с CSS-фреймворками (например, Bootstrap, Material Design).
+   Модель обработки событий в JSF-приложениях
+   JSF использует событийно-ориентированную модель для обработки взаимодействий пользователя.
 
 Этапы жизненного цикла JSF-приложения
 Restore View (Восстановление представления)
@@ -377,15 +597,15 @@ xml
 Пример Value Change Event
 xml
 Копировать код
-<h:inputText value="#{userBean.username}" 
-             valueChangeListener="#{userBean.onUsernameChange}" />
+<h:inputText value="#{userBean.username}"
+valueChangeListener="#{userBean.onUsernameChange}" />
 Обработка события в бине
 java
 Копировать код
 @ManagedBean
 @RequestScoped
 public class UserBean {
-    private String username;
+private String username;
 
     public String getUsername() {
         return username;
@@ -439,7 +659,7 @@ javax.faces.convert.NumberConverter: Преобразование чисел в 
 xml
 Копировать код
 <h:inputText id="birthdate" value="#{userBean.birthdate}">
-    <f:convertDateTime pattern="dd/MM/yyyy" />
+<f:convertDateTime pattern="dd/MM/yyyy" />
 </h:inputText>
 Создание пользовательского конвертера
 Для создания своего конвертера необходимо реализовать интерфейс javax.faces.convert.Converter или унаследовать класс javax.faces.convert.ConverterBase.
@@ -470,8 +690,8 @@ public class UserConverter implements Converter {
 xml
 Копировать код
 <h:selectOneMenu value="#{userBean.selectedUser}">
-    <f:selectItems value="#{userBean.userList}" var="user" itemValue="#{user}" itemLabel="#{user.name}" />
-    <f:converter converterId="userConverter" />
+<f:selectItems value="#{userBean.userList}" var="user" itemValue="#{user}" itemLabel="#{user.name}" />
+<f:converter converterId="userConverter" />
 </h:selectOneMenu>
 Валидаторы (Validators)
 Валидаторы проверяют введённые пользователем данные на корректность. Если данные не проходят проверку, выбрасывается исключение ValidatorException, а пользователю отображается сообщение об ошибке.
@@ -492,13 +712,13 @@ RegexValidator: Проверяет соответствие строки рег�
 xml
 Копировать код
 <h:inputText id="username" value="#{userBean.username}">
-    <f:validateLength minimum="3" maximum="15" />
+<f:validateLength minimum="3" maximum="15" />
 </h:inputText>
 Пример: Валидация диапазона
 xml
 Копировать код
 <h:inputText id="age" value="#{userBean.age}">
-    <f:validateDoubleRange minimum="18" maximum="99" />
+<f:validateDoubleRange minimum="18" maximum="99" />
 </h:inputText>
 Создание пользовательского валидатора
 Для создания собственного валидатора необходимо реализовать интерфейс javax.faces.validator.Validator.
@@ -524,7 +744,7 @@ public class EmailValidator implements Validator {
 xml
 Копировать код
 <h:inputText id="email" value="#{userBean.email}">
-    <f:validator validatorId="emailValidator" />
+<f:validator validatorId="emailValidator" />
 </h:inputText>
 Обработка сообщений об ошибках
 Для отображения ошибок, возникающих при валидации или конвертации, используются следующие компоненты:
@@ -535,7 +755,7 @@ h:messages: Показывает все сообщения.
 xml
 Копировать код
 <h:inputText id="username" value="#{userBean.username}">
-    <f:validateLength minimum="3" maximum="15" />
+<f:validateLength minimum="3" maximum="15" />
 </h:inputText>
 <h:message for="username" style="color: red;" />
 Последовательность работы конвертеров и валидаторов
@@ -603,13 +823,13 @@ UIViewRoot является корнем дерева, от которого н�
 plaintext
 Копировать код
 UIViewRoot
- ├── UIForm
- │    ├── UIInput (e.g., h:inputText)
- │    ├── UICommand (e.g., h:commandButton)
- │    └── UIMessage (e.g., h:message)
- ├── UIPanel
- │    ├── UIOutput (e.g., h:outputText)
- │    └── ...
+├── UIForm
+│    ├── UIInput (e.g., h:inputText)
+│    ├── UICommand (e.g., h:commandButton)
+│    └── UIMessage (e.g., h:message)
+├── UIPanel
+│    ├── UIOutput (e.g., h:outputText)
+│    └── ...
 Пример работы с UIViewRoot в бэкенде
 Класс UIViewRoot доступен через контекст FacesContext:
 
@@ -719,7 +939,7 @@ ChatGPT
 
 Способы конфигурации управляемых бинов
 1. Использование аннотаций
-JSF 2.x активно использует аннотации для определения управляемых бинов.
+   JSF 2.x активно использует аннотации для определения управляемых бинов.
 
 @ManagedBean: Определяет класс как управляемый бин JSF.
 @RequestScoped, @ViewScoped, @SessionScoped, @ApplicationScoped: Указывают область видимости бина.
@@ -732,7 +952,7 @@ import javax.faces.bean.RequestScoped;
 @ManagedBean(name = "userBean")
 @RequestScoped
 public class UserBean {
-    private String name;
+private String name;
 
     public String getName() {
         return name;
@@ -747,7 +967,7 @@ public class UserBean {
     }
 }
 2. Использование CDI (Context and Dependency Injection)
-JSF 2.3 и новее поддерживают интеграцию с CDI.
+   JSF 2.3 и новее поддерживают интеграцию с CDI.
 
 @Named (из пакета javax.inject): Определяет бин.
 @RequestScoped, @SessionScoped, @ApplicationScoped (из пакета javax.enterprise.context): Указывают область видимости.
@@ -760,7 +980,7 @@ import javax.enterprise.context.RequestScoped;
 @Named("userBean")
 @RequestScoped
 public class UserBean {
-    private String name;
+private String name;
 
     public String getName() {
         return name;
@@ -775,15 +995,15 @@ public class UserBean {
     }
 }
 3. Конфигурация через XML
-Для устаревших проектов или для централизованной настройки можно использовать файл faces-config.xml.
+   Для устаревших проектов или для централизованной настройки можно использовать файл faces-config.xml.
 
 Пример:
 xml
 Копировать код
 <managed-bean>
-    <managed-bean-name>userBean</managed-bean-name>
-    <managed-bean-class>com.example.UserBean</managed-bean-class>
-    <managed-bean-scope>request</managed-bean-scope>
+<managed-bean-name>userBean</managed-bean-name>
+<managed-bean-class>com.example.UserBean</managed-bean-class>
+<managed-bean-scope>request</managed-bean-scope>
 </managed-bean>
 Контекст управляемых бинов (области видимости)
 JSF поддерживает несколько областей видимости, которые определяют жизненный цикл управляемого бина.
@@ -806,7 +1026,7 @@ import java.io.Serializable;
 @ManagedBean(name = "viewBean")
 @ViewScoped
 public class ViewBean implements Serializable {
-    private String value;
+private String value;
 
     public String getValue() {
         return value;
@@ -824,9 +1044,9 @@ JSF позволяет привязывать значения компонен�
 xml
 Копировать код
 <h:form>
-    <h:outputLabel value="Имя:" for="name" />
-    <h:inputText id="name" value="#{userBean.name}" />
-    <h:commandButton value="Отправить" action="#{userBean.submit}" />
+<h:outputLabel value="Имя:" for="name" />
+<h:inputText id="name" value="#{userBean.name}" />
+<h:commandButton value="Отправить" action="#{userBean.submit}" />
 </h:form>
 Динамическое отображение данных:
 Управляемые бины можно использовать для управления видимостью компонентов и динамическим отображением данных.
@@ -835,7 +1055,7 @@ xml
 xml
 Копировать код
 <h:form>
-    <h:outputText value="Добро пожаловать, #{userBean.name}!" rendered="#{not empty userBean.name}" />
+<h:outputText value="Добро пожаловать, #{userBean.name}!" rendered="#{not empty userBean.name}" />
 </h:form>
 Преимущества использования управляемых бинов
 Инкапсуляция логики:
@@ -895,9 +1115,9 @@ xml
 Копировать код
 <?xml version="1.0" encoding="UTF-8"?>
 <faces-config xmlns="http://xmlns.jcp.org/xml/ns/javaee"
-              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-              xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-facesconfig_2_3.xsd"
-              version="2.3">
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-facesconfig_2_3.xsd"
+version="2.3">
 
     <!-- Настройка управляемого бина -->
     <managed-bean>
@@ -956,9 +1176,9 @@ FacesServlet — это основной сервлет JSF, который уп
 xml
 Копировать код
 <servlet>
-    <servlet-name>FacesServlet</servlet-name>
-    <servlet-class>javax.faces.webapp.FacesServlet</servlet-class>
-    <load-on-startup>1</load-on-startup>
+<servlet-name>FacesServlet</servlet-name>
+<servlet-class>javax.faces.webapp.FacesServlet</servlet-class>
+<load-on-startup>1</load-on-startup>
 </servlet>
 
 <servlet-mapping>
@@ -993,10 +1213,10 @@ FacesServlet перехватывает запрос, совпадающий с 
 xml
 Копировать код
 <web-app xmlns="http://java.sun.com/xml/ns/javaee" version="3.0">
-    <context-param>
-        <param-name>javax.faces.PROJECT_STAGE</param-name>
-        <param-value>Development</param-value>
-    </context-param>
+<context-param>
+<param-name>javax.faces.PROJECT_STAGE</param-name>
+<param-value>Development</param-value>
+</context-param>
 
     <servlet>
         <servlet-name>FacesServlet</servlet-name>
@@ -1057,7 +1277,7 @@ ChatGPT
 
 Способы навигации
 1. Навигация по имени результата (Outcome-based Navigation)
-Этот способ основан на возвращаемом значении (outcome) метода действия в управляемом бине.
+   Этот способ основан на возвращаемом значении (outcome) метода действия в управляемом бине.
 
 Пример
 java
@@ -1065,9 +1285,9 @@ java
 @ManagedBean
 @RequestScoped
 public class NavigationBean {
-    public String navigateToWelcome() {
-        return "welcome"; // Имя страницы без расширения
-    }
+public String navigateToWelcome() {
+return "welcome"; // Имя страницы без расширения
+}
 }
 Вызов в JSF-странице
 xml
@@ -1075,7 +1295,7 @@ xml
 <h:commandButton value="Перейти" action="#{navigationBean.navigateToWelcome}" />
 Если метод возвращает "welcome", произойдёт переход на страницу welcome.xhtml.
 2. Статическая навигация через ссылки
-Прямые ссылки на страницы используются для простых переходов.
+   Прямые ссылки на страницы используются для простых переходов.
 
 Пример
 xml
@@ -1083,14 +1303,14 @@ xml
 <h:link value="Перейти на главную" outcome="index" />
 Атрибут outcome указывает имя страницы (без расширения).
 3. Динамическая навигация через метод действия
-Методы управляемых бинов могут возвращать не только имена страниц, но и дополнительные параметры или условия.
+   Методы управляемых бинов могут возвращать не только имена страниц, но и дополнительные параметры или условия.
 
 Пример с параметром
 java
 Копировать код
 public String navigateWithParam() {
-    FacesContext.getCurrentInstance().getExternalContext().getRequestMap().put("userId", 123);
-    return "userDetails";
+FacesContext.getCurrentInstance().getExternalContext().getRequestMap().put("userId", 123);
+return "userDetails";
 }
 Вызов в JSF-странице
 xml
@@ -1105,15 +1325,15 @@ xml
 xml
 Копировать код
 <navigation-rule>
-    <from-view-id>/login.xhtml</from-view-id>
-    <navigation-case>
-        <from-outcome>success</from-outcome>
-        <to-view-id>/welcome.xhtml</to-view-id>
-    </navigation-case>
-    <navigation-case>
-        <from-outcome>failure</from-outcome>
-        <to-view-id>/error.xhtml</to-view-id>
-    </navigation-case>
+<from-view-id>/login.xhtml</from-view-id>
+<navigation-case>
+<from-outcome>success</from-outcome>
+<to-view-id>/welcome.xhtml</to-view-id>
+</navigation-case>
+<navigation-case>
+<from-outcome>failure</from-outcome>
+<to-view-id>/error.xhtml</to-view-id>
+</navigation-case>
 </navigation-rule>
 Пояснения:
 <from-view-id>: Указывает страницу-источник навигации.
@@ -1128,9 +1348,9 @@ java
 @Named
 @RequestScoped
 public class NavigationBean {
-    public String navigateWithParams() {
-        return "welcome?faces-redirect=true&includeViewParams=true";
-    }
+public String navigateWithParams() {
+return "welcome?faces-redirect=true&includeViewParams=true";
+}
 }
 Вызов в JSF-странице
 xml
@@ -1143,7 +1363,7 @@ includeViewParams=true: Включает параметры страницы в 
 java
 Копировать код
 <h:link value="Профиль" outcome="userProfile">
-    <f:param name="userId" value="123" />
+<f:param name="userId" value="123" />
 </h:link>
 Получение параметров в бине
 java
@@ -1151,8 +1371,8 @@ java
 @Named
 @ViewScoped
 public class UserProfileBean implements Serializable {
-    @Inject
-    private FacesContext facesContext;
+@Inject
+private FacesContext facesContext;
 
     private String userId;
 
@@ -1172,15 +1392,15 @@ public class UserProfileBean implements Serializable {
 java
 Копировать код
 public String navigateToPage() {
-    return "welcome?faces-redirect=true";
+return "welcome?faces-redirect=true";
 }
 Редирект через файл конфигурации
 xml
 Копировать код
 <navigation-case>
-    <from-outcome>redirectToWelcome</from-outcome>
-    <to-view-id>/welcome.xhtml</to-view-id>
-    <redirect/>
+<from-outcome>redirectToWelcome</from-outcome>
+<to-view-id>/welcome.xhtml</to-view-id>
+<redirect/>
 </navigation-case>
 Преимущества навигации в JSF
 Гибкость:
@@ -1219,3 +1439,232 @@ xml
 Это упрощает передачу данных между страницами.
 
 Навигация в JSF-приложениях предоставляет мощные возможности для управления переходами между страницами, обеспечивая при этом удобную интеграцию с состоянием и данными компонентов.
+
+---
+
+
+UIComponent
+это базовый класс для всех компонентов UI
+UIViewRoot
+это корневой компонент для представления
+управляет иерархией компонентов
+все другие компоненты добавляются как дочерние элементы
+управляет состоянием представления
+сохраняет информацию о состоянии компонентов
+FacesServlet
+сервлет - обрабатывает запросы и управляет жизненным циклом JSF-приложения
+центральный элементом в архитектуре
+обрабатывает все HTTP-запросы
+отвечает за инициализацию JSF,
+управление жизненным циклом компонентов,
+обработку событий и рендеринг представлений.
+
+===============================================================================
+Полный жизненный цикл JSF
+
+Получение запроса (FacesServlet)
+запрос -> FacesServlet
+FacesServlet -> инициализирует необходимые компоненты и контексты для обработки запроса
+
+Восстановление представления (Restore View)
+FacesServlet -> проверяет, существует ли уже сохраненное состояние представления
+создается новый объект UIViewRoot
+else:
+FacesServlet восстанавливает его из сохраненного состояния
+
+Обработка ввода (Apply Request Values)
+Эти значения устанавливаются в свойства бинов
+
+Проверка данных (Process Validations)
+валидация
+
+Обновление модели (Update Model Values)
+валидация -> JSF обновляет значения в модели
+Значения, введенные пользователем, копируются в соответствующие поля бина
+
+Обработка событий (Invoke Application)
+JSF обрабатывает действия, связанные с пользовательским интерфейсом.
+Вызываются методы, привязанные к действиям компонентов
+
+Подготовка представления (Render Response)
+JSF готовит ответ для пользователя.
+JSF создает HTML-код
+
+
+    Когда приходит HTTP-запрос, JSF создает новый экземпляр UIViewRoot
+    В процессе восстановления состояния (Restore View) JSF восстанавливает состояние компонентов
+    Сохраняет информацию о том, какие данные были введены пользователем
+    В процессе обработки событий UIViewRoot управляет взаимодействием между компонентами и их состояниями
+    Когда все операции завершены, UIViewRoot генерирует HTML-код для ответа, который будет отправлен клиенту.
+===============================================================================
+
+
+
+
+
+- компонентная модель, каждый UI элемент - компонент
+- компоненты могут быть простыми (кнопки, текстовые поля) или сложными (таблицы, формы)
+- JSF управляет состоянием компонентов, сохраняя данные между запросами
+- компоненты определяются с помощью тегов, которые могут иметь различные атрибуты для настройки их поведения и внешнего вида
+- JSF-компоненты могут быть стилизованы с помощью CSS и могут быть адаптивными
+- компоненты могут генерировать события, такие как нажатие кнопки или изменение поля ввода, которые могут быть обработаны в бэкенде
+
+  UIComponent (методы для управления состоянием, рендерингом и обработкой событий)
+  ||||||
+  UIInput: Абстрактный класс для компонентов ввода (например, текстовые поля, флажки)
+  UICommand: Абстрактный класс для компонентов, которые инициируют действия
+  UIOutput: Класс для компонентов, которые отображают данные (например, текстовые метки)
+  UIForm: Компонент, который группирует другие компоненты ввода и управляет их состоянием
+
+  Дополнительные библиотеки компонентов
+  RichFaces: богатый набор компонентов для создания интерактивных веб-приложений
+  IceFaces: ориентированная на создание AJAX-приложений
+
+
+
+
+
+
+Конвертеры и валидаторы данных.
+Конвертеры - для преобразования данных между различными форматами. строку в объект и обратно.
+@FacesConverter("myConverter")
+public class MyConverter implements Converter {
+@Override
+public Object getAsObject(FacesContext context, UIComponent component, String value) {
+// Логика преобразования строки в объект
+if (value == null || value.isEmpty()) {
+return null;
+}
+return new MyObject(value); // Пример преобразования
+}
+
+        @Override
+        public String getAsString(FacesContext context, UIComponent component, Object value) {
+            // Логика преобразования объекта в строку
+            if (value == null) {
+                return "";
+            }
+            return ((MyObject) value).toString(); // Пример преобразования
+        }
+    }
+    <h:inputText value="#{bean.myObject}" converter="myConverter" />
+
+    Валидаторы - для проверки корректности данных, введенных пользователем.
+    @FacesValidator("myValidator")
+    public class MyValidator implements Validator {
+        @Override
+        public void validate(FacesContext context, UIComponent component, Object value) {
+            // Логика валидации
+            if (value == null || !(value instanceof String) || ((String) value).isEmpty()) {
+                FacesMessage msg = new FacesMessage("Validation failed", "Value cannot be empty");
+                throw new ValidatorException(msg);
+            }
+            // Дополнительные проверки
+        }
+    }
+    <h:inputText value="#{bean.myValue}" validator="myValidator" />
+
+
+
+
+
+
+MANAGED BEANS
+(@RequestScoped)        создается для обработки одного HTTP-запроса и уничтожается после завершения обработки этого запроса
+
+(@SessionScoped)        будет существовать до тех пор, пока сессия не завершится (например, пользователь не выйдет из системы или сессия не истечет)
+
+(@ViewScoped)           будет существовать до тех пор, пока пользователь находится на этой странице
+
+(@ApplicationScoped)    создается один раз для всего приложения и будет существовать до тех пор, пока приложение не будет остановлено
+
+(@Dependent)            создается каждый раз, когда он инъектируется в другой бин, не имеет своего жизненного цикла и уничтожается вместе с бином, в который он был инъектирован
+
+
+
+
+
+Доступ к БД из Java-приложений. Протокол JDBC, формирование запросов, работа с драйверами СУБД.
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+    public class JDBCExample {
+        public static void main(String[] args) {
+            String url = "jdbc:mysql://localhost:3306/mydatabase";
+            String user = "root";
+            String password = "password";
+            try {
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                try (Connection connection = DriverManager.getConnection(url, user, password)) {
+                    String query = "SELECT * FROM users WHERE age > ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+                        preparedStatement.setInt(1, 18);
+                        ResultSet resultSet = preparedStatement.executeQuery();
+                        while (resultSet.next()) {
+                            String name = resultSet.getString("name");
+                            int age = resultSet.getInt("age");
+                            System.out.println("Name: " + name + ", Age: " + age);
+                        }
+                        resultSet.close();
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+
+Библиотеки ORM Hibernate и EclipseLink. Особенности, API, сходства и отличия.
+Hibernate
+поддерживает множество баз данных + первый и второй уровень кэширования
+различные способы конфигурации (XML, аннотации, Java-код)
+HQL — позволяет писать запросы, используя объекты и их свойства вместо таблиц и столбцов
+хорошо интегрируется с Spring Framework
+поддерживает Criteria API для создания типобезопасных запросов
+Основные API
+Session: Основной интерфейс для взаимодействия с базой данных. Используется для операций CRUD
+SessionFactory: Интерфейс для создания объектов Session
+Transaction: Интерфейс для управления транзакциями
+Query: Интерфейс для выполнения HQL и JPQL-запросов
+Criteria: API для создания запросов с использованием объектно-ориентированного подхода
+EclipseLink
+официальная реализацией спецификации JPA и поддерживает все ее функции
+Поддержка NoSQL
+поддерживает множество типов данных, включая сложные и пользовательские типы
+хорошо интегрируется с Java EE
+Основные API
+EntityManager: Основной интерфейс для взаимодействия с контекстом персистенции
+EntityTransaction: Интерфейс для управления транзакциями
+Query: Интерфейс для выполнения JPQL-запросов
+CriteriaBuilder: Интерфейс для создания запросов с использованием Criteria API
+Сходства
+Реализация JPA
+Поддержка транзакций
+Кэширование
+Поддержка HQL/JPQL
+Отличия
+Поддержка NoSQL: EclipseLink
+Интеграция с Java EE:
+Hibernate: Может использоваться как в Java EE, так и в Java SE приложениях, но не является частью Java EE
+EclipseLink: Является частью Java EE и лучше интегрируется с этой платформой
+Кэширование:
+Hibernate: Предлагает более гибкие механизмы кэширования с поддержкой первого и второго уровней кэширования
+EclipseLink: Также поддерживает кэширование, но его механизмы могут быть менее гибкими по сравнению с Hibernate
+Производительность:
+Hibernate: В некоторых случаях может быть медленнее из-за более сложных механизмов кэширования и обработки
+EclipseLink: Может иметь преимущества в производительности в определенных сценариях, особенно в приложениях Java EE
+Документация и сообщество:
+Hibernate: имеет более широкое сообщество и обширную документацию, что делает его более доступным для разработчиков.
+EclipseLink: Хотя документация также хороша, сообщество может быть менее активным по сравнению с Hibernate.
+
+
+---
+
+

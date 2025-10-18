@@ -1,19 +1,124 @@
-# Java-EE
+у hibernate есть 2 API
+свой собственный и JPA
 
-## Темы
-- [Spring (Boot, WEB, MVC, Data, Security)]()
-- [ORM (Hibernate)]()
-- [Servlets]()
-- [JSF]()
-- [WEB Architecrute]()
-- [Контейнеры сервелетов (Apache Tomcat, Wildfly)]()
+можно писать как persistence.xml так и hibernate.cfg.xml
+
+у Hibernate действительно есть две API: собственная (native API) и JPA (Java Persistence API). Они используются для взаимодействия с базой данных, но отличаются своей спецификой.
+
+1. Собственная API Hibernate (Hibernate Native API)
+   Это оригинальный API, разработанный исключительно для Hibernate.
+   Предоставляет больше возможностей и гибкости, чем JPA, включая такие функции, как:
+   Кэширование второго уровня (Second Level Cache).
+   Собственные запросы HQL (Hibernate Query Language).
+   Более тонкий контроль за поведением сессии, транзакциями и работой с объектами.
+   Используется через класс Session из org.hibernate.Session, который предоставляет методы для выполнения операций CRUD и запросов.
+   Пример:
+
+Session session = sessionFactory.openSession();
+Transaction transaction = session.beginTransaction();
+
+Employee emp = new Employee();
+emp.setName("John Doe");
+emp.setSalary(50000);
+session.save(emp);
+
+transaction.commit();
+session.close();
+2. JPA API (Java Persistence API)
+   Это стандартная спецификация Java для работы с ORM (Object-Relational Mapping), поддерживаемая многими провайдерами (например, Hibernate, EclipseLink, OpenJPA).
+   Абстрагируется от конкретного провайдера (например, Hibernate), что упрощает миграцию между разными реализациями JPA.
+   Использует интерфейсы EntityManager, EntityTransaction и аннотации, такие как @Entity, @Table, @Column для описания моделей.
+   Пример:
+
+
+EntityManagerFactory emf = Persistence.createEntityManagerFactory("my-persistence-unit");
+EntityManager em = emf.createEntityManager();
+
+em.getTransaction().begin();
+
+Employee emp = new Employee();
+emp.setName("Jane Doe");
+emp.setSalary(60000);
+em.persist(emp);
+
+em.getTransaction().commit();
+em.close();
+Основные различия:
+Характеристика	            Hibernate API	                        JPA API
+Спецификация	            Проприетарный API Hibernate.	        Стандартная спецификация Java.
+Гибкость	                Более мощный и гибкий.	                Более ограниченный функционал.
+Зависимость от Hibernate	Привязан к Hibernate.	                Может использоваться с любым JPA-провайдером.
+Контроль за поведением	    Полный контроль через Session.	        Абстрагированный EntityManager.
+Кэширование	                Встроенная поддержка второго уровня.	Требуется настройка через провайдер.
+
+Вы можете использовать JPA для большей совместимости и стандартного подхода, а также подключать функции Hibernate API, когда нужно больше гибкости.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1. Использование Hibernate API:
+   С Hibernate вам действительно нужно явно создать SessionFactory и управлять его жизненным циклом. Ваш пример HibernateUtil показывает, как это делается:
+
+Инициализация: Используется Configuration().configure() для чтения файла hibernate.cfg.xml и создания SessionFactory.
+
+Закрытие ресурса: Поскольку SessionFactory занимает ресурсы (например, пул подключений), вы вручную закрываете его в @PreDestroy.
+
+CDI: Вы используете аннотацию @Produces, чтобы предоставить SessionFactory для инъекции, что удобно в приложении с CDI (Contexts and Dependency Injection).
+
+2. Использование JPA API:
+   Если вы используете JPA, и ваш JPA-провайдер (например, Hibernate) интегрирован в ваше приложение, процесс сильно упрощается:
+
+Инициализация: JPA берет на себя создание EntityManagerFactory и управление его жизненным циклом. Вы не инициализируете или закрываете ничего вручную.
+
+Инъекция EntityManager: С помощью аннотации @PersistenceContext, контейнер сам предоставляет и управляет EntityManager. Вам даже не нужно заботиться о создании или закрытии этого объекта.
+
+4. Основные различия:
+   Hibernate API	                                                        JPA API
+   Требует явной инициализации SessionFactory.	                            В контейнерах Jakarta EE можно использовать @PersistenceContext.
+   Полный контроль над SessionFactory и Session.	                        Контейнер управляет EntityManagerFactory и EntityManager.
+   Более сложное управление ресурсами.	                                    Простота за счет стандартизированного подхода.
+   Используется только в standalone-приложениях или при явной настройке.	Удобен для Jakarta EE или Spring-приложений.
+
+5. Рекомендация:
+   Если вы используете контейнер (например, Jakarta EE или Spring): Используйте JPA с @PersistenceContext, это проще и менее подвержено ошибкам.
+
+Если вы пишете standalone-приложение: Используйте JPA, но инициализируйте EntityManagerFactory вручную через Persistence.createEntityManagerFactory().
+
+Hibernate API стоит использовать только если вам нужны специфичные возможности Hibernate или вы полностью исключаете переносимость на другие ORM.
+
+
+
+
+
+
+
+
+
+Краткое сравнение подходов
+Особенность	                JPA (persistence.xml)	                Hibernate API (hibernate.cfg.xml)
+Стандарт	                Jakarta EE JPA	                        Hibernate-specific
+Конфигурация	            persistence.xml	                        hibernate.cfg.xml
+Инъекция	                @PersistenceContext (в контейнере)	    Ручное управление через SessionFactory
+Переносимость	            Высокая (работает с любым ORM)	        Низкая (только Hibernate)
+Сложность настройки	        Низкая (особенно в контейнерах)	        Выше (ручное управление)
+
+
 
 ---
-# Spring
 
-
-
----
 # Hibernate
 
 ORM (Object Realtional Mapping) - преобразование объектно-ориентированной модели в реляционную и наоборот
@@ -962,335 +1067,4 @@ count(имя свойства)
 
 
 ---
-# JSF
-
-Структура JSF приложения
-
-- JSP или XHTML страницы, содержащие компоненты GUi
-
-- Библиотека тегов - в них лежат доступные компоненты(теги) JSF
-
-- Управляемые бины
-
-- Дополнительные объекты (компоненты, конвертеры и валидаторы)
-
-- Дополнительные теги
-
-- Конфигурация - faces-config.xml (опционально, или аннотации)
-
-- Дескриптор развертывания - web.xml
-
----
-
-бины управляются контенером - JSF runtime, не программистом
-
-MVC-модель JSF
-
-FacesServlet (как работает)
-
-конфигурация FacesServlet в web.xml
-
-Страницы и компоненты UI
-
-- Интерфейс строится из компонентов
-- Компоненты расположены на Facelets-шаблонах или JSP страницах
-- Компоненты реализуют интерфейс javax.faces.component.UIComponent
-- Можно создавать собственные компоненты
-- Компоненты на странице объединены в древовидную структуру - представление
-- Корневым элементов представления является экземпляр класса javax.faces.component.UIViewRoot.
-
-Пример:
-
-```xhtml
-<? xml version="1.0" encoding="UTF-8"?>
-<! DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"
-    xmlns:f="http://java.sun.com/jsf/core"
-    xmlns:h="http://java.sun.com/jsf/html">
-<h:body>
-    <h3>JSF 2.0 + Ajax Hello World Example</h3>
-    <h:form>
-        <h:inputText id="name" value="#{helloBean.name}"></h:inputText>
-        <h:commandButton value="Welcome Me">
-            <f:ajax execute="name" render="output" />
-        </h:commandButton>
-        <h2>
-            <h:outputText id="output" value="#{helloBean.sayWelcome}" />
-        </h2>
-    </h:form>
-</h:body>
-</html>
-```
-
-теги обычного html, подключен без тега, просто xmlns
-
-    xmlns="http://www.w3.org/1999/xhtml"
-
-дополнительные namespaces jsf/core под переменной f
-
-    xmlns:f="http://java.sun.com/jsf/core"
-
-дополнительные namespaces jsf/html под переменной h
-
-    xmlns:h="http://java.sun.com/jsf/html">
-
-
-есть клиент, где работает бразур и он не видит всех jsf теги, браузер на вход получает html, из xhtml FacesServlet преобразует в html путем цикла из xml (xhtml) переводит в html
-
-на каждой итерации запроса, FacesServlet занимается синхронизщацией состояния представления xhtml и DOM моделью html на клиенте
-
-приложение постоянно крутится в цикле и синхронизирует состояние
-
-
-## Навигация между страницами JSF
-
-Есть три способа
-
-1. Правила задаются в файле faces-config.xml:
-
-```xml
-<navigation-rule>
-    <from-view-id>/pages/a.xhtml</from-view-id>
-    <navigation-case>
-        <from-outcome>doRedirect</from-outcome>
-        <to-view-id>/pages/b.xhtml</to-view-id>
-    </navigation-case>
-    <navigation-case>
-        <to-view-id>/pages/c.xhtml</to-view-id>
-    </navigation-case>
-</navigation-rule>
-```
-
-То есть мы на странице a.xhtml вызываем doRedirect и переходим на страницу b.xhtml
-
-Этим способом мы можем задать свои URL, а не example.xhtml
-
-Пример перенаправления на другую страницу:
-
-```xml
-<h:commandButton id="submit" action="doRedirect" value="Submit" />
-```
-
-2. Правила задаются в методе action:
-
-```xml
-<h:commandButton id="submit" action="page/b.xhtml" value="Submit" />
-```
-
-## Управляемые бины
-
-- Содержат параметры и методы для обработки данных с компонентов
-
-- Используются для обработки событий UI и валидации данных
-
-- Жизненным циклом управляет JSF Runtime Envronment
-
-- Доступ из JSF-страниц осуществляется с помощью элементов EL
-
-- Конфигурация задаётся в faces-config.xml (JSF 1.Х), либо с помощью аннотаций (JSF 2.0)
-
-
-Пример:
-
-```java
-import javax.faces.bean.ManagedBean;
-import javax.faces.bean. SessionScoped;
-import java.io.Serializable;
-@ManagedBean
-@SessionScoped
-public class HelloBean implements Serializable {
-    private static final long serialVersionUID = 1L;
-    private String name;
-    public String getName() {
-        return name;
-    }
-    public void setName(String name) {
-        this.name = name;
-    }
-    public String getSayWelcome(){
-        if("".equals(name) || name == null){
-            return "";
-        } else {
-            return "Ajax message : Welcome " + name;
-        }
-    }
-}
-```
-
-@ManagedBean - управляемый бин
-
-@SessionScoped - область видимости
-
-Конекст (scope) управляемых бинов
-
-Задаётся через faces-config.xml или с помощью аннотации.
-
-6 вариантов конфигурации:
-
-@NoneScoped - контекст не определён, жизненным циклом управляют другие бины.
-
-@RequestScoped (применяется по умолчанию) - контекст - запрос.
-
-@ViewScoped (JSF 2.0) - контекст - страница.
-
-@SessionScoped - контекст - сессия.
-
-@ApplicationScoped - контекст - приложение.
-
-@CustomScoped (JSF 2.0) - бин сохраняется в Мар; программист сам управляет его жизненным циклом.
-
-Конфигурация управляемых бинов
-
-Способ 1 - через faces-config.xml:
-
-```xml
-<managed-bean>
-    <managed-bean-name>customer</managed-bean-name>
-    <managed-bean-class>CustomerBean</managed-bean-class>
-    <managed-bean-scope>request</managed-bean-scope>
-    <managed-property>
-        <property-name>areaCode</property-name>
-        <value>#{initParam.defaultAreaCode}</value>
-    </managed-property>
-</managed-bean>
-```
-
-Способ 2 (JSF 2.0) - с помощью аннотаций:
-
-```java
-@ManagedBean(name="customer")
-@RequestScoped
-public class CustomerBean {
-    ...
-    @ManagedProperty(value="#{initParam.defaultAreaCode}" name="areaCode")
-    private String areaCode;
-    ..
-}
-```
-
-Доступ к управляемым бинам со страц приложения
-
-Осуществляется с помощью EL-выражений:
-
-```xhtml
-<h:inputText value="#{user.name}" validator="#{user.validate}" />
-<h:inputText binding="#{user.nameField}" />
-<h:commandButton action="#{user.save}" value="Save" />
-```
-
-
-
-# SPRING DATA:
-
-Да, в Java Spring можно использовать Hibernate вместе с Spring Data. Spring Data предоставляет абстракцию для работы с данными, и в частности, Spring Data JPA позволяет использовать Hibernate как реализацию JPA (Java Persistence API). Таким образом, вы можете использовать возможности Hibernate, такие как управление сессиями и кэширование, в сочетании с удобными репозиториями, которые предоставляет Spring Data.
-
-Spring Data не является ORM (Object-Relational Mapping) сам по себе, но он предоставляет удобный интерфейс для работы с ORM, такими как Hibernate. Spring Data JPA, в частности, упрощает работу с JPA и позволяет вам легко создавать репозитории для работы с базой данных.
-
-Что касается вашего конфигурационного файла, вот что в нем происходит:
-
-spring.datasource.url: Указывает URL для подключения к базе данных PostgreSQL. В данном случае это jdbc:postgresql://ramil21.ru:5432/web_lab4.
-
-spring.datasource.username: Указывает имя пользователя для подключения к базе данных.
-
-spring.datasource.password: Указывает пароль для подключения к базе данных.
-
-spring.datasource.driver-class-name: Указывает класс драйвера для подключения к PostgreSQL. В данном случае это org.postgresql.Driver.
-
-spring.jpa.hibernate.ddl-auto: Указывает, как Hibernate должен управлять схемой базы данных. Значение update означает, что Hibernate будет обновлять схему базы данных при каждом запуске приложения, добавляя новые таблицы и столбцы, если они были добавлены в коде.
-
-spring.jpa.show-sql: Если установлено в true, Hibernate будет выводить SQL-запросы, которые он выполняет, в консоль. Это полезно для отладки.
-
-spring.jpa.properties.hibernate.dialect: Указывает диалект Hibernate для PostgreSQL, что позволяет Hibernate правильно генерировать SQL-запросы для этой базы данных.
-
-spring.jpa.properties.hibernate.format_sql: Если установлено в true, SQL-запросы, выводимые в консоль, будут отформатированы для лучшей читаемости.
-
-Таким образом, этот конфигурационный файл настраивает подключение к базе данных PostgreSQL и конфигурирует Hibernate для работы с этой базой данных в контексте Spring приложения.
-
-<dependencies>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.postgresql</groupId>
-        <artifactId>postgresql</artifactId>
-        <scope>runtime</scope>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-</dependencies>
-
-
-spring.datasource.url=jdbc:postgresql://localhost:5432/your_database_name
-spring.datasource.username=your_username
-spring.datasource.password=your_password
-spring.datasource.driver-class-name=org.postgresql.Driver
-
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
-spring.jpa.properties.hibernate.format_sql=true
-
-
-3. Создание модели данных
-
-4. Создание репозитория
-   import org.springframework.data.jpa.repository.JpaRepository;
-
-public interface EmployeeRepository extends JpaRepository<Employee, Long> {
-// Вы можете добавить дополнительные методы для поиска, если это необходимо
-}
-Да, spring-boot-starter-data-jpa — это стартер для Spring Data JPA, который предоставляет интеграцию с JPA (Java Persistence API) и, как правило, используется с Hibernate в качестве реализации JPA. Давайте разберем, как это работает и как все компоненты взаимодействуют друг с другом.
-
-Что такое Spring Data?
-Spring Data — это проект в экосистеме Spring, который упрощает работу с различными источниками данных, такими как реляционные базы данных, NoSQL базы данных, и даже хранилища данных, такие как Redis. Основная цель Spring Data — упростить доступ к данным и уменьшить количество шаблонного кода, который необходимо писать для работы с базами данных.
-
-Spring Data JPA
-Spring Data JPA — это часть Spring Data, которая предоставляет абстракцию для работы с реляционными базами данных через JPA. JPA — это спецификация, которая определяет, как управлять объектами и их состоянием в реляционных базах данных. Hibernate является одной из самых популярных реализаций JPA.
-
-Как это работает?
-Зависимости: Когда вы добавляете spring-boot-starter-data-jpa в ваш проект, вы получаете все необходимые зависимости для работы с Spring Data JPA, включая Hibernate. Spring Boot автоматически настраивает Hibernate как реализацию JPA, если он обнаруживает соответствующие зависимости.
-
-Конфигурация: В файле application.properties вы настраиваете параметры подключения к базе данных и конфигурацию Hibernate. Например, вы указываете URL базы данных, имя пользователя, пароль и параметры, такие как spring.jpa.hibernate.ddl-auto, которые управляют поведением Hibernate в отношении схемы базы данных.
-
-Модели: Вы создаете классы сущностей (например, Employee), которые представляют таблицы в вашей базе данных. Эти классы аннотируются с помощью JPA аннотаций, таких как @Entity, @Table, @Id, и т.д.
-
-Репозитории: Вы создаете интерфейсы репозиториев, которые наследуют от JpaRepository. Эти интерфейсы предоставляют методы для выполнения операций CRUD (создание, чтение, обновление, удаление) без необходимости писать реализацию. Spring Data автоматически генерирует реализацию этих методов на основе именования.
-
-Контроллеры: Вы создаете контроллеры, которые обрабатывают HTTP-запросы и используют репозитории для взаимодействия с базой данных. Например, вы можете создать метод для получения всех сотрудников или для добавления нового сотрудника.
-
-Пример работы
-Когда вы вызываете метод репозитория, например employeeRepository.findAll(), Spring Data JPA:
-
-Генерирует SQL-запрос на основе метода.
-Отправляет этот запрос в базу данных через Hibernate.
-Hibernate выполняет запрос и возвращает результаты.
-Spring Data JPA преобразует результаты в объекты Java (например, список объектов Employee).
-Таким образом, spring-boot-starter-data-jpa объединяет Spring Data, JPA и Hibernate, чтобы упростить работу с реляционными базами данных, позволяя вам сосредоточиться на бизнес-логике вашего приложения, а не на деталях доступа к данным.
-
-Да, по умолчанию в Spring Data JPA используется Hibernate в качестве реализации JPA (Java Persistence API). Когда вы добавляете зависимость spring-boot-starter-data-jpa в ваш проект Spring Boot, Hibernate автоматически включается как реализация JPA, если он доступен в класспасе.
-
-Как это работает:
-Автоматическая конфигурация: Spring Boot использует механизм автоматической конфигурации, чтобы настроить Hibernate, если он обнаруживает, что вы используете Spring Data JPA и у вас есть соответствующие зависимости. Это означает, что вам не нужно вручную настраивать Hibernate, если вы используете стандартные настройки.
-
-Зависимости: Когда вы добавляете spring-boot-starter-data-jpa, Spring Boot автоматически добавляет необходимые зависимости, включая Hibernate. Например, в случае Maven, в pom.xml будет добавлена зависимость на Hibernate, а также на другие необходимые библиотеки.
-
-Конфигурация: Вы можете настроить поведение Hibernate через файл application.properties или application.yml, как вы делали в предыдущих примерах. Например, вы можете указать, как Hibernate должен управлять схемой базы данных (например, spring.jpa.hibernate.ddl-auto=update), а также другие параметры, такие как диалект SQL.
-
-Использование аннотаций JPA: Вы используете аннотации JPA (например, @Entity, @Table, @Id и т.д.) для определения ваших сущностей, и Hibernate будет обрабатывать эти аннотации для управления объектами и их состоянием в базе данных.
-
-
-
-
-
-
-
-
-
-
-
-
 
