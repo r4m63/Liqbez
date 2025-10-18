@@ -1,3 +1,180 @@
+
+
+
+Есть два основных подхода:
+
+- Через persistence.xml (классический для JPA).
+- Через hibernate.cfg.xml или Java-конфигурацию (при работе с «чистым» Hibernate).
+
+
+### hibernate.cfg.xml (Native Hibernate)
+
+Если вы не используете JPA API, а подключаетесь напрямую к Hibernate, необходим `hibernate.cfg.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "https://hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+        <!-- JDBC -->
+        <property name="hibernate.connection.driver_class">org.postgresql.Driver</property>
+        <property name="hibernate.connection.url">jdbc:postgresql://localhost:5432/mydb</property>
+        <property name="hibernate.connection.username">myuser</property>
+        <property name="hibernate.connection.password">mypassword</property>
+
+        <!-- Dialect -->
+        <property name="hibernate.dialect">org.hibernate.dialect.PostgreSQLDialect</property>
+
+        <!-- DDL -->
+        <property name="hibernate.hbm2ddl.auto">update</property>
+
+        <!-- Логирование -->
+        <property name="hibernate.show_sql">true</property>
+        <property name="hibernate.format_sql">true</property>
+
+        <!-- Кэш второго уровня -->
+        <property name="hibernate.cache.use_second_level_cache">true</property>
+        <property name="hibernate.cache.region.factory_class">
+            org.hibernate.cache.jcache.JCacheRegionFactory
+        </property>
+        <property name="hibernate.javax.cache.uri">ehcache.xml</property>
+
+        <!-- Указываем пакеты/классы -->
+        <mapping class="com.example.domain.User"/>
+        <mapping class="com.example.domain.Order"/>
+        <!-- Или сканируем пакет через аннотации: -->
+        <!--<mapping package="com.example.domain"/>-->
+    </session-factory>
+</hibernate-configuration>
+```
+
+
+
+
+## Hibernate-specific аннотации для оптимизации запросов
+
+- `@Fetch`
+  - Пакет: `org.hibernate.annotations.Fetch`
+  - Используется вместе с: `@OneToMany`, `@ManyToMany`, `@OneToOne`, `@ManyToOne` (хотя для ManyToOne/OneToOne чаще
+    @Fetch(FetchMode.JOIN) не нужен).
+  - Атрибуты:
+    - value — FetchMode:
+      - JOIN — явный JOIN в SQL при загрузке.
+      - SELECT — традиционная «ленивая» выборка (может вызвать N+1).
+      - SUBSELECT — Hibernate использует WHERE id IN (…) для пакетной загрузки.
+  - Пример:
+    ```java
+    @OneToMany(mappedBy = "order")
+    @Fetch(FetchMode.SUBSELECT)
+    private List<OrderItem> items;
+    ```
+  - При загрузке списка заказов Hibernate сначала выберет все orders, а потом разом подгрузит order_items через
+    IN (…).
+
+- `@BatchSize`
+  - Пакет: `org.hibernate.annotations.BatchSize`
+  - Атрибуты:
+    - size — int. Число записей, которые Hibernate будет загружать одним запросом при ленивой выборке коллекций или
+      связанных сущностей.
+  - Пример для коллекций:
+     ```
+     @OneToMany(mappedBy = "order")
+     @BatchSize(size = 20)
+     private List<OrderItem> items;
+     ```
+    - Если у вас есть 50 заказов и вы вызываете getItems() для каждого, Hibernate группирует их по 20, выполняя
+      примерно 3 запроса вместо 50 (N+1).
+  - Пример для сущностей:
+     ```
+     @Entity
+     @BatchSize(size = 50)
+     public class Product { … }
+     ```
+    - Когда лениво загружается Product через прокси, Hibernate сразу загрузит 50 записей по id IN (…) вместо одной.
+
+- `@LazyToOne`
+  - Пакет: `org.hibernate.annotations.LazyToOne` и `org.hibernate.annotations.LazyToOneOption`
+  - Назначение: позволяет сделать @OneToOne или @ManyToOne действительно ленивой без bytecode enhancement (с помощью
+    прокси-обёртки).
+  - Опции:
+    - NO_PROXY — Hibernate создаёт прокси на связанный объект.
+    - PROXY — аналогично NO_PROXY.
+    - FALSE — эквивалент EAGER.
+  - Пример:
+     ```java
+     @OneToOne(fetch = FetchType.LAZY)
+     @LazyToOne(LazyToOneOption.NO_PROXY)
+     @JoinColumn(name = "profile_id")
+     private UserProfile profile;
+     ```
+
+
+- `@FetchProfile`
+  - Пакет: `org.hibernate.annotations.FetchProfile` и `org.hibernate.annotations.FetchMode`
+  - Назначение: позволяет заранее описать профили «fetch-plan» (какие связи JOIN FETCH выполнять) и активировать их в
+    коде.
+  - Атрибуты:
+    - name — имя профиля.
+    - fetchOverrides — массив @FetchProfile.FetchOverride, в котором указываются entity, association, mode (JOIN) и
+      т.п.
+  - Пример:
+    ```
+    @FetchProfile(
+       name = "order-with-items",
+       fetchOverrides = {
+          @FetchProfile.FetchOverride(
+             entity = Order.class,
+             association = "items",
+             mode = FetchMode.JOIN
+          )
+       }
+    )
+    @Entity
+    public class Order { … }
+    ```
+  - В коде:
+     ```
+     session.enableFetchProfile("order-with-items");
+     Order o = session.get(Order.class, id);
+     // При загрузке Order Hibernate выполнит JOIN с order_items.
+     ```
+
+
+- `@Formula`
+  - Пакет: `org.hibernate.annotations.Formula`
+  - Назначение: позволяет «привязать» вычисляемое поле: SQL-выражение, которое Hibernate вставляет в SELECT.
+  - Атрибуты:
+    - value — SQL-выражение, возвращающее одиночное значение.
+  - Пример:
+     ```
+     @Entity
+     public class Order {
+     @Id
+     private Long id;
+     
+         // Вычисляемое поле «количество товаров»:
+         @Formula("(SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = id)")
+         private int itemCount;
+     }
+   ```
+   - При выборке Order Hibernate подставит подзапрос и вернёт itemCount вместе с остальными колонками.
+
+## Hibernate-specific Аннотации классов
+
+- `@org.hibernate.annotations.Cache` Конфигурация L2-кэша конкретной сущности
+  - `usage`
+    @DynamicInsert / @DynamicUpdate
+    Генерация SQL для INSERT/UPDATE только по непустым или изменившимся полям.
+
+- `@SelectBeforeUpdate` Перед выполнением UPDATE выполняет SELECT, чтобы понять, нужно ли вообще обновлять строку.
+- `@OptimisticLocking` Настройка оптимистической блокировки (VERSION или поля-считывателя).
+- `@Subselect` Маппинг сущности на подзапрос.
+- `@Formula` Виртуальное поле, выражение SQL, вычисляемое в запросе.
+- `@FilterDef`, `@Filter` Фильтры, активируемые на уровне сессии.
+
+
 @Enumerated
 @OneToMany, @ManyToOne, @OneToOne, @ManyToMany
 orphanRemoval = true – автоматическое удаление "осиротевших" записей.

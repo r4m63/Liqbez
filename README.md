@@ -20,6 +20,8 @@
     - JPA & CDI
     - EJB, JMS
     - JAX-RS (REST)
+    - [JPA](./docs/java/java-ee/jpa.md)
+    - [Hibernate](./docs/java/java-ee/hibernate.md)
 - Spring
     - Spring Core
     - Spring Boot
