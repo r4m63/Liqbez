@@ -1,8 +1,6 @@
 # System Design
 
-Ни один стандарт не диктует «канонический» чек-лист для System Design, но есть базовая норма ISO/IEC/IEEE 42010:2022.
-ISO/IEC/IEEE 42010:2022 не содержит фиксированного списка. Стандарт даёт лишь метамодель — вводит термины stakeholder →
-concern → viewpoint → view и описывает процесс работы с ними, но никогда не диктует, какие именно concerns нужно иметь.
+Ни один стандарт не диктует канонический чек-лист для System Design, но есть базовая норма ISO/IEC/IEEE 42010:2022.
 
 - **Stakeholder** - Любой человек / роль, кому **не всё равно**, что будет с системой (Пользователь, Product-owner,
   DevOps, регулятор).
@@ -15,17 +13,8 @@ concern → viewpoint → view и описывает процесс работы
 
 ## Слои архитектурного дизайна
 
-Ниже - практический чек-лист, составленный из наиболее частых вопросов системной архитектуры. Он:
-
-- Совместим с ISO/IEC/IEEE 42010:2022 — каждый пункт можно оформить как concern и выбрать/создать для него viewpoint.
-- Но не является частью самого стандарта — это авторская (или отраслево-популярная) подборка тем, полезная в реальных
-  проектах.
-- Поэтому ссылаться на него можно как на «internal concern catalogue» или «architecture checklist», а не как на
-  «приложение к ISO 42010».
-
 | №  | Срез (concern)                                                                                        | Вопрос, на который отвечает                                                                                                                                                                            | Типовые варианты / решения                                                                                                                                                                                                                                                   |
 |----|-------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 0  | **Context / Stakeholders**                                                                            | Кто взаимодействует? Какие цели?*                                                                                                                                                                      | Stakeholder-map, System-Context диаграмма                                                                                                                                                                                                                                    |
 | 1  | **[Deployment/Topology (Macro-Architecture)](./macro-deployment-architecture.md)**                    | Описывает грубое разбиение системы на процессы/службы и их расположение в инфраструктуре. <br/>Сколько исполняемых единиц? <br/>Как они взаимодействуют между собой и где развёрнуты? как расставлены? | Монолит, Слойный монолит / 3-Tier, SOA (Service-Oriented Architecture), Microservices, Self-Contained Systems (SCS), Backend-for-Frontend (BFF), Event-Driven / EDA (в т. ч. CQRS + Event Sourcing), Serverless / FaaS, Actor-Model Cluster, Pipes & Filters / Data-Pipeline |
 | 2  | **[Communication & API Style (Macro-Architecture)](./macro-communication-api-style-architecture.md)** | Как сервисы общаются и описывают контракты? Описывает: Модель взаимодействия, Форматы сообщений                                                                                                        | REST, RPC, gRPC GraphQL, SOAP, WebSockets                                                                                                                                                                                                                                    |
 | 3  | **[Data Architecture](./data-structure.md)**                                                          | Как храним данные?                                                                                                                                                                                     | RDBMS (OLTP) • NoSQL (KV, Doc, Wide-col) • TimeSeries • Graph DB • Polyglot • Sharding • Replication • Caching (Redis) • Event Store                                                                                                                                         |
@@ -39,23 +28,6 @@ concern → viewpoint → view и описывает процесс работы
 | 11 | **Infrastructure Platform**                                                                           | На чём всё крутится?                                                                                                                                                                                   | Bare-metal • VMs • Containers (Docker) • Orchestration (K8s, Nomad) • Cloud PaaS                                                                                                                                                                                             |
 | 12 | **Governance & Compliance**                                                                           | Какие нормы и процессы?                                                                                                                                                                                | Docs, ADR, API-Versioning, RBAC, Audit, GDPR                                                                                                                                                                                                                                 |
 
-## Шаблоны описания архитектуры
-
-| Шаблон / фреймворк описания архитектуры | Что это за модель / для какого уровня                                                                      | Ключевые виды / разделы                                    | Где чаще применяют                                  |
-|-----------------------------------------|------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|-----------------------------------------------------|
-| **ISO/IEC/IEEE 42010** (стандарт)       | Метамодель «stakeholder → concern → viewpoint → view»; задаёт процесс, **не** диктует конкретные диаграммы | Определяете свои viewpoint-ы под проект                    | Любые отрасли как «рамка над рамками»               |
-| **4 + 1 View Model** (Kruchten)         | 5 проекций: Logical, Development, Process, Physical + Scenarios                                            | UML/SysML диаграммы                                        | Корпоративные веб- и desktop-системы (RUP-наследие) |
-| **C4 Model** (Simon Brown)              | 4 уровня «зум»: Context → Container → Component → Code                                                     | Простой блок-нотейшн, PlantUML / Structurizr DSL           | Cloud-native, microservices, Docs-as-Code           |
-| **arc42 Template**                      | 12 разделов документа + cross-cutting concepts                                                             | markdown/AsciiDoc скелет; подпадает под ISO 42010          | DACH-рынок, EU-стартапы; хорошо для «живой» wiki    |
-| **SEI Views & Beyond**                  | Каталог view: Module, Component-&-Connector, Allocation                                                    | Доп. гайд по качественным атрибутам (ATAM)                 | Гос-подряды США, safety-critical                    |
-| **TOGAF ADM + ArchiMate**               | Enterprise-EA: Business, Application, Technology, Motivation, Implementation                               | 30+ видов в нотации ArchiMate                              | Large enterprise / digital-transformation           |
-| **Zachman Framework**                   | 6×6 матрица «Что-Как-Где-Кто-Когда-Почему» × уровни абстракции                                             | Таблица артефактов, без своей графики                      | Стратегическая EA, аудит, консалтинг                |
-| **DoDAF 2.0**                           | Оборонный набор view: Operational, System, Technical                                                       | 50+ строго типизированных моделей                          | Аэрокосмос, военные контракты США                   |
-| **MODAF / NAF / TRAK**                  | Модификации DoDAF (UK MoD, NATO)                                                                           | Аналогичные системные/операционные виды                    | Оборонка ЕС / НАТО                                  |
-| **FEAF** (US Federal EA)                | Reference models: Performance, Business, Service, Data, Tech                                               | XML/CSV каталоги + диаграммы                               | Федеральные ведомства США                           |
-| **OBASHI**                              | Потоки данных через бизнес-активы (B–>IT)                                                                  | B\&IT diagrams (green/blue)                                | Энергетика, телеком, GDPR-data-mapping              |
-| **SABSA**                               | Security-architecture framework (слои + домены)                                                            | Контекст, Conceptual, Logical… × Governance, Service, etc. | Банковский, критичный security-домен                |
-| **BIZBOK**                              | Бизнес-архитектура (более верхний уровень)                                                                 | Capability maps, Value Streams, Org/Info                   | Large enterprise для связи IT↔Business              |
 
 ### 4+1 View Model - Классика UML
 
@@ -74,10 +46,4 @@ concern → viewpoint → view и описывает процесс работы
 | **Process View**<br>(рантайм-поведение, параллелизм)          | **Scaling & Performance** – пулы, очередь, latency SLO.<br>• **Fault-Tolerance & Resilience** – retries, circuit breakers.<br>• **Consistency & Transactions** – фазы Saga / 2PC во время исполнения.<br>• **Security** (поток токенов, ACL runtime).<br>• **Observability** – логи, трейсинг, алерты на процессы.<br>• **Transport / Protocol** – синхр./асинхронные вызовы, time-outs. | Показывает *что происходит* при выполнении сценария: очереди, потоки, ошибки.                     |
 | **Physical View**<br>(развёртывание на инфраструктуре)        | **Deployment / Topology** – контейнеры, ВМ, кластера.<br>• **Infrastructure Platform** – K8s, bare-metal, cloud PaaS.<br>• **Transport / Protocol** – реальные порты, TLS, LB.<br>• **Security** (сетевые сегменты, mTLS).<br>• **Observability** (метрики узлов).<br>• **Scaling / Resilience** (авто-скейлинг групп, DR-зоны).                                                         | Отвечает «где именно крутится» и «какие сети / узлы связаны».                                     |
 | **+ 1 Scenarios / Use Cases**                                 | Сквозные бизнес-потоки, взятые из **Context / Stakeholders**; на практике — 5-10 секвенс-диаграмм или текстовых юз-кейс-шагов.                                                                                                                                                                                                                                                           | Проверяет, что четыре вида выше действительно совместно решают задачи.                            |
-
-Когда целесообразно использовать 4+1
-
-- 3–7 кросс-функциональных команд, проект живёт ≥ 2 лет
-- В компании уже есть UML-культура / RUP-наследие
-- Требуется формальный архитектурный пакет для тендера / аудита
 

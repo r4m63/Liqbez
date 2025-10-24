@@ -1,11 +1,7 @@
-
-
-
 Есть два основных подхода:
 
 - Через persistence.xml (классический для JPA).
 - Через hibernate.cfg.xml или Java-конфигурацию (при работе с «чистым» Hibernate).
-
 
 ### hibernate.cfg.xml (Native Hibernate)
 
@@ -50,130 +46,126 @@
 </hibernate-configuration>
 ```
 
-
-
-
 ## Hibernate-specific аннотации для оптимизации запросов
 
 - `@Fetch`
-  - Пакет: `org.hibernate.annotations.Fetch`
-  - Используется вместе с: `@OneToMany`, `@ManyToMany`, `@OneToOne`, `@ManyToOne` (хотя для ManyToOne/OneToOne чаще
-    @Fetch(FetchMode.JOIN) не нужен).
-  - Атрибуты:
-    - value — FetchMode:
-      - JOIN — явный JOIN в SQL при загрузке.
-      - SELECT — традиционная «ленивая» выборка (может вызвать N+1).
-      - SUBSELECT — Hibernate использует WHERE id IN (…) для пакетной загрузки.
-  - Пример:
-    ```java
-    @OneToMany(mappedBy = "order")
-    @Fetch(FetchMode.SUBSELECT)
-    private List<OrderItem> items;
-    ```
-  - При загрузке списка заказов Hibernate сначала выберет все orders, а потом разом подгрузит order_items через
-    IN (…).
+    - Пакет: `org.hibernate.annotations.Fetch`
+    - Используется вместе с: `@OneToMany`, `@ManyToMany`, `@OneToOne`, `@ManyToOne` (хотя для ManyToOne/OneToOne чаще
+      @Fetch(FetchMode.JOIN) не нужен).
+    - Атрибуты:
+        - value - FetchMode:
+            - JOIN - явный JOIN в SQL при загрузке.
+            - SELECT - традиционная «ленивая» выборка (может вызвать N+1).
+            - SUBSELECT - Hibernate использует WHERE id IN (…) для пакетной загрузки.
+    - Пример:
+      ```java
+      @OneToMany(mappedBy = "order")
+      @Fetch(FetchMode.SUBSELECT)
+      private List<OrderItem> items;
+      ```
+    - При загрузке списка заказов Hibernate сначала выберет все orders, а потом разом подгрузит order_items через
+      IN (…).
 
 - `@BatchSize`
-  - Пакет: `org.hibernate.annotations.BatchSize`
-  - Атрибуты:
-    - size — int. Число записей, которые Hibernate будет загружать одним запросом при ленивой выборке коллекций или
-      связанных сущностей.
-  - Пример для коллекций:
-     ```
-     @OneToMany(mappedBy = "order")
-     @BatchSize(size = 20)
-     private List<OrderItem> items;
-     ```
-    - Если у вас есть 50 заказов и вы вызываете getItems() для каждого, Hibernate группирует их по 20, выполняя
-      примерно 3 запроса вместо 50 (N+1).
-  - Пример для сущностей:
-     ```
-     @Entity
-     @BatchSize(size = 50)
-     public class Product { … }
-     ```
-    - Когда лениво загружается Product через прокси, Hibernate сразу загрузит 50 записей по id IN (…) вместо одной.
+    - Пакет: `org.hibernate.annotations.BatchSize`
+    - Атрибуты:
+        - size - int. Число записей, которые Hibernate будет загружать одним запросом при ленивой выборке коллекций или
+          связанных сущностей.
+    - Пример для коллекций:
+       ```
+       @OneToMany(mappedBy = "order")
+       @BatchSize(size = 20)
+       private List<OrderItem> items;
+       ```
+        - Если у вас есть 50 заказов и вы вызываете getItems() для каждого, Hibernate группирует их по 20, выполняя
+          примерно 3 запроса вместо 50 (N+1).
+    - Пример для сущностей:
+       ```
+       @Entity
+       @BatchSize(size = 50)
+       public class Product { … }
+       ```
+        - Когда лениво загружается Product через прокси, Hibernate сразу загрузит 50 записей по id IN (…) вместо одной.
 
 - `@LazyToOne`
-  - Пакет: `org.hibernate.annotations.LazyToOne` и `org.hibernate.annotations.LazyToOneOption`
-  - Назначение: позволяет сделать @OneToOne или @ManyToOne действительно ленивой без bytecode enhancement (с помощью
-    прокси-обёртки).
-  - Опции:
-    - NO_PROXY — Hibernate создаёт прокси на связанный объект.
-    - PROXY — аналогично NO_PROXY.
-    - FALSE — эквивалент EAGER.
-  - Пример:
-     ```java
-     @OneToOne(fetch = FetchType.LAZY)
-     @LazyToOne(LazyToOneOption.NO_PROXY)
-     @JoinColumn(name = "profile_id")
-     private UserProfile profile;
-     ```
+    - Пакет: `org.hibernate.annotations.LazyToOne` и `org.hibernate.annotations.LazyToOneOption`
+    - Назначение: позволяет сделать @OneToOne или @ManyToOne действительно ленивой без bytecode enhancement (с помощью
+      прокси-обёртки).
+    - Опции:
+        - NO_PROXY - Hibernate создаёт прокси на связанный объект.
+        - PROXY - аналогично NO_PROXY.
+        - FALSE - эквивалент EAGER.
+    - Пример:
+       ```java
+       @OneToOne(fetch = FetchType.LAZY)
+       @LazyToOne(LazyToOneOption.NO_PROXY)
+       @JoinColumn(name = "profile_id")
+       private UserProfile profile;
+       ```
 
 
 - `@FetchProfile`
-  - Пакет: `org.hibernate.annotations.FetchProfile` и `org.hibernate.annotations.FetchMode`
-  - Назначение: позволяет заранее описать профили «fetch-plan» (какие связи JOIN FETCH выполнять) и активировать их в
-    коде.
-  - Атрибуты:
-    - name — имя профиля.
-    - fetchOverrides — массив @FetchProfile.FetchOverride, в котором указываются entity, association, mode (JOIN) и
-      т.п.
-  - Пример:
-    ```
-    @FetchProfile(
-       name = "order-with-items",
-       fetchOverrides = {
-          @FetchProfile.FetchOverride(
-             entity = Order.class,
-             association = "items",
-             mode = FetchMode.JOIN
-          )
-       }
-    )
-    @Entity
-    public class Order { … }
-    ```
-  - В коде:
-     ```
-     session.enableFetchProfile("order-with-items");
-     Order o = session.get(Order.class, id);
-     // При загрузке Order Hibernate выполнит JOIN с order_items.
-     ```
+    - Пакет: `org.hibernate.annotations.FetchProfile` и `org.hibernate.annotations.FetchMode`
+    - Назначение: позволяет заранее описать профили «fetch-plan» (какие связи JOIN FETCH выполнять) и активировать их в
+      коде.
+    - Атрибуты:
+        - name - имя профиля.
+        - fetchOverrides - массив @FetchProfile.FetchOverride, в котором указываются entity, association, mode (JOIN) и
+          т.п.
+    - Пример:
+      ```
+      @FetchProfile(
+         name = "order-with-items",
+         fetchOverrides = {
+            @FetchProfile.FetchOverride(
+               entity = Order.class,
+               association = "items",
+               mode = FetchMode.JOIN
+            )
+         }
+      )
+      @Entity
+      public class Order { … }
+      ```
+    - В коде:
+       ```
+       session.enableFetchProfile("order-with-items");
+       Order o = session.get(Order.class, id);
+       // При загрузке Order Hibernate выполнит JOIN с order_items.
+       ```
 
 
 - `@Formula`
-  - Пакет: `org.hibernate.annotations.Formula`
-  - Назначение: позволяет «привязать» вычисляемое поле: SQL-выражение, которое Hibernate вставляет в SELECT.
-  - Атрибуты:
-    - value — SQL-выражение, возвращающее одиночное значение.
-  - Пример:
-     ```
-     @Entity
-     public class Order {
-     @Id
-     private Long id;
-     
-         // Вычисляемое поле «количество товаров»:
-         @Formula("(SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = id)")
-         private int itemCount;
-     }
+    - Пакет: `org.hibernate.annotations.Formula`
+    - Назначение: позволяет «привязать» вычисляемое поле: SQL-выражение, которое Hibernate вставляет в SELECT.
+    - Атрибуты:
+        - value - SQL-выражение, возвращающее одиночное значение.
+    - Пример:
+       ```
+       @Entity
+       public class Order {
+       @Id
+       private Long id;
+       
+           // Вычисляемое поле «количество товаров»:
+           @Formula("(SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = id)")
+           private int itemCount;
+       }
    ```
    - При выборке Order Hibernate подставит подзапрос и вернёт itemCount вместе с остальными колонками.
 
 ## Hibernate-specific Аннотации классов
 
 - `@org.hibernate.annotations.Cache` Конфигурация L2-кэша конкретной сущности
-  - `usage`
-    @DynamicInsert / @DynamicUpdate
-    Генерация SQL для INSERT/UPDATE только по непустым или изменившимся полям.
+    - `usage`
+      @DynamicInsert / @DynamicUpdate
+      Генерация SQL для INSERT/UPDATE только по непустым или изменившимся полям.
 
 - `@SelectBeforeUpdate` Перед выполнением UPDATE выполняет SELECT, чтобы понять, нужно ли вообще обновлять строку.
 - `@OptimisticLocking` Настройка оптимистической блокировки (VERSION или поля-считывателя).
 - `@Subselect` Маппинг сущности на подзапрос.
 - `@Formula` Виртуальное поле, выражение SQL, вычисляемое в запросе.
 - `@FilterDef`, `@Filter` Фильтры, активируемые на уровне сессии.
-
 
 @Enumerated
 @OneToMany, @ManyToOne, @OneToOne, @ManyToMany
@@ -382,7 +374,7 @@ Spring Data JPA и аудит
 | Атрибут                | Тип                            | Значение по умолчанию                                    | Описание                                                                                                                                                                  |
 |------------------------|--------------------------------|----------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `name`                 | `String`                       | `""`                                                     | Имя столбца во «владельческой» таблице, содержащего FK. Если не указано, JPA сгенерирует имя по умолчанию: `<имя_поля>_<имя_первичного_ключа>` (например, `customer_id`). |
-| `referencedColumnName` | `String`                       | `""`                                                     | Имя столбца в «целевой» таблице (та, на которую ссылаются). По умолчанию — первичный ключ целевой сущности.                                                               |
+| `referencedColumnName` | `String`                       | `""`                                                     | Имя столбца в «целевой» таблице (та, на которую ссылаются). По умолчанию - первичный ключ целевой сущности.                                                               |
 | `unique`               | `boolean`                      | `false`                                                  | Если `true`, для этого столбца будет добавлено ограничение `UNIQUE`.                                                                                                      |
 | `nullable`             | `boolean`                      | `true`                                                   | Определяет, может ли внешний ключ принимать значение `NULL`. Если `nullable = false`, будет `NOT NULL`.                                                                   |
 | `insertable`           | `boolean`                      | `true`                                                   | Если `false`, столбец не будет включён в SQL-операцию `INSERT`.                                                                                                           |
@@ -404,7 +396,7 @@ Spring Data JPA и аудит
   @JoinColumn(name = "customer_id")
   ```
 - **Если не указан:** JPA сделает `<имя_поля>_<pk_целевой_сущности>`. Например, если поле называется `customer` и у
-  сущности `Customer` PK — `id`, то столбец будет `customer_id`.
+  сущности `Customer` PK - `id`, то столбец будет `customer_id`.
 
 2. **`referencedColumnName`**
 
@@ -505,7 +497,7 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Один заказ связан с одним пользователем (владелец связи — Order)
+    // Один заказ связан с одним пользователем (владелец связи - Order)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
         name = "customer_id",           // имя колонки в таблице orders
@@ -778,7 +770,7 @@ Form-объектам)
 - Клиент отправляет JSON в /users.
 - Spring преобразует JSON в UserDto.
 - До вызова метода createUser() запускается валидация.
-- Если есть ошибки — возвращается 400 Bad Request с описанием ошибок.
+- Если есть ошибки - возвращается 400 Bad Request с описанием ошибок.
 
 ---
 
@@ -814,9 +806,9 @@ Form-объектам)
 
 `@FutureOrPresent LocalDate appointmentDate` Дата в будущем или сегодня
 
-`@Email String email` Проверяет, что строка — валидный email
+`@Email String email` Проверяет, что строка - валидный email
 
-`@URL String website` Проверяет, что строка — валидный URL
+`@URL String website` Проверяет, что строка - валидный URL
 
 `@CreditCardNumber String cardNumber` Проверяет номер кредитной карты (Luhn algorithm)
 
@@ -833,6 +825,11 @@ Form-объектам)
 | Только в JPA        | Простота, переносимость между БД | Нет гарантии на уровне БД    | Простые проекты, прототипы      |
 | Только в PostgreSQL | Максимальная надёжность          | Сложно поддерживать миграции | Критичные к данным системы      |
 | Комбинированный     | Баланс надёжности и гибкости     | Дублирование кода            | Большинство production-проектов |
+
+```
+
+
+
 
 # Hibernate
 
@@ -892,7 +889,98 @@ public interface ClientRepository extends JpaRepository<Client, Integer>
 
 ### Решение 3. Использовать Entity Graph
 
+EntityGraph - это разовый план загрузки - какие её поля (ссылки) надо подгрузить прямо сейчас.
+
+Он не меняет ваши аннотации LAZY/EAGER навсегда - действует только на тот запрос/find, куда его передали.
+
+Работает с:
+em.find(...),
+JPQL/Criteria SELECT ... FROM <RootEntity> ...
+
+@NamedEntityGraph(...) - именной граф, объявлен рядом с сущностью и доступен по имени.
+em.createEntityGraph(Vehicle.class) - программный (динамический) граф, собирается в рантайме.
+
+Объявление:
+
+```java
+@NamedEntityGraph(
+  name = "Vehicle.withCoordinatesAdmin",
+  attributeNodes = {
+    @NamedAttributeNode("coordinates"), 
+    @NamedAttributeNode("admin")        
+  }
+)
+@Entity
+class Vehicle { }
+```
+
+либо программный способ(собираем в рантайме)
+
+```java
+EntityGraph<Vehicle> g = em.createEntityGraph(Vehicle.class);
+g.addAttributeNodes("coordinates", "admin");
+```
+
+Как применить граф:
+
+К em.find
+
+```java
+EntityGraph<Vehicle> g = (EntityGraph<Vehicle>) em.getEntityGraph("Vehicle.withCoordinatesAdmin");
+Map<String, Object> hints = Map.of("jakarta.persistence.loadgraph", g);
+Vehicle v = em.find(Vehicle.class, id, hints);
+```
+
+К JPQL/Criteria
+
+```java
+TypedQuery<Vehicle> q = em.createQuery("select v from Vehicle v where v.id in :ids", Vehicle.class);
+q.setParameter("ids", ids);
+q.setHint("jakarta.persistence.loadgraph", g);
+List<Vehicle> list = q.getResultList();
+
+or
+
+em.createQuery("select v from Vehicle v where v.id in :ids", Vehicle.class)
+  .setParameter("ids", ids)
+  .setHint("jakarta.persistence.loadgraph", g)
+  .getResultList();
+List<Vehicle> list = q.getResultList();
+```
+
+Два режима: loadgraph vs fetchgraph
+
+loadgraph - Атрибуты из графа — сразу грузим; остальные — как в маппинге (LAZY/EAGER как аннотировано).
+fetchgraph - Только атрибуты из графа грузим сразу; все прочие — считаем LAZY даже если аннотированы EAGER (работает как
+«строгий список» полей).
+
+
+Вложенность: subgraph
+
+Граф по умолчанию действует только на один уровень: Vehicle.admin.
+Если нужно глубже, добавить подграф:
+
+```java
+@NamedEntityGraph(
+  name = "Vehicle.withAdminAndOrg",
+  attributeNodes = {
+    @NamedAttributeNode(value = "admin", subgraph = "admin.sg"),
+    @NamedAttributeNode("coordinates")
+  },
+  subgraphs = {
+    @NamedSubgraph(
+      name = "admin.sg",
+      attributeNodes = { @NamedAttributeNode("organization") } // ещё один внутри Admin
+    )
+  }
+)
+```
+
+
+не пихать @OneToMany mappedBy коллекции в NamedEntityGraph
+
 ### Решение 4. Использовать Batch Size
 
 Hibernate тогда не будет делать join, а будет так же подгружать лениво и будет объединять пачками - батчами с указанным
 размером (компромисс между join и загрузкой лениво).
+

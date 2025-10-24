@@ -37,4 +37,18 @@ CDN
 
 
 
+---
+
+Паттерны взаимодействия микросервисов
+
+Api Gateway
+    Api Composition
+    Backend for Frontend
+    Authorization
+    Cache
+    Rate Limiter
+    Репликация апи гетевея + перед ним балансировщик (roundrobin)
+
+
+
 

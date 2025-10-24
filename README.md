@@ -20,7 +20,7 @@
     - JPA & CDI
     - EJB, JMS
     - JAX-RS (REST)
-    - [JPA](./docs/java/java-ee/jpa.md)
+    - [JPA](docs/java/java-ee/jpa/jpa.md)
     - [Hibernate](./docs/java/java-ee/hibernate.md)
 - Spring
     - Spring Core
@@ -31,7 +31,7 @@
 
 ### JS
 
-- [Js core](./docs/js/java-script.md)
+- [Js core](./docs/js/javascript.md)
 - [React](./docs/js/react.md)
 
 ### Database
