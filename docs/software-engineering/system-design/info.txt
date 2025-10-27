@@ -39,6 +39,70 @@ CDN
 
 ---
 
+L7 балансировщик/ingress
+    NGINX/Envoy/HAProxy/Ingress Controller — терминация TLS, L7-маршрутизация.
+API Gateway
+    Маршрутизация по сервисам, аутентификация, rate-limit, квоты, версия API.
+Бизнес-сервисы (микросервисы)
+    Stateless контейнеры с autoscale. Своя БД/схема у каждого.
+Брокер сообщений
+    Kafka/Redpanda/NATS/RabbitMQ — события, очереди, ретраи, DLQ.
+    Schema Registry (Avro/Protobuf) — почти обязателен для Kafka.
+Кэш
+    Redis (TTL-кэш, rate-limit, идемпотентность, очереди с задержкой).
+БД
+    Postgres/MySQL/… (иногда ещё отдельные хранилища: Mongo/Elastic для чтений).
+
+Рекомендуемые инстансы рядом:
+    OpenTelemetry Collector → приём трейсов/метрик/логов от всех сервисов.
+    Prometheus + Grafana → метрики/дашборды; Jaeger/Tempo → трейсы; Loki/ELK → логи.
+    Keycloak (OIDC) или иной IdP → токены для пользователей и сервис-аккаунтов.
+    Сервис конфигураций (Spring Cloud Config/Consul) → централизованные конфиги/фичефлаги.
+    Service Discovery (в k8s — DNS, вне — Consul/Eureka).
+    Secrets/KMS/Vault → хранение и ротация секретов.
+    Kafka Connect / Debezium → CDC из БД (паттерн Outbox/CDC).
+
+По мере роста:
+    BFF (Backend-for-Frontend) — тонкий слой под конкретные UI/мобилки.
+    Service Mesh (Istio/Linkerd) — mTLS, ретраи/CB на уровне сети, канарейки без кода.
+    Workflow/Orchestrator (Temporal/Camunda/Conductor) — саги/долгие процессы.
+    Feature Flags (Unleash/LaunchDarkly) — включение фич без релиза.
+    WAF (на краю) и CDN для статики/кэширования.
+    Object Storage (S3-совместимый) — файлы/репорты/дампы.
+    API Management (Kong/Apigee/Tyk) — каталог, ключи, тарифы, внешние клиенты.
+    Job/Task Runner (Argo Workflows/Airflow/Celery) — батчи/ETL.
+    Global/DNS LB — если несколько регионов.
+
+Когда и зачем выносить на отдельные узлы:
+    БД — всегда отдельный узел/кластер (I/O, резервные копии, HA).
+    Брокер — отдельные узлы (диск+сеть, горизонтальный масштаб, HA).
+    Gateway/Ingress — отдельно от бизнес-сервисов, чтобы не конкурировать за ресурсы.
+    Redis — отдельно при росте (latency-чувствительно, свой профиль памяти).
+    Observability-стек — лучше отдельно (особенно Prometheus/Логи), чтобы сам мониторинг не страдал от нагрузки.
+    Keycloak/Vault — отдельно (безопасность и стабильность).
+
+Готовые планы разнесения:
+    1) Dev/MVP (одна машина / docker-compose)
+        ingress/gateway, 2–3 микросервиса, Postgres, Redpanda/Kafka, Schema Registry, Redis, OTel Collector, Prometheus+Grafana, Jaeger, Loki — всё вместе.
+        Цель: скорость разработки, простота. Риски: SPOF.
+    2) Ранний прод (3–5 узлов)
+        Узел A: Gateway/Ingress + (опционально) BFF.
+        Узел B: БД (реплика чтения, бэкапы).
+        Узел C: Kafka/Redpanda (+Schema Registry).
+        Узел D: Микросервисы (пул статлесс инстансов).
+        Узел E: Redis + Observability (Prometheus/Jaeger/Loki/OTel).
+        Плюс: отдельный узел/VM для Keycloak/Vault при наличии.
+    3) Зрелый прод (k8s + mesh, 8–12+ узлов)
+        Edge: Ingress Controller (+WAF/CDN на периметре), API Gateway.
+        App-pool: namespaces с микросервисами (автоскейл).
+        Data-pool: управляемые кластеры Postgres, Kafka, Redis (stateful).
+        Observability: отдельный пул для Prometheus/Grafana/Tempo/Jaeger/Loki/OTel.
+        Security: Keycloak, Vault/KMS, OPA/Gatekeeper.
+        Mesh: Istio/Linkerd для mTLS/трафик-правил/канареек.
+
+
+---
+
 Паттерны взаимодействия микросервисов
 
 Api Gateway
@@ -48,6 +112,159 @@ Api Gateway
     Cache
     Rate Limiter
     Репликация апи гетевея + перед ним балансировщик (roundrobin)
+
+Декомпозиция и границы
+    Bounded Context (DDD), Ubiquitous Language
+    Service per Bounded Context / Capability
+    Modular Monolith → Strangler Fig (эволюционный вынос)
+    Self-Contained Systems (вертикальные срезы)
+    Shared Kernel (аккуратно), Anti-Corruption Layer (ACL)
+
+Контракты и интеграции
+    OpenAPI / gRPC (proto) / AsyncAPI
+    Consumer-Driven Contracts (CDC), Tolerant Reader
+    API Versioning (semver, backward-compatible)
+    Schema Registry (Avro/Protobuf/JSON-Schema), Schema Evolution
+
+Коммуникации (sync/async) и взаимодействие
+    Request/Response (REST, gRPC)
+    Pub/Sub (event bus), Event-Carried State Transfer
+    Command vs Event (команды/факты)
+    Choreography vs Orchestration (SAGA)
+    Request/Reply over messaging
+    API Composition / Aggregator / Backend-for-Frontend (BFF)
+    GraphQL Gateway / Federation
+    Event Sourcing (редко, для аудита и реконструкции)
+
+Согласованность и данные
+    Database per Service (своя БД/схема)
+    SAGA (компенсирующие транзакции)
+    Transactional Outbox + Change Data Capture (CDC)
+    Idempotency (ключи, версии, дедупликация)
+    CQRS (write-модель + read-проекции)
+    Materialized View / Read Model
+    Partitioning/Sharding, Read Replicas
+    Multi-Tenancy (db/schema/table per tenant)
+    Snapshotting (для ES), Event Replay
+    Reference Data / Cache-as-Data (когда справочники)
+
+Надёжность и управление трафиком
+    Timeout, Retry (экспоненциальный backoff + jitter), Circuit Breaker
+    Bulkhead (изоляция пулов), Rate Limiting, Load Shedding
+    Dead Letter Queue (DLQ), Poison Message Handling
+    Backpressure, Queue-based Load Leveling
+    Fallback / Graceful Degradation
+    Leader Election / Leases (координация воркеров)
+
+Сеть, маршрутизация и discovery
+    API Gateway / API Management
+    Ingress Controller / Gateway API (k8s)
+    Service Discovery (k8s DNS/Consul/Eureka)
+    Client-Side Load Balancing
+    Service Mesh (Istio/Linkerd): mTLS, ретраи, CB на сети
+    Sidecar / Ambassador / Adapter
+
+Доставка и релизы
+    Containers, Immutable Images (Jib/Buildpacks)
+    CI/CD Pipelines, GitOps (Argo CD/Flux)
+    Blue-Green, Canary, Progressive Delivery, A/B, Shadow Traffic
+    Feature Flags / Dark Launches
+    Database Migration (Flyway/Liquibase) + Expand/Contract
+
+Безопасность
+    OAuth2/OIDC, JWT/Opaque Tokens, Token Exchange
+    mTLS (service-to-service), Zero-Trust Network
+    Policy Enforcement (OPA/Gatekeeper), RBAC/ABAC
+    Secrets Management (Vault/KMS/K8s Secrets), Rotation
+    Input/Output Validation, WAF, Rate Policies
+    PII/PCI/GDPR: Masking, Data Retention, Audit Trail
+
+Наблюдаемость (Observability)
+    Structured Logging + Correlation/Trace IDs
+    Distributed Tracing (OpenTelemetry → Jaeger/Tempo)
+    Metrics (RED/USE, SLOs, p95/p99) → Prometheus/Grafana
+    Health Probes (liveness/readiness/startup), /metrics, /health
+    Log Aggregation (ELK/Loki), Sampling, Alerting/Error Budget
+
+Тестирование и качество
+    Pyramid: Unit → Component/Slice → Integration (Testcontainers) → e2e
+    Contract Testing (CDC) для API и событий
+    Chaos Engineering / Fault Injection
+    Performance/Load Testing (latency budget per hop)
+    Resilience Testing (timeouts/retries/CB сценарии)
+
+Хранилища и кеширование (паттерны)
+    Cache-Aside, Read-Through, Write-Through, Write-Behind
+    Negative Cache, TTL/SLI-aware cache, Request Coalescing
+    Distributed Locking (Redlock/DB-based), Outbox Relay
+    Id Generation (Snowflake/Hi-Lo/ULID)
+
+Организация и управление архитектурой
+    Team Topologies (Stream-aligned, Platform, Enabling, Complicated-Subsystem)
+    Conway’s Law осознанно: границы сервисов ↔ команды
+    ADR (Architecture Decision Record), Tech Radar, Principles
+    SLO/Error Budget Policy, Runbooks/Playbooks, Postmortems
+
+Миграция и интеграция с наследием
+    Strangler Fig (по вертикалям), Routing/Proxy
+    Dual-Write/Shadow-Write (аккуратно, лучше Outbox/CDC)
+    Anti-Corruption Layer к монолиту/legacy
+    Data Backfill/Replay, Cutover Plan
+
+
+
+---
+
+Хранение данных:
+    ACID
+        A - Atomicity атомарность (транзакции выполняются целиком либо не выполняются вообще)
+        C - Consistency консистентность (после транзакции бд останется в целостном состоянии)
+        I - Isolation изолированность (транзакция выполняется независимо от других транзакций)
+        D - Durability долговечность (устойчивость к отключениям)
+    Шардинг
+        Механизм, при котором данные разбиваются на несколько фрагментов (шардов), которые хранятся на разных узлах или серверах. Каждый шард содержит только часть данных, что позволяет распределить нагрузку на множество серверов.
+        Данные могут быть разбиты на шарды по различным критериям, таким как географическое расположение, алфавитный порядок, ID пользователей или другие критерии. Каждый шард имеет уникальный идентификатор, который позволяет быстро найти соответствующие данные.
+        Шардирование может быть реализовано на уровне приложения или на уровне базы данных. Для реализации шардирования на уровне приложения разработчики могут использовать различные технологии и инструменты, такие как NoSQL базы данных, кластеризация серверов, балансировка нагрузки и другие.
+        Шардирование может помочь решить проблемы масштабируемости и производительности при работе с большими объемами данных, но может также увеличить сложность системы и требовать дополнительных усилий для ее настройки и поддержки.
+    Репликация
+        Репликация базы данных - это процесс создания и поддержания копий базы данных на нескольких серверах, чтобы обеспечить доступность данных и защиту от потери данных в случае сбоев или отказов.
+        Репликация может быть реализована на уровне приложения или на уровне базы данных. При
+        репликации на уровне базы данных данные автоматически копируются на другой сервер, который
+        работает в режиме реплики (slave / follower). Копия базы данных на сервере-реплике автоматически
+        обновляется, когда изменения происходят на основном сервере (master / leader). Для получения данных клиенты могут обращаться к любому из серверов.
+        При репликации на уровне приложения разработчики создают специальный механизм, который позволяет копировать данные на другой сервер и обновлять данные в реальном времени. Этот механизм может быть реализован с использованием механизмов кэширования, протоколов
+        синхронизации и других инструментов.
+        Репликация базы данных может повысить доступность данных, увеличить отказоустойчивость и
+        обеспечить более быстрое восстановление в случае сбоев. Однако, репликация также может привести к дополнительным расходам на оборудование и настройку, а также может потребовать дополнительных усилий для управления и обслуживания базы данных.
+
+
+Передача данных:
+    Вертикально масштабирование
+    Горизонтальное масштабирование
+    Балансировка нагрузки
+        стратегии распределения
+        ip hash
+        round robin
+    Кэширование
+    CDN
+        Content Delivery Network
+    CAP теорема
+    PACELC теорема
+
+
+Observability
+    метрики
+    ивенты
+    логи
+    трейсы
+
+    grafana (ui)
+    prometheus
+    loki
+    tempo
+
+    grafana alloy - едины агент который отдает все
+
 
 
 
