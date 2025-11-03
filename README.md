@@ -1,4 +1,4 @@
-# Liqbez – Документация по технологиям
+# Liqbez – Technology knowledge base 
 
 ### Java
 
