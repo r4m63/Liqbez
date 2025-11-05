@@ -17,16 +17,16 @@
 - Java EE
     - Servlets
     - JSP
-    - JPA & CDI
+    - CDI
     - EJB, JMS
-    - JAX-RS (REST)
-    - [JPA](docs/java/java-ee/jpa/jpa.md)
+    - JAX-RS
+    - [JPA](docs/java/java-ee/jpa.md)
     - [Hibernate](./docs/java/java-ee/hibernate.md)
-- Spring
-    - Spring Core
+- [Spring](docs/java/spring/spring.md)
+    - [Spring Core](docs/java/spring/spring-core.md)
     - Spring Boot
     - Spring MVC
-    - Spring Data
+    - [Spring Data](docs/java/spring/spring-data.md)
     - Spring Security
 
 ### JS

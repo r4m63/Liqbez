@@ -1,6 +1,0 @@
-Java Micro Edition -- сейчас не используется, ставилась раньше для слабых телефонах
-
-Java Standard Edition -- JDK - java core
-
-Java Enterprise Edition --
-
