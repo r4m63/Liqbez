@@ -1,6 +1,6 @@
 # JPA
 
-- **JPA (Java Persistence API)** – стандарт Java EE для объектно-реляционного отображения (ORM). Определяет набор
+- **JPA (Java Persistence API)** - стандарт Java EE для объектно-реляционного отображения (ORM). Определяет набор
   аннотаций и интерфейсов (`jakarta.persistence.*`), которые позволяют описывать маппинг сущностей (POJO-классов)
   на таблицы базы данных и управлять ими через `EntityManager`.
 
@@ -93,31 +93,21 @@
 
 - `@Entity` Помечает класс как сущность, т.е. объект, который может быть сохранён в базе данных. Обязателен.
 
-  **Обязательные требования:**
+**Обязательные требования:**
 
-    * Класс должен быть public (не private или final).
-    * Должен иметь конструктор без аргументов (public или protected).
-    * Не должен быть final.
-    * Поля должны быть доступны через геттеры/сеттеры.
-
+- Класс должен быть public (не private или final).
+- Должен иметь конструктор без аргументов (public или protected).
+- Не должен быть final.
+- Поля должны быть доступны через геттеры/сеттеры.
 
 - `@Table` Описывает соответствующую таблицу в базе. Атрибуты:
     - `name` имя таблицы. Если не указано, JPA использует имя класса.
     - `schema` (_**опционально**_) схема БД.
-    - `catalog` (_**опционально**_) каталог.
-    - `uniqueConstraints` (_**опционально**_) уникальные ограничения (массив @UniqueConstraint).
-    - `indexes` (_**опционально**_) индексы для ускорения запросов, `name` - имя индекса в БД, `columnList` - колонки,
-      по которым строится индекс (через запятую, если составной).
-      ```
-      @Table(
-          name = "orders",
-          indexes = {
-              @Index(name = "idx_order_customer", columnList = "customer_id"),
-              @Index(name = "idx_order_status", columnList = "status")
-          }
-      )
-      ```
-
+    - `uniqueConstraints` (_**опционально**_) рантайме они ничего не делают (это инструкция для генерации констеинтов),
+      но если констреинт создан уже в бд, то они ничего не делают
+    - `indexes` (_**опционально**_) рантайме они ничего не делают (это инструкция для генерации схемы), но если схема
+      создана уже в бд, то они ничего не делают | `name` - имя индекса в БД, `columnList` - колонки, по которым строится
+      индекс (через запятую, если составной).
 
 - `@Inheritance` (_**опционально**_) Стратегия наследования (для иерархий сущностей). Атрибуты:
     - `strategy` Значения:
@@ -133,67 +123,135 @@
 
 ## JPA Аннотации полей (Field-Level Annotations)
 
-- `@Id` единственная обязательная аннотация в любой сущности (указывает первичный ключ).
+`@Id` Единственная обязательная аннотация в любой сущности (указывает первичный ключ)
 
-  Помечает поле как первичный ключ (primary key) сущности.
-  Обязательна для любой JPA-сущности. Должно быть непримитивным
-  типом (Long, Integer, String, UUID и т.д.). Не должно быть final.
+`@GeneratedValue`
 
-- `@GeneratedValue` Указывает стратегию автоматической генерации значений первичного ключа. Атрибуты:
-    - `strategy` – (GenerationType) тип генерации (AUTO, IDENTITY, SEQUENCE, TABLE).
-        - `GenerationType.AUTO` Hibernate сам выбирает стратегию, Обычно выбирает SEQUENCE или IDENTITY в зависимости от
-          БД, Не рекомендуется для продакшна из-за непредсказуемости
-        - `GenerationType.IDENTITY` Использует автоинкремент базы данных (SERIAL), Значение генерируется при вставке
-          записи
-        - `GenerationType.SEQUENCE` Использует sequence базы данных, требует создания sequence в БД
-        - `GenerationType.TABLE` Использует отдельную таблицу для генерации ID
-    - `generator` - (String) имя генератора (если используется @SequenceGenerator или @TableGenerator).
+`(GenerationType.AUTO0)` дать ORM провайдеру самому решить, что лучше для этой БД (На PostgreSQL Hibernate обычно
+выберет
+SEQUENCE)
 
-    ```
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    ------------------------------------------------------
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    ------------------------------------------------------
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq")
-    @SequenceGenerator(name = "user_seq", sequenceName = "user_id_seq", allocationSize = 1)
-    ------------------------------------------------------
-    @Id
-    @GeneratedValue(strategy = GenerationType.TABLE, generator = "id_gen")
-    @TableGenerator(name = "id_gen", table = "id_generator", pkColumnName = "gen_name", valueColumnName = "gen_value")
-    ------------------------------------------------------
-    @Id
-    @GeneratedValue(generator = "UUID")
-    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    ```
+`(GenerationType.IDENTITY)` id генерится только при реальном INSERT в БД, ORM не знает id на момент вставки
 
-- `@SequenceGenerator` - Настраивает sequence для `GenerationType.SEQUENCE`
-    ```
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq")
-    @SequenceGenerator(
-        name = "employee_seq",      // Имя генератора (должно совпадать в @GeneratedValue)
-        sequenceName = "emp_seq",   // Имя sequence в БД
-        allocationSize = 50,        // Сколько значений зарезервировать за раз
-        initialValue = 1000         // Начальное значение
-    )
-    ```
+**Как это работает:**
 
-- `@TableGenerator` Настраивает таблицу для `GenerationType.TABLE`
-    ```
-    @Id
-    @GeneratedValue(strategy = GenerationType.TABLE, generator = "id_gen")
-    @TableGenerator(
-        name = "id_gen",                // Имя генератора
-        table = "ID_GENERATOR",         // Имя таблицы
-        pkColumnName = "GEN_NAME",      // Колонка с именем генератора
-        valueColumnName = "GEN_VALUE",  // Колонка со значением
-        allocationSize = 10,            // Шаг увеличения
-        initialValue = 100              // Начальное значение
-    )
-    ```
+- При INSERT Hibernate не передаёт id - колонка сама генерит значение.
+- После вставки Hibernate делает:
+- либо SELECT LAST_INSERT_ID() / SELECT @@IDENTITY,
+- либо использует JDBC API getGeneratedKeys() и узнаёт сгенерированный id.
+
+**Особенности:**
+
+- id генерится только при реальном INSERT в БД.
+- Hibernate не может сделать батч-вставку нормально с IDENTITY (у него нет id заранее).
+- Нельзя “провернуть” вставку без доступа к БД.
+
+**Плюсы:**
+
+- Простейшая настройка, идеально для MySQL.
+- Всё делает база, надёжно и понятно.
+
+**Минусы:**
+
+- Плохая поддержка batch insert.
+- id появляется только после INSERT -> ORM сложнее оптимизировать работу.
+
+`(GenerationType.SEQUENCE)` ORM заранее запрашивает пачку ID, раздать их объектам ещё до INSERT
+
+**Как это работает:**
+
+- Есть отдельный объект БД - sequence, который умеет говорить:
+- nextval('user_seq') -> 1, 2, 3, 4..
+- Hibernate может:
+- заранее запросить пачку ID,
+- раздать их объектам ещё до INSERT.
+
+**Про allocationSize:**
+
+- allocationSize = 50 значит: Hibernate один раз дернёт sequence (получит “блок”) и сам выдает 50 id в памяти.
+- Это сильно уменьшает число обращений к sequence.
+- Но важно: реальная последовательность в БД тоже должна быть согласована (шаги, границы), чтобы не было дыр/конфликтов.
+
+**Плюсы:**
+
+- Отлично работает с batch insert: id известно до вставки.
+- Гибкая оптимизация (pooled, hi/lo).
+- Правильный и рекомендуемый способ для PostgreSQL.
+
+**Минусы:**
+
+- Нужна поддержка sequence в БД.
+- Нужно аккуратно настроить allocationSize, чтобы не встрять.
+
+```sql
+CREATE SEQUENCE user_seq START 1 INCREMENT 1;
+CREATE TABLE users
+(
+    id   BIGINT PRIMARY KEY DEFAULT nextval('user_seq'),
+    name TEXT
+);
+```
+
+```java
+@Entity
+@SequenceGenerator(
+    name = "user_seq_gen",
+    sequenceName = "user_seq",
+    allocationSize = 50
+)
+class User {
+    @Id @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq_gen")
+    private Long id;
+}
+```
+
+`(GenerationType.TABLE)` самый костыльный способ, когда БД не умеет ни identity, ни sequence. Идея: симулируем
+sequence через обычную таблицу
+
+**Как это работает:**
+
+- Перед вставкой Hibernate:
+- делает SELECT next_val FROM id_generator WHERE id_name = 'user' FOR UPDATE;
+- увеличивает next_val;
+- использует старое значение как id или блок значений (с учётом allocationSize).
+- Таблица id_generator играет роль псевдо-sequence.
+
+**Плюсы:**
+
+- Работает на любой нормальной SQL-БД.
+- Не требует identity/sequence.
+
+**Минусы:**
+
+- Медленнее: каждый блок id -> отдельная запись в таблице, блокировка.
+- Может быть узким местом по конкурентности.
+- Сейчас почти не актуально, т.к. почти все БД умеют identity/sequence.
+
+```sql
+CREATE TABLE id_generator
+(
+    id_name  VARCHAR(50) PRIMARY KEY,
+    next_val BIGINT
+);
+INSERT INTO id_generator (id_name, next_val)
+VALUES ('user', 1);
+```
+
+```java
+@Entity
+@TableGenerator(
+    name = "user_table_gen",
+    table = "id_generator",
+    pkColumnName = "id_name",
+    valueColumnName = "next_val",
+    pkColumnValue = "user",
+    allocationSize = 50
+)
+class User {
+    @Id @GeneratedValue(strategy = GenerationType.TABLE, generator = "user_table_gen")
+    private Long id;
+}
+```
 
 - `@Column` Основная аннотация для маппинга поля на столбец. Атрибуты:
     - `name` String Имя столбца в БД (если отличается от имени поля)
@@ -205,7 +263,7 @@
     - `insertable` boolean Участвует ли поле в INSERT (по умолчанию true)
     - `updatable` boolean Участвует ли поле в UPDATE (по умолчанию true)
     - `columnDefinition` String Позволяет задать точный SQL-тип столбца
-- `@Basic` Указывает, что поле — обычный примитив/строка/обёртка. Атрибуты:
+- `@Basic` Указывает, что поле - обычный примитив/строка/обёртка. Атрибуты:
     - `fetch` EAGER (по умолчанию) или LAZY (для больших типов, @Lob).
     - `optional` то же, что nullable (для примитивов всегда false).
 - `@Lob` Помечает поле как CLOB или BLOB. Работает с String, Clob, byte[], Blob
@@ -214,7 +272,7 @@
     - `TemporalType.TIME` (только время).
     - `TemporalType.TIMESTAMP` (дата+время).
 - `@Enumerated`Для enum-полей. По умолчанию ORDINAL, но рекомендуется:
-    - `EnumType.STRING` — хранить строковое значение.
+    - `EnumType.STRING` - хранить строковое значение.
 - `@Transient` Поле не будет маппиться на БД.
 
 ## JPA Связи
@@ -248,7 +306,7 @@ child(id PK, parent_id FK -> parent.id NOT NULL, ...)
 Базовая (рекомендованная) двусторонняя связь:
 
 ```java
-// Parent — обратная сторона, коллекция детей
+// Parent - обратная сторона, коллекция детей
 @Entity
 class Parent {
   @Id @GeneratedValue Long id;
@@ -272,7 +330,7 @@ class Parent {
   }
 }
 
-// Child — владельческая сторона, FK здесь
+// Child - владельческая сторона, FK здесь
 @Entity
 class Child {
   @Id @GeneratedValue Long id;
@@ -305,7 +363,7 @@ N+1 запросов
 Фикс: используйте fetch join / @EntityGraph / @BatchSize.
 
 equals/hashCode, toString и коллекции
-Не включайте ленивые коллекции в toString — получите рекурсию/тонны SQL.
+Не включайте ленивые коллекции в toString - получите рекурсию/тонны SQL.
 Для equals/hashCode: безопаснее по уникальному бизнес-ключу или по id (только после присвоения).
 Set + неустойчивый equals до присвоения id = загадочные дубликаты. Проще начинать с List.
 
@@ -323,8 +381,8 @@ Set + неустойчивый equals до присвоения id = загад�
   `@JoinColumn(nullable = false)`.
 - `orphanRemoval` Если `true`, при снятии связи (присвоении `null`) зависимая сущность удалится из БД автоматически.
 
-Владелец — где FK (там ставим @JoinColumn).
-Обратная сторона (inverse) — та, что через mappedBy ссылается на владеющую
+Владелец - где FK (там ставим @JoinColumn).
+Обратная сторона (inverse) - та, что через mappedBy ссылается на владеющую
 Делайте LAZY.
 Когда ставить orphanRemoval = true? Когда жизнь зависимой сущности полностью подчинена родителю.
 
@@ -351,7 +409,7 @@ class Invoice {
 - `fetch`
 
 Используется редко, когда между сущностями нет своей таблицы-сущности.
-Нужна join-table с двумя FKs. Одна сторона — владелец (без mappedBy).
+Нужна join-table с двумя FKs. Одна сторона - владелец (без mappedBy).
 
 бд:
 
@@ -374,7 +432,7 @@ CREATE INDEX idx_a_b__b  ON a_b(b_id);
 class A {
   @Id @GeneratedValue Long id;
 
-  // Владеющая сторона (нет mappedBy) — она пишет в a_b
+  // Владеющая сторона (нет mappedBy) - она пишет в a_b
   @ManyToMany
   @JoinTable(
     name = "a_b",
@@ -404,7 +462,7 @@ class B {
 }
 ```
 
-Нет лишних сущностей — только join-таблица.
+Нет лишних сущностей - только join-таблица.
 Оба направления навигации есть.
 Set предотвращает дубликаты на уровне коллекции (и всё равно держим UNIQUE в БД!).
 
@@ -434,7 +492,7 @@ class B {
 Проще код, меньше синхронизации в памяти.
 Всё равно нужна уникальность пары в БД, индексы и т.д.
 
-Как только у связи появляются свои поля (роль, статус, позиция, даты, комментарий) — не @ManyToMany. Делайте
+Как только у связи появляются свои поля (роль, статус, позиция, даты, комментарий) - не @ManyToMany. Делайте
 link-сущность:
 
 ```java
@@ -471,18 +529,221 @@ class ABId implements Serializable {
 
 ---
 
-PERSIST, MERGE — часто на aggregate-границах (родитель → дети).
-REMOVE — только если дочке нельзя жить без родителя (и вы реально хотите физическое удаление).
-orphanRemoval = true — при parent.getChildren().remove(x) или child.setParent(null) запись удалится.
+PERSIST, MERGE - часто на aggregate-границах (родитель -> дети).
+REMOVE - только если дочке нельзя жить без родителя (и вы реально хотите физическое удаление).
+orphanRemoval = true - при parent.getChildren().remove(x) или child.setParent(null) запись удалится.
 Ставьте LAZY везде, где это разумно (особенно @ManyToOne, @OneToOne).
 Борьба с N+1: join fetch в JPQL, @EntityGraph, батч-фетч (@BatchSize).
-Не ставьте много EAGER — тяжёлые запросы и неожиданные циклические загрузки.
-equals/hashCode: не используйте ленивые коллекции; безопасно — по бизнес-ключу или по id (после присвоения).
+Не ставьте много EAGER - тяжёлые запросы и неожиданные циклические загрузки.
+equals/hashCode: не используйте ленивые коллекции; безопасно - по бизнес-ключу или по id (после присвоения).
 
-Где физически FK? → там владелец и @JoinColumn.
-Нужна ли обратная навигация? → mappedBy на обратной стороне.
-Связь обязательна? → optional=false + nullable=false.
-Нужен каскад? → минимум, только то, что реально нужно.
-Ожидаются пачки чтения? → LAZY + EntityGraph/join fetch.
+Где физически FK? -> там владелец и @JoinColumn.
+Нужна ли обратная навигация? -> mappedBy на обратной стороне.
+Связь обязательна? -> optional=false + nullable=false.
+Нужен каскад? -> минимум, только то, что реально нужно.
+Ожидаются пачки чтения? -> LAZY + EntityGraph/join fetch.
 
 ---
+
+# Persistence Unit
+
+Persistence Unit (PU) - это конфигурация JPA:
+
+- какая БД
+- какие сущности
+- какие настройки Hibernate
+- имя юнита (name="myPu" в persistence.xml или spring.jpa.*)
+
+Из Persistence Unit создаётся:
+
+- EntityManagerFactory
+- через него уже создается EntityManager
+
+1 Persistence Unit = 1 БД
+
+# Persistence Context
+
+`@PersistenceContext` - аннотация Jakarta EE, которая говорит контейнеру инжектировать сюда EntityManager, связанный с
+Persistence Unit + Это набор управляемых сущностей в памяти + их состояние.
+
+PersistenceContext - это внутренняя структура, которую EntityManager использует,
+чтобы хранить и отслеживать все Entity-объекты, находящиеся в состоянии Managed.
+
+Он живёт ровно столько, сколько живёт EntityManager (обычно - одну транзакцию или HTTP-запрос).
+
+- Следит, какие объекты уже загружены из БД.
+- Проверяет, изменились ли поля (dirty checking).
+- Знает, какие объекты нужно INSERT, UPDATE, DELETE при flush().
+- Следит за связями (@OneToMany, @ManyToOne), кэшем и каскадами.
+- Отслеживает идентичность - если ты дважды вызовешь em.find(Admin.class, 1L), ты получишь тот же самый объект, а не
+  новую копию.
+
+**Состояния сущностей в PersistenceContext**
+
+| Состояние    | Где находится                                                      | Что делает JPA             |
+|--------------|--------------------------------------------------------------------|----------------------------|
+| **New**      | вне контекста                                                      | объект ещё не сохранён     |
+| **Managed**  | внутри PersistenceContext                                          | JPA отслеживает изменения  |
+| **Detached** | вышел из контекста (например, после `em.clear()` или `em.close()`) | больше не отслеживается    |
+| **Removed**  | помечен на удаление                                                | будет удалён при `flush()` |
+
+# EntityManagerFactory
+
+EntityManagerFactory - фабрика ентити менеджеров
+
+Создаётся один раз на всё приложение при старте (на основе persistence.xml). Она живёт весь runtime
+Это тяжёлый объект: он открывает JDBC-пулы, кэширует метаданные, маппинги сущностей, SQL-генерацию и т.п.
+Не создаёт соединения к БД сам - это делает EntityManager, который из неё берётся.
+Потокобезопасен и общий для всех потоков/запросов.
+
+# EntityManager
+
+Это основной интерфейс JPA, через который приложение общается с базой данных.
+
+Он управляет жизненным циклом Entity сущностей и выполняет операции CRUD, JPQL-запросы, транзакции и
+синхронизацию с БД.
+
+На каждый HTTP-запрос (или транзакцию) контейнер создаёт новый экземпляр EntityManager, связанный с одним
+PersistenceContext.
+
+Жизненный цикл EntityManager обычно совпадает с жизненным циклом запроса или JTA-транзакции.
+Он не потокобезопасен.
+После коммита или rollback - автоматически закрывается контейнером.
+
+В Jakarta EE/Spring, EntityManager создаётся контейнером (WildFly, Payara, TomEE...) на основе Persistence Unit,
+описанной в persistence.xml
+
+Когда контейнер поднимает приложение:
+
+- читает persistence.xml
+- создаёт EntityManagerFactory
+- управляет EntityManager для каждого запроса или транзакции.
+
+```java
+@PersistenceContext(unitName = "studsPU")
+private EntityManager em;
+```
+
+Контейнер внедряет управляемый EntityManager из пула.
+Этот EntityManager связан с текущим контекстом транзакции (или с @RequestScoped контекстом в CDI).
+
+| Тип                     | Когда используется          | Пример                                                                          |
+|-------------------------|-----------------------------|---------------------------------------------------------------------------------|
+| **Container-managed**   | Jakarta EE, Spring, Quarkus | `@PersistenceContext` - контейнер сам управляет транзакциями                    |
+| **Application-managed** | Standalone-приложения       | `EntityManagerFactory emf = ...; EntityManager em = emf.createEntityManager();` |
+
+Пример ручного использования (application-managed)
+
+```java
+EntityManagerFactory emf = Persistence.createEntityManagerFactory("studsPU");
+EntityManager em = emf.createEntityManager();
+em.getTransaction().begin();
+
+Admin a = new Admin();
+a.setLogin("root");
+em.persist(a);
+
+em.getTransaction().commit();
+em.close();
+emf.close();
+```
+
+## EntityManager CRUD-операции
+
+| Метод                   | Описание                                                       |
+|-------------------------|----------------------------------------------------------------|
+| `persist(entity)`       | Добавить новый объект в контекст (INSERT при commit)           |
+| `find(EntityClass, id)` | Найти по PK (SELECT)                                           |
+| `merge(entity)`         | Обновить detached объект (UPDATE)                              |
+| `remove(entity)`        | Удалить объект (DELETE)                                        |
+| `contains(entity)`      | Проверить, управляется ли объект контекстом                    |
+| `flush()`               | Синхронизировать контекст с БД (выполнить все накопленные SQL) |
+| `clear()`               | Очистить контекст (все entity становятся detached)             |
+| `detach(entity)`        | Отсоединить один объект от контекста                           |
+
+Запросы (JPQL, Criteria, Native)
+
+| Метод                                     | Описание                                     |
+|-------------------------------------------|----------------------------------------------|
+| `createQuery(String jpql, Class<T>)`      | Создать JPQL-запрос (объектный SQL)          |
+| `createNamedQuery(String name, Class<T>)` | Использовать @NamedQuery из Entity           |
+| `createNativeQuery(String sql, Class<T>)` | Выполнить нативный SQL и замаппить на Entity |
+| `createNativeQuery(String sql)`           | Нативный SQL без маппинга                    |
+| `createQuery(CriteriaQuery<T>)`           | Типобезопасные запросы через Criteria API    |
+
+Транзакции (если не контейнер, а вручную)
+
+| Метод               | Описание                                 |
+|---------------------|------------------------------------------|
+| `getTransaction()`  | Возвращает объект `EntityTransaction`    |
+| `joinTransaction()` | Присоединяет EM к текущей JTA-транзакции |
+
+# Criteria API
+
+это объектная (типобезопасная) альтернатива JPQL
+даёт возможность строить динамические запросы к базе данных не строками через типобезопасный Java-код
+Вместо строк `"SELECT v FROM Vehicle v WHERE v.type = :t"` создавать запрос с помощью Java-классов (CriteriaBuilder,
+CriteriaQuery, Root и т.д.)
+
+| Проблема с JPQL                                               | Как решает Criteria                     |
+|---------------------------------------------------------------|-----------------------------------------|
+| Строки, ошибки видны только в runtime                         | Компиляция проверяет типы и имена полей |
+| Сложно строить динамические фильтры (if … then add condition) | Легко добавлять условия программно      |
+| Переименование полей ломает запросы                           | IDE-рефакторинг автоматически обновит   |
+| Разные поля и условия по разным параметрам                    | Можно строить условия в цикле           |
+
+Основные участники API
+
+| Класс / интерфейс      | Назначение                                                                                         |
+|------------------------|----------------------------------------------------------------------------------------------------|
+| **`CriteriaBuilder`**  | Точка входа. Создаёт запросы и выражения (`equal`, `like`, `and`, `or`, `sum`, и т.д.).            |
+| **`CriteriaQuery<T>`** | Сам запрос. Хранит `select`, `from`, `where`, `orderBy`, `groupBy`, и т.д.                         |
+| **`Root<T>`**          | Корневой объект выборки (`FROM Vehicle v`).                                                        |
+| **`Predicate`**        | Логическое выражение (условие). Возвращается из `cb.equal()`, `cb.greaterThan()`, `cb.and()` и др. |
+| **`Path<T>`**          | Абстракция пути к полю (`root.get("admin").get("login")`).                                         |
+| **`Join<X,Y>`**        | JOIN-связи между сущностями (`root.join("admin")`).                                                |
+| **`TypedQuery<T>`**    | Выполняет критерий-запрос (`em.createQuery(criteriaQuery)`).                                       |
+
+Архитектура запроса Criteria API
+
+```text
+EntityManager
+   │
+   ├─> getCriteriaBuilder()
+   │
+   ▼
+CriteriaBuilder  ->  CriteriaQuery<Vehicle>
+                         │
+                         ├── FROM -> Root<Vehicle>
+                         ├── WHERE -> Predicate
+                         ├── SELECT -> Projection
+                         └── ORDER BY / GROUP BY
+```
+
+```text
+Root<Vehicle> (алияс v)
+ ├── Path: v.engine_power
+ ├── Path: v.creation_time
+ ├── Join admin (алияс a)
+ │     └── Path: a.id
+ └── Join coordinates (алияс c)
+       ├── Path: c.x
+       └── Path: c.y
+```
+
+- Root<T>
+  Это корень запроса - то, что стоит в FROM ... в SQL
+  Всегда создаётся через CriteriaQuery.from(EntityClass)
+  это частный случай From<T, T> (т.е. Root наследуется от From)
+
+- From<Z, X>
+  Это источник строк в запросе (таблица или присоединённая таблица)
+  Это “толстый” путь (path), который умеет делать JOIN и хранит уже сделанные JOIN-ы
+
+- Path<X>
+  Это любой путь к атрибуту: столбцу, embedded полю и даже к join’у как к узлу
+  С Path вы строите предикаты: cb.equal(path, ...), cb.lessThan(path, ...) и т.д.
+
+
+
+

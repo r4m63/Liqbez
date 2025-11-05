@@ -1,4 +1,4 @@
-# Liqbez – Technology knowledge base 
+# Liqbez – Technology knowledge base
 
 ### Java
 
@@ -71,7 +71,7 @@
 
 ### Tools
 
-- SSH
+- [SSH](docs/tools/ssh.md)
 - rsync
 - Monitoring & Logging (Prometheus, Grafana)
 
