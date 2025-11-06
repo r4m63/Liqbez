@@ -24,7 +24,7 @@
     - [Hibernate](./docs/java/java-ee/hibernate.md)
 - [Spring](docs/java/spring/spring.md)
     - [Spring Core](docs/java/spring/spring-core.md)
-    - Spring Boot
+    - [Spring Boot](docs/java/spring/spring-boot.md)
     - [Spring MVC](docs/java/spring/spring-mvc.md)
     - [Spring Data](docs/java/spring/spring-data.md)
     - Spring Security
