@@ -25,7 +25,7 @@
 - [Spring](docs/java/spring/spring.md)
     - [Spring Core](docs/java/spring/spring-core.md)
     - Spring Boot
-    - Spring MVC
+    - [Spring MVC](docs/java/spring/spring-mvc.md)
     - [Spring Data](docs/java/spring/spring-data.md)
     - Spring Security
 
