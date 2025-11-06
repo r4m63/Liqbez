@@ -61,19 +61,10 @@
 
 - [Nginx](docs/linux/nginx.md)
 - [Git](docs/tools/git.md)
-- Администрирование
-- Система Linux
-- Диски и монтирование
-- Service Deployments
-- Docker
-- Tmux
-- Ranger
 
 ### Tools
 
 - [SSH](docs/tools/ssh.md)
-- rsync
-- Monitoring & Logging (Prometheus, Grafana)
 
 ### Build Tools
 
@@ -85,15 +76,10 @@
 
 ### Low-Level
 
-- Компиляторы
-    - JVM - ссылка на Java-Core#JVM
-    - GCC
 - Архитектура компьютера
     - CPU
-        - CISC
-        - RISC
-    - GPU (Графический процессор)
-    - [TPU (Тензорный процессор)](docs/low-level/computer-architecture/tpu.md)
+    - GPU
+    - [TPU](docs/low-level/computer-architecture/tpu.md)
 - Сети
 - Операционные системы
 
