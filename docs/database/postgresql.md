@@ -4,49 +4,40 @@
 
 - [Коннект](#%D0%BA%D0%BE%D0%BD%D0%BD%D0%B5%D0%BA%D1%82)
 - [Команды](#%D0%BA%D0%BE%D0%BC%D0%B0%D0%BD%D0%B4%D1%8B)
-- [SQL DQL (Выборка)](#sql-dql-%D0%B2%D1%8B%D0%B1%D0%BE%D1%80%D0%BA%D0%B0)
-- [SQL DML (Изменение данных)](#sql-dml-%D0%B8%D0%B7%D0%BC%D0%B5%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5-%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D1%85)
-- [SQL DDL (Структура)](#sql-ddl-%D1%81%D1%82%D1%80%D1%83%D0%BA%D1%82%D1%83%D1%80%D0%B0)
-- [SQL TCL (Транзакции)](#sql-tcl-%D1%82%D1%80%D0%B0%D0%BD%D0%B7%D0%B0%D0%BA%D1%86%D0%B8%D0%B8)
-- [SQL DCL (Права)](#sql-dcl-%D0%BF%D1%80%D0%B0%D0%B2%D0%B0)
-- [Ограничения (constraints)](#%D0%BE%D0%B3%D1%80%D0%B0%D0%BD%D0%B8%D1%87%D0%B5%D0%BD%D0%B8%D1%8F-constraints)
+- [SQL](#sql)
+    * [SQL DQL (Выборка данных)](#sql-dql-%D0%B2%D1%8B%D0%B1%D0%BE%D1%80%D0%BA%D0%B0-%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D1%85)
+    * [SQL DML (Изменение данных)](#sql-dml-%D0%B8%D0%B7%D0%BC%D0%B5%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5-%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D1%85)
+    * [SQL DDL (Определение структуры)](#sql-ddl-%D0%BE%D0%BF%D1%80%D0%B5%D0%B4%D0%B5%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5-%D1%81%D1%82%D1%80%D1%83%D0%BA%D1%82%D1%83%D1%80%D1%8B)
+    * [SQL TCL (Управление транзакциями)](#sql-tcl-%D1%83%D0%BF%D1%80%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5-%D1%82%D1%80%D0%B0%D0%BD%D0%B7%D0%B0%D0%BA%D1%86%D0%B8%D1%8F%D0%BC%D0%B8)
+    * [SQL DCL (Управление правами)](#sql-dcl-%D1%83%D0%BF%D1%80%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5-%D0%BF%D1%80%D0%B0%D0%B2%D0%B0%D0%BC%D0%B8)
+    * [Ограничения (constraints)](#%D0%BE%D0%B3%D1%80%D0%B0%D0%BD%D0%B8%D1%87%D0%B5%D0%BD%D0%B8%D1%8F-constraints)
 - [Типы данных](#%D1%82%D0%B8%D0%BF%D1%8B-%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D1%85)
-- [FOREIGN KEY / REFERENCES](#foreign-key--references)
+    * [FOREIGN KEY / REFERENCES](#foreign-key--references)
 - [Индексы](#%D0%B8%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%D1%8B)
 - [Триггеры и функции](#%D1%82%D1%80%D0%B8%D0%B3%D0%B3%D0%B5%D1%80%D1%8B-%D0%B8-%D1%84%D1%83%D0%BD%D0%BA%D1%86%D0%B8%D0%B8)
 - [Схемы](#%D1%81%D1%85%D0%B5%D0%BC%D1%8B)
-- [Секвенсы (sequences)](#%D1%81%D0%B5%D0%BA%D0%B2%D0%B5%D0%BD%D1%81%D1%8B-sequences)
+- [Сиквенсы (sequences)](#%D1%81%D0%B8%D0%BA%D0%B2%D0%B5%D0%BD%D1%81%D1%8B-sequences)
 - [Время в Postgresql](#%D0%B2%D1%80%D0%B5%D0%BC%D1%8F-%D0%B2-postgresql)
-- [Идентификатор транзакции](#%D0%B8%D0%B4%D0%B5%D0%BD%D1%82%D0%B8%D1%84%D0%B8%D0%BA%D0%B0%D1%82%D0%BE%D1%80-%D1%82%D1%80%D0%B0%D0%BD%D0%B7%D0%B0%D0%BA%D1%86%D0%B8%D0%B8)
-    * [Скрытые (системные) поля таблицы](#%D1%81%D0%BA%D1%80%D1%8B%D1%82%D1%8B%D0%B5-%D1%81%D0%B8%D1%81%D1%82%D0%B5%D0%BC%D0%BD%D1%8B%D0%B5-%D0%BF%D0%BE%D0%BB%D1%8F-%D1%82%D0%B0%D0%B1%D0%BB%D0%B8%D1%86%D1%8B)
-    * [**Зачем он нужен (смысл для MVCC)
-      **](#%D0%B7%D0%B0%D1%87%D0%B5%D0%BC-%D0%BE%D0%BD-%D0%BD%D1%83%D0%B6%D0%B5%D0%BD-%D1%81%D0%BC%D1%8B%D1%81%D0%BB-%D0%B4%D0%BB%D1%8F-mvcc)
-    * [**Wraparound и VACUUM FREEZE (важный нюанс)
-      **](#wraparound-%D0%B8-vacuum-freeze-%D0%B2%D0%B0%D0%B6%D0%BD%D1%8B%D0%B9-%D0%BD%D1%8E%D0%B0%D0%BD%D1%81)
-- [Реализация транзакций в Postgresql](#%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F-%D1%82%D1%80%D0%B0%D0%BD%D0%B7%D0%B0%D0%BA%D1%86%D0%B8%D0%B9-%D0%B2-postgresql)
-    * [INSERT реализация](#insert-%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F)
-    * [UPDATE реализация](#update-%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F)
-    * [DELETE реализация](#delete-%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F)
+- [XID транзакции](#xid-%D1%82%D1%80%D0%B0%D0%BD%D0%B7%D0%B0%D0%BA%D1%86%D0%B8%D0%B8)
+- [MVCC](#mvcc)
+    + [INSERT реализация](#insert-%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F)
+    + [UPDATE реализация](#update-%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F)
+    + [DELETE реализация](#delete-%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F)
 - [ACID](#acid)
+- [Конфликты](#%D0%BA%D0%BE%D0%BD%D1%84%D0%BB%D0%B8%D0%BA%D1%82%D1%8B)
+- [Уровни изоляции](#%D1%83%D1%80%D0%BE%D0%B2%D0%BD%D0%B8-%D0%B8%D0%B7%D0%BE%D0%BB%D1%8F%D1%86%D0%B8%D0%B8)
 - [Serializable Snapshot Isolation (SSI)](#serializable-snapshot-isolation-ssi)
-- [MVCC (Multi-Version Concurrency Control)](#mvcc-multi-version-concurrency-control)
-    * [Проблемы, которые решает](#%D0%BF%D1%80%D0%BE%D0%B1%D0%BB%D0%B5%D0%BC%D1%8B-%D0%BA%D0%BE%D1%82%D0%BE%D1%80%D1%8B%D0%B5-%D1%80%D0%B5%D1%88%D0%B0%D0%B5%D1%82)
-    * [Минусы](#%D0%BC%D0%B8%D0%BD%D1%83%D1%81%D1%8B)
 - [VACUUM](#vacuum)
-    * [Алгоритм работы](#%D0%B0%D0%BB%D0%B3%D0%BE%D1%80%D0%B8%D1%82%D0%BC-%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%8B)
-    * [Autovacuum vs ручной VACUUM](#autovacuum-vs-%D1%80%D1%83%D1%87%D0%BD%D0%BE%D0%B9-vacuum)
-- [Изоляция транзакций](#%D0%B8%D0%B7%D0%BE%D0%BB%D1%8F%D1%86%D0%B8%D1%8F-%D1%82%D1%80%D0%B0%D0%BD%D0%B7%D0%B0%D0%BA%D1%86%D0%B8%D0%B9)
-- [SSL](#ssl)
 
 <!-- tocstop -->
 
-## Коннект
+# Коннект
 
 `psql -d <database_name> -h <hostname> -p <port_number> -U <username>`
 
 Указывать -d <database_name> иначе будет пытаться подключиться к базе данных с именем пользователя
 
-## Команды
+# Команды
 
 | Команда                | Описание                  |
 |------------------------|---------------------------|
@@ -66,6 +57,8 @@
 | `\i <filename>` 		     | execute script from file  |
 | `\echo <string>` 		    | echo in console           |
 
+# SQL
+
 Реальный порядок выполнения sql:
 
 1. FROM (+ JOIN)
@@ -76,7 +69,7 @@
 6. ORDER BY
 7. LIMIT / OFFSET
 
-## SQL DQL (Выборка)
+## SQL DQL (Выборка данных)
 
 | Команда               | Описание                                                                                                                                                                                                                                                                            |
 |-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -129,21 +122,25 @@ FROM users -- без where удалятся все данные
 -- RETURNING - вернуть данные измененных строк
 
 INSERT INTO orders (user_id, total)
-VALUES (10, 123.45) RETURNING id;
+VALUES (10, 123.45)
+RETURNING id;
 
 DELETE
 FROM users
-WHERE id = 1 RETURNING *;
+WHERE id = 1
+RETURNING *;
 
 UPDATE users
 SET name = 'Ivan Petrov'
-WHERE id = 1 RETURNING *;
+WHERE id = 1
+RETURNING *;
 
 INSERT INTO users (name, email)
-VALUES ('A', 'a@a.com') RETURNING id, name;
+VALUES ('A', 'a@a.com')
+RETURNING id, name;
 ```
 
-## SQL DDL (Структура)
+## SQL DDL (Определение структуры)
 
 ```sql
 CREATE TABLE users
@@ -194,15 +191,15 @@ ALTER TABLE users
     ADD COLUMN phone text;
 
 ALTER TABLE users
-DROP
-COLUMN phone;
+    DROP
+        COLUMN phone;
 
 ALTER TABLE users
     RENAME COLUMN name TO full_name;
 
 ALTER TABLE users
-ALTER
-COLUMN email TYPE varchar(255);
+    ALTER
+        COLUMN email TYPE varchar(255);
 
 ALTER TABLE users
     ALTER COLUMN created_at SET DEFAULT now();
@@ -212,11 +209,10 @@ ALTER TABLE users
 ALTER TABLE users
     ADD CONSTRAINT users_email_unique UNIQUE (email);
 ALTER TABLE users
-DROP
-CONSTRAINT users_email_unique;
+    DROP CONSTRAINT users_email_unique;
 ```
 
-## SQL TCL (Транзакции)
+## SQL TCL (Управление транзакциями)
 
 **Транзакция** - набор запросов, который либо выполняется весь, либо откатывается весь.
 По умолчанию PostgreSQL работает в режиме **autocommit**: каждый отдельный `INSERT/UPDATE/...` = отдельная транзакция.
@@ -228,7 +224,7 @@ CONSTRAINT users_email_unique;
 **Начать явную транзакцию**
 
 ```sql
-BEGIN;              -- или START TRANSACTION;
+BEGIN; -- или START TRANSACTION;
 
 UPDATE accounts
 SET balance = balance - 100
@@ -270,7 +266,7 @@ ROLLBACK TO SAVEPOINT sp1;
 COMMIT;
 ```
 
-## SQL DCL (Права)
+## SQL DCL (Управление правами)
 
 ```sql
 -- CONNECT - можно подключаться к БД
@@ -278,8 +274,8 @@ COMMIT;
 -- TEMP - создавать временные таблицы
 
 GRANT
-CONNECT
-ON DATABASE db_name TO user_name;
+    CONNECT
+    ON DATABASE db_name TO user_name;
 
 REVOKE CONNECT ON DATABASE db_name FROM user_name;
 ```
@@ -290,12 +286,12 @@ REVOKE CONNECT ON DATABASE db_name FROM user_name;
 -- CREATE - создавать таблицы/типы/функции в схеме
 
 GRANT
-USAGE
-ON
-SCHEMA
-shema_name TO user_name;
+    USAGE
+    ON
+    SCHEMA
+    shema_name TO user_name;
 GRANT CREATE
-ON SCHEMA shema_name TO user_name;
+    ON SCHEMA shema_name TO user_name;
 
 REVOKE CREATE ON SCHEMA shema_name FROM user_name;
 ```
@@ -320,8 +316,8 @@ REVOKE UPDATE, DELETE
 
 -- Сразу для всех таблиц в схеме
 GRANT
-SELECT
-ON ALL TABLES IN SCHEMA shema_name TO app_readonly;
+    SELECT
+    ON ALL TABLES IN SCHEMA shema_name TO app_readonly;
 ```
 
 ```sql
@@ -357,7 +353,7 @@ REVOKE ALL PRIVILEGES ON TABLE users FROM PUBLIC;
 - `DEFAULT`
 - `DEFERRABLE [INITIALLY DEFERRED|IMMEDIATE]` - отложенная проверка FK/UNIQUE/EXCLUDE
 
-## Типы данных
+# Типы данных
 
 serial / identity
 
@@ -428,18 +424,20 @@ Cтроки
 -- inline
 user_id
 bigint REFERENCES users(id)
-  ON DELETE
-CASCADE
   ON
+DELETE
+    CASCADE
+ON
 UPDATE CASCADE;
 
 -- table-level
 CONSTRAINT fk_orders_user
   FOREIGN KEY (user_id)
   REFERENCES users(id)
-  ON DELETE
-CASCADE
   ON
+DELETE
+    CASCADE
+ON
 UPDATE RESTRICT;
 ```
 
@@ -450,7 +448,7 @@ UPDATE RESTRICT;
 - `SET NULL` - установить NULL в FK
 - `SET DEFAULT` - установить значение по умолчанию
 
-## Индексы
+# Индексы
 
 Основное:
 
@@ -489,7 +487,7 @@ CONCURRENTLY - без долгой блокировки записи:
 CREATE INDEX CONCURRENTLY idx_users_phone ON users (phone);
 ```
 
-## Триггеры и функции
+# Триггеры и функции
 
 Сначала функция, затем триггер
 
@@ -521,7 +519,7 @@ DROP FUNCTION set_updated_at();
 - FOR EACH STATEMENT - один раз на запрос
 - В триггер-функции доступны NEW и OLD
 
-## Схемы
+# Схемы
 
 Схема = namespace внутри БД.
 По умолчанию public.
@@ -536,7 +534,7 @@ SET search_path TO logistics, public;
 SELECT * FROM logistics.vehicles;
 ```
 
-## Секвенсы (sequences)
+# Сиквенсы (sequences)
 
 Генератор чисел.
 
@@ -557,7 +555,7 @@ ALTER SEQUENCE order_id_seq RESTART WITH 1000;
 ALTER SEQUENCE order_id_seq OWNED BY orders.id;
 ```
 
-## Время в Postgresql
+# Время в Postgresql
 
 ```sql
 SELECT now(); -- timestamp with time zone, время начала транзакции
@@ -570,7 +568,21 @@ SELECT current_date;
 SELECT clock_timestamp(); -- реальное текущее время в момент вызова
 ```
 
-## Идентификатор транзакции
+# XID транзакции
+
+Transaction ID (XID)
+
+- Каждой модифицирующей транзакции (DML) Postgres выдаёт номер - XID.
+- XID используется, чтобы понять:
+    - кто создал строку,
+    - кто удалил/обновил строку,
+    - какие версии строк видимы в конкретной транзакции.
+
+Каждая строка (tuple) в таблице имеет служебные поля (в заголовке), например:
+
+- xmin - XID транзакции, которая создала эту версию строки.
+- xmax - XID транзакции, которая удалила или заменила эту версию (если не 0).
+- ctid - физический адрес версии ((page, offset)), при UPDATE у старой версии здесь ссылка на новую.
 
 - Каждой транзакции, которая изменяет данные, Postgres выдаёт 32-битный номер - XID.
 - Это число монотонно растёт (1, 2, 3, 4… до 2³²-1, потом wraparound).
@@ -580,16 +592,14 @@ SELECT clock_timestamp(); -- реальное текущее время в мо�
 
 По этим полям + статусу транзакций Postgres решает, жива ли строка для конкретного запроса.
 
-### Скрытые (системные) поля таблицы
+**Скрытые (системные) поля таблицы:**
 
 - `xmin` - хранит xid транзакции, в рамках которой запись (копия записи) была создана
 - `xmax` - хранит xid транзакции, в рамках которой запись была удалена
 - `cmin` - идентификатор команды, создавшей запись
 - `cmax` - идентификатор команды, удалившей запись
 
-### **Зачем он нужен (смысл для MVCC)**
-
-Postgres не перезаписывает строку сразу, а:
+**Postgres не перезаписывает строку сразу, а:**
 
 - при INSERT создаёт новую версию строки (xmin = XID вставки);
 - при UPDATE:
@@ -615,7 +625,7 @@ Postgres на основе этого snapshot и xmin/xmax решает:
 
 `SELECT pg_current_xact_id();` - Возвращает xid текущей транзакции
 
-### **Wraparound и VACUUM FREEZE (важный нюанс)**
+**Wraparound и VACUUM FREEZE:**
 
 - XID 32-битный -> он зацикливается (wraparound) примерно после 2 млрд транзакций.
 - Чтобы не забывать, какие старые строки давно закоммичены, Postgres:
@@ -626,21 +636,9 @@ Postgres на основе этого snapshot и xmin/xmax решает:
 Если не делать VACUUM, можно довести до ситуации, когда база начнёт паниковать и не даст выполнять новые транзакции,
 пока не будет выгребен мусор.
 
-## Реализация транзакций в Postgresql
+# MVCC
 
-Transaction ID (XID)
-
-- Каждой модифицирующей транзакции (DML) Postgres выдаёт номер - XID.
-- XID используется, чтобы понять:
-    - кто создал строку,
-    - кто удалил/обновил строку,
-    - какие версии строк видимы в конкретной транзакции.
-
-Каждая строка (tuple) в таблице имеет служебные поля (в заголовке), например:
-
-- xmin - XID транзакции, которая создала эту версию строки.
-- xmax - XID транзакции, которая удалила или заменила эту версию (если не 0).
-- ctid - физический адрес версии ((page, offset)), при UPDATE у старой версии здесь ссылка на новую.
+Multi-Version Concurrency Control - многоверсионное управление конкурентным доступом.
 
 **MVCC-идея:** Postgres не переписывает строку на месте, а создаёт новую версию, а старую помечает как устаревшую, но не
 сразу удаляет.
@@ -652,6 +650,9 @@ Transaction ID (XID)
 
 По этому снимку и по xmin/xmax Postgres решает: Эта версия строки уже была закоммичена на момент моего снимка или ещё
 нет?
+
+> Вместо того чтобы перезаписывать строку и всех блокировать, БД хранит несколько версий строки и даёт разным
+> транзакциям видеть «свою» версию данных.
 
 ### INSERT реализация
 
@@ -735,45 +736,7 @@ UPDATE = DELETE старой версии + INSERT новой
 - освободить место на странице,
 - почистить ссылку в индексе (или пометить её как «invalid»).
 
-## ACID
-
-A - Atomicity (атомарность)
-
-- Все изменения транзакции получают один XID.
-- Пока транзакция не зафиксирована:
-- её версии не видны другим транзакциям (по snapshot).
-- При COMMIT:
-- в WAL пишется запись коммита,
-- XID помечается как committed.
-- Если ROLLBACK:
-- версии уже есть в heap, но считаются невидимыми для всех (как будто их не было),
-- VACUUM потом их уберёт.
-
-C - Consistency (согласованность)
-
-- Ограничения (PRIMARY KEY, FOREIGN KEY, CHECK, NOT NULL и т.д.) проверяются в момент DML/COMMIT.
-- Если что-то нарушено - транзакция откатывается -> БД остаётся в старом целостном состоянии.
-
-I - Isolation (изоляция)
-
-- MVCC + snapshot: каждая транзакция читает свою картину мира, без блокировок чтения.
-- Уровни изоляции (Read Committed, Repeatable Read, Serializable) задают, как именно снимаются и обновляются snapshot’ы.
-
-D - Durability (надёжность)
-
-- Все изменения (и факт коммита) сначала пишутся в WAL (журнал).
-- После падения - база replay’ит журнал, восстанавливая состояние до последнего коммита.
-
-## Serializable Snapshot Isolation (SSI)
-
-## MVCC (Multi-Version Concurrency Control)
-
-Multi-Version Concurrency Control - многоверсионное управление конкурентным доступом.
-
-> Вместо того чтобы перезаписывать строку и всех блокировать, БД хранит несколько версий строки и даёт разным
-> транзакциям видеть «свою» версию данных.
-
-### Проблемы, которые решает
+**Проблемы, которые решает:**
 
 1. Конкурентное чтение/запись без тотальной блокировки
 
@@ -809,72 +772,42 @@ Multi-Version Concurrency Control - многоверсионное управл�
     - Serializable (в PostgreSQL - через Serializable Snapshot Isolation + проверка конфликтов).
 - Без MVCC пришлось бы намного жёстче блокировать данные -> меньше параллелизма.
 
-### Минусы
+**Минусы:**
 
 - мусор (dead tuples) - старые версии строк -> нужен VACUUM/GC.
 - Более сложная логика видимости (xmin/xmax, snapshot, XID, wraparound).
 - Потенциальный раздутие таблиц/индексов лишним пространством, если плохо настроен vacuum.
 
-## VACUUM
+# ACID
 
-Из-за MVCC: UPDATE и DELETE не переписывают строку, а оставляют старую версию и создают новую (или помечают как
-удалённую).
-В таблице накапливаются мертвые версии строк (dead tuples): старые версии после UPDATE, удалённые строки.
+A - Atomicity (атомарность)
 
-Пока есть активные транзакции, которые ещё могут видеть эти версии по своему snapshot, их нельзя просто выкинуть. Когда
-уже никто не может их увидеть - это мусор, который надо убрать.
+- Все изменения транзакции получают один XID.
+- Пока транзакция не зафиксирована:
+- её версии не видны другим транзакциям (по snapshot).
+- При COMMIT:
+- в WAL пишется запись коммита,
+- XID помечается как committed.
+- Если ROLLBACK:
+- версии уже есть в heap, но считаются невидимыми для всех (как будто их не было),
+- VACUUM потом их уберёт.
 
-Вот это и делает VACUUM: он и есть сборщик мусора и сборщик старых XID.
+C - Consistency (согласованность)
 
-### Алгоритм работы
+- Ограничения (PRIMARY KEY, FOREIGN KEY, CHECK, NOT NULL и т.д.) проверяются в момент DML/COMMIT.
+- Если что-то нарушено - транзакция откатывается -> БД остаётся в старом целостном состоянии.
 
-- Обходит строки таблицы
-    - Смотрит на xmin/xmax версии.
-    - По состоянию транзакций понимает: эту версию может увидеть кто-то ещё (живёт) или никто уже не увидит (мертва).
-- Помечает мёртвые версии как свободное место
-    - Перестаёт учитывать их как живые.
-    - Помечает space на странице как доступный для новых вставок.
-    - В индексах помечает соответствующие entries как «невалидные» (или чистит, зависит от версии и типа VACUUM).
-- Обновляет visibility map / статистику
-    - Visibility map помогает знать, какие страницы полностью состоят из видимых строк -> оптимизация index-only scans.
-    - Статистика нужна планировщику запросов.
-- Заморозка XID (VACUUM FREEZE)
-    - Старые строки, которые уже очень давно закоммичены, получают специальный FrozenXid.
-    - Это защищает от wraparound (переполнения 32-битных XID), чтобы через много лет база не «забыла», что эта строка
-      давно “живёт”.
+I - Isolation (изоляция)
 
-### Autovacuum vs ручной VACUUM
+- MVCC + snapshot: каждая транзакция читает свою картину мира, без блокировок чтения.
+- Уровни изоляции (Read Committed, Repeatable Read, Serializable) задают, как именно снимаются и обновляются snapshot’ы.
 
-- В PostgreSQL есть autovacuum launcher, который периодически запускает autovacuum worker’ы.
-- Он сам решает, когда вакуумить таблицы, по порогам:
-    - сколько было вставок/апдейтов/удалений,
-    - возраст XID в таблице.
-- Прод база почти всегда живёт на autovacuum, если его не отключали.
+D - Durability (надёжность)
 
-**Ручной VACUUM**
+- Все изменения (и факт коммита) сначала пишутся в WAL (журнал).
+- После падения - база replay’ит журнал, восстанавливая состояние до последнего коммита.
 
-Можно вызвать самому
-
-```sql
-VACUUM
-table_name;            -- мягкая уборка, без полной перестройки
-VACUUM
-FREEZE table_name;     -- агрессивная заморозка XID
-VACUUM FULL
-table_name;       -- полная перестройка таблицы с сжатием (блокирует)
-```
-
-> VACUUM FULL - это уже не просто уборка, а перепаковка таблицы:
-> создаётся новый файл таблицы, копируются только живые строки,
-> после чего старый файл удаляется -> реальное уменьшение файла на диске, но с блокировкой.
-
-## Изоляция транзакций
-
-- Во время выполнения транзакции параллельные транзакции не должны оказывать влияния на её результат.
-- Полноценная реализация требует очень много ресурсов!
-- В реальных системах используется концепция уровней изолированности транзакций.
-
-### Конфликты
+# Конфликты
 
 - **Грязное чтение (dirty read)** - если одна транзакция видит измененные данные другой незавершенной транзакции<br/>
   Транзакция А изменила данные, но ещё не закоммитила.<br/>
@@ -894,7 +827,16 @@ table_name;       -- полная перестройка таблицы с сж�
 
 > **Изоляция отвечает: какие из этих феноменов допустимы на данном уровне, а какие — нет.**
 
-### Режимы организации доступа к данным
+# Уровни изоляции
+
+Read Uncommitted
+Read Committed
+Repeatable Read
+Serializable
+
+- Во время выполнения транзакции параллельные транзакции не должны оказывать влияния на её результат.
+- Полноценная реализация требует очень много ресурсов!
+- В реальных системах используется концепция уровней изолированности транзакций.
 
 PostgreSQL использует MVCC (Multi-Version Concurrency Control):
 
@@ -923,14 +865,57 @@ PostgreSQL использует MVCC (Multi-Version Concurrency Control):
 
 `BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;`
 
-### Snapshot
+# Serializable Snapshot Isolation (SSI)
 
+# VACUUM
 
+Из-за MVCC: UPDATE и DELETE не переписывают строку, а оставляют старую версию и создают новую (или помечают как
+удалённую).
+В таблице накапливаются мертвые версии строк (dead tuples): старые версии после UPDATE, удалённые строки.
 
-## SSL
+Пока есть активные транзакции, которые ещё могут видеть эти версии по своему snapshot, их нельзя просто выкинуть. Когда
+уже никто не может их увидеть - это мусор, который надо убрать.
 
+Вот это и делает VACUUM: он и есть сборщик мусора и сборщик старых XID.
 
+**Алгоритм работы**
 
+- Обходит строки таблицы
+    - Смотрит на xmin/xmax версии.
+    - По состоянию транзакций понимает: эту версию может увидеть кто-то ещё (живёт) или никто уже не увидит (мертва).
+- Помечает мёртвые версии как свободное место
+    - Перестаёт учитывать их как живые.
+    - Помечает space на странице как доступный для новых вставок.
+    - В индексах помечает соответствующие entries как «невалидные» (или чистит, зависит от версии и типа VACUUM).
+- Обновляет visibility map / статистику
+    - Visibility map помогает знать, какие страницы полностью состоят из видимых строк -> оптимизация index-only scans.
+    - Статистика нужна планировщику запросов.
+- Заморозка XID (VACUUM FREEZE)
+    - Старые строки, которые уже очень давно закоммичены, получают специальный FrozenXid.
+    - Это защищает от wraparound (переполнения 32-битных XID), чтобы через много лет база не «забыла», что эта строка
+      давно “живёт”.
 
+**Autovacuum vs ручной VACUUM**
 
+- В PostgreSQL есть autovacuum launcher, который периодически запускает autovacuum worker’ы.
+- Он сам решает, когда вакуумить таблицы, по порогам:
+    - сколько было вставок/апдейтов/удалений,
+    - возраст XID в таблице.
+- Прод база почти всегда живёт на autovacuum, если его не отключали.
 
+**Ручной VACUUM**
+
+Можно вызвать самому
+
+```sql
+VACUUM
+    table_name; -- мягкая уборка, без полной перестройки
+VACUUM
+    FREEZE table_name; -- агрессивная заморозка XID
+VACUUM FULL
+    table_name; -- полная перестройка таблицы с сжатием (блокирует)
+```
+
+> VACUUM FULL - это уже не просто уборка, а перепаковка таблицы:
+> создаётся новый файл таблицы, копируются только живые строки,
+> после чего старый файл удаляется -> реальное уменьшение файла на диске, но с блокировкой.
