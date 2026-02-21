@@ -74,9 +74,17 @@ BASIC AUTH - Spring
 
 
 
+------------------------------------------------------------------------------------------------------------------------
+
+Form-based Authentication
+HTTP Basic Authentication
+JWT
+OAuth2
 
 
 
+Интеграция Spring Security с PostgreSQL
+    UserDetailsService
 
 
 
