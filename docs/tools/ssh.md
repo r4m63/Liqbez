@@ -1,21 +1,10 @@
 # SSH
 
-## Конфиги в ubuntu
-
 ## Создание ключей
 
-Сгенерировать ключ (если ещё нет)
-
 ```bash
-ssh-keygen -t ed25519 -C "your_comment"
-# путь по умолчанию: ~/.ssh/id_ed25519
+ssh-keygen -t ed25519 -f ~/.ssh/name_key
 ```
-
-Он создаст:
-`~/.ssh/id_ed25519` - приватный
-`~/.ssh/id_ed25519.pub` - публичный
-
-Скопировать публичный ключ на сервер
 
 Вариант 1:
 
@@ -34,19 +23,37 @@ echo "СЮДА_ВСТАВИТЬ_СТРОКУ_КЛЮЧА" >> ~/.ssh/authorized_ke
 chmod 600 ~/.ssh/authorized_keys
 ```
 
-## Алиас на подключение
+## Конфиг
 
 в `~/.ssh/config`:
 
 ```text
-Host prod
-    HostName 203.0.113.10 
-    User user_name 
-    Port 22 
-    IdentityFile ~/.ssh/id_ed25519
+Host *
+  ServerAliveInterval 60
+  ServerAliveCountMax 3
+  TCPKeepAlive yes
+  AddKeysToAgent yes
+  UseKeychain yes
+
+Host alias_name
+  HostName 1.2.3.4
+  Port 2222
+  User user_name
+  IdentityFile ~/.ssh/name_key
+  IdentitiesOnly yes
 ```
 
 `chmod 600 ~/.ssh/config`
+
+UseKeychain - агент работает на macos, для других:
+
+```
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/pg_key
+ssh-add -l
+```
+
+либо в .bashrc написать скрипт
 
 ## Файлы в ~/.ssh
 

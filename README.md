@@ -36,7 +36,7 @@
 
 ### Database
 
-- [Postgresql](./docs/database/postgresql.md)
+- [Postgresql](./docs/database/postgres/postgresql.md)
 - Redis
 
 ### Software Engineering
