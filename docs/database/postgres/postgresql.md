@@ -39,23 +39,23 @@
 
 # Команды
 
-| Команда                | Описание                  |
-|------------------------|---------------------------|
-| `\l` `\list` `\l+`		   | all databases             |
-| `\c <database_name>` 	 | connect to database       |
-| `\dt` `\dt+` 			       | all tables in database    |
-| `\dv` `\dv+` 			       | all views in database     |
-| `\dn` `\dn+` 			       | all schema in database    |
-| `\df` `\df+` 			       | all functions in database |
-| `\di` `\di+` 			       | all indexes in database   |
-| `\du`				              | all users                 |
-| `\q` 				              | quit                      |
-| `\! <command>` 		      | shell command             |
-| `\?` 				              | help command              |
-| `\h <command>` 		      | help command              |
-| `\o <filename>` 		     | last response in file     |
-| `\i <filename>` 		     | execute script from file  |
-| `\echo <string>` 		    | echo in console           |
+| Команда              | Описание                  |
+| -------------------- | ------------------------- |
+| `\l` `\list` `\l+`   | all databases             |
+| `\c <database_name>` | connect to database       |
+| `\dt` `\dt+`         | all tables in database    |
+| `\dv` `\dv+`         | all views in database     |
+| `\dn` `\dn+`         | all schema in database    |
+| `\df` `\df+`         | all functions in database |
+| `\di` `\di+`         | all indexes in database   |
+| `\du`                | all users                 |
+| `\q`                 | quit                      |
+| `\! <command>`       | shell command             |
+| `\?`                 | help command              |
+| `\h <command>`       | help command              |
+| `\o <filename>`      | last response in file     |
+| `\i <filename>`      | execute script from file  |
+| `\echo <string>`     | echo in console           |
 
 # SQL
 
@@ -72,7 +72,7 @@
 ## SQL DQL (Выборка данных)
 
 | Команда               | Описание                                                                                                                                                                                                                                                                            |
-|-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `SELECT ... FROM ...` | SELECT: имена колонок (`SELECT id`), выражения (`SELECT price * count AS total`), агрегаты (`SELECT count(*)`) <br/> FROM: `SELECT u.id, o.id FROM users u`                                                                                                                         |
 | `WHERE`               | Фильтрует строки до группировки: `WHERE status = 'open' AND total > 100;`, `WHERE email LIKE '%@gmail.com';`                                                                                                                                                                        |
 | `GROUP BY`            | Объединяет строки в группы по указанным полям <br/> таблица: orders(id, user_id, total)<br/>`SELECT user_id, SUM(total) AS total_sum FROM orders GROUP BY user_id;` - берет все строки из orders, делит их на группы по user_id <br/> Результат: (user_id, total_sum)               |
@@ -83,7 +83,7 @@
 **JOIN**
 
 | Команда               | Описание                                                                                                                                                                            |
-|-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `JOIN` = `INNER JOIN` | Берет только те пары строк, где условие ON выполняется (пересечение множеств) `... FROM users u JOIN orders o ON o.user_id = u.id;`                                                 |
 | `LEFT JOIN`           | Берет все строки из левой таблицы. к ним прицепляет строки из правой по условию ON. Если совпадения нет - в колонках правой таблицы будут NULL.                                     |
 | `RIGHT JOIN`          | Берет все строки из правой таблицы (orders) и подцепляет к ним левую. Если совпадения нет - в колонках левой будут NULL.                                                            |
@@ -568,6 +568,8 @@ SELECT current_date;
 SELECT clock_timestamp(); -- реальное текущее время в момент вызова
 ```
 
+---
+
 # XID транзакции
 
 Transaction ID (XID)
@@ -912,5 +914,3 @@ VACUUM FULL
 > VACUUM FULL - это уже не просто уборка, а перепаковка таблицы:
 > создаётся новый файл таблицы, копируются только живые строки,
 > после чего старый файл удаляется -> реальное уменьшение файла на диске, но с блокировкой.
-
-
