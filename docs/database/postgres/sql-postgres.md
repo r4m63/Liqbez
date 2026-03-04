@@ -1,36 +1,3 @@
-# POSTGRESQL
-
-<!-- toc -->
-
-- [Коннект](#%D0%BA%D0%BE%D0%BD%D0%BD%D0%B5%D0%BA%D1%82)
-- [Команды](#%D0%BA%D0%BE%D0%BC%D0%B0%D0%BD%D0%B4%D1%8B)
-- [SQL](#sql)
-    * [SQL DQL (Выборка данных)](#sql-dql-%D0%B2%D1%8B%D0%B1%D0%BE%D1%80%D0%BA%D0%B0-%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D1%85)
-    * [SQL DML (Изменение данных)](#sql-dml-%D0%B8%D0%B7%D0%BC%D0%B5%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5-%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D1%85)
-    * [SQL DDL (Определение структуры)](#sql-ddl-%D0%BE%D0%BF%D1%80%D0%B5%D0%B4%D0%B5%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5-%D1%81%D1%82%D1%80%D1%83%D0%BA%D1%82%D1%83%D1%80%D1%8B)
-    * [SQL TCL (Управление транзакциями)](#sql-tcl-%D1%83%D0%BF%D1%80%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5-%D1%82%D1%80%D0%B0%D0%BD%D0%B7%D0%B0%D0%BA%D1%86%D0%B8%D1%8F%D0%BC%D0%B8)
-    * [SQL DCL (Управление правами)](#sql-dcl-%D1%83%D0%BF%D1%80%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5-%D0%BF%D1%80%D0%B0%D0%B2%D0%B0%D0%BC%D0%B8)
-    * [Ограничения (constraints)](#%D0%BE%D0%B3%D1%80%D0%B0%D0%BD%D0%B8%D1%87%D0%B5%D0%BD%D0%B8%D1%8F-constraints)
-- [Типы данных](#%D1%82%D0%B8%D0%BF%D1%8B-%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D1%85)
-    * [FOREIGN KEY / REFERENCES](#foreign-key--references)
-- [Индексы](#%D0%B8%D0%BD%D0%B4%D0%B5%D0%BA%D1%81%D1%8B)
-- [Триггеры и функции](#%D1%82%D1%80%D0%B8%D0%B3%D0%B3%D0%B5%D1%80%D1%8B-%D0%B8-%D1%84%D1%83%D0%BD%D0%BA%D1%86%D0%B8%D0%B8)
-- [Схемы](#%D1%81%D1%85%D0%B5%D0%BC%D1%8B)
-- [Сиквенсы (sequences)](#%D1%81%D0%B8%D0%BA%D0%B2%D0%B5%D0%BD%D1%81%D1%8B-sequences)
-- [Время в Postgresql](#%D0%B2%D1%80%D0%B5%D0%BC%D1%8F-%D0%B2-postgresql)
-- [XID транзакции](#xid-%D1%82%D1%80%D0%B0%D0%BD%D0%B7%D0%B0%D0%BA%D1%86%D0%B8%D0%B8)
-- [MVCC](#mvcc)
-    + [INSERT реализация](#insert-%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F)
-    + [UPDATE реализация](#update-%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F)
-    + [DELETE реализация](#delete-%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F)
-- [ACID](#acid)
-- [Конфликты](#%D0%BA%D0%BE%D0%BD%D1%84%D0%BB%D0%B8%D0%BA%D1%82%D1%8B)
-- [Уровни изоляции](#%D1%83%D1%80%D0%BE%D0%B2%D0%BD%D0%B8-%D0%B8%D0%B7%D0%BE%D0%BB%D1%8F%D1%86%D0%B8%D0%B8)
-- [Serializable Snapshot Isolation (SSI)](#serializable-snapshot-isolation-ssi)
-- [VACUUM](#vacuum)
-
-<!-- tocstop -->
-
 # Коннект
 
 `psql -d <database_name> -h <hostname> -p <port_number> -U <username>`
@@ -114,7 +81,7 @@ WHERE id = 1;
 DELETE FROM users -- без where удалятся все данные
 
 -- или быстрее:
-         TRUNCATE TABLE users;
+TRUNCATE TABLE users;
 
 -- RETURNING - вернуть данные измененных строк
 
