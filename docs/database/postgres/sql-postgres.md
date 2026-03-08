@@ -89,8 +89,7 @@ INSERT INTO orders (user_id, total)
 VALUES (10, 123.45)
 RETURNING id;
 
-DELETE
-FROM users
+DELETE FROM users
 WHERE id = 1
 RETURNING *;
 
