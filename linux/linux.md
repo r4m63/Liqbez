@@ -1,5 +1,48 @@
 # Администрирование
 
+```txt
+r — read        u — user owner
+w — write       g — group
+x — execute     o — others
+                a — all (u+g+o)
+
+- rwx r-x r--
+| ||| ||| |||
+| ||| ||| ||└─ others
+| ||| └└└─── group
+| └└└─────── user
+└─────────── тип файла
+
+Первый символ       3 тройки
+- — обычный файл    rwx — права владельца
+d — папка           r-x — права группы
+l — ссылка          r-- — права остальных
+
+Каждое право — это число
+r = 4
+w = 2
+x = 1
+
+7 = 4+2+1 = rwx
+6 = 4+2 = rw-
+5 = 4+1 = r-x
+4 = 4 = r--
+3 = 2+1 = -wx
+2 = 2 = -w-
+1 = 1 = --x
+0 = ---
+
+chmod 755 file.txt
+chmod [кому][операция][права] file.txt
+chmod o+x file.txt
+chmod u+rw file.txt
+chmod a=r file.txt
+chmod u=rwx file.txt
+chmod u+x,g-w,o=r file.txt
+```
+
+
+
 ```bash
 # Показать всех пользователей из /etc/passwd
 cat /etc/passwd
@@ -41,8 +84,6 @@ groups username
 # Или так
 id username
 
-#
-
 # Подробная информация
 id
 
@@ -51,7 +92,6 @@ whoami
 
 # Заменить username на имя пользователя
 id username
-finger username  # если установлен finger
 
 # Последние входы в систему
 last
@@ -74,7 +114,6 @@ sudo cat /etc/sudoers | grep -v "^#"
 getent passwd | grep username
 
 getent group | grep groupname
-
 ```
 
 Домашние каталоги
