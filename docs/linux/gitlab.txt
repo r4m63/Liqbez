@@ -1,5 +1,0 @@
-docker run --detach --publish 443:443 --publish 80:80 --publish 22:22 --name gitlab --restart always --shm-size 256m gitlab/gitlab-ee:<version>-ee.0
-
-
-пароль из гитлаб по умолчанию
-sudo docker exec -it <container_id> cat /etc/gitlab/initial_root_password

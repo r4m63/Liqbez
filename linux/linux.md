@@ -1,4 +1,4 @@
-# Базовые команды:
+# Администрирование
 
 ```bash
 # Показать всех пользователей из /etc/passwd
@@ -41,7 +41,7 @@ groups username
 # Или так
 id username
 
-# 
+#
 
 # Подробная информация
 id
@@ -76,8 +76,6 @@ getent passwd | grep username
 getent group | grep groupname
 
 ```
-
----
 
 Домашние каталоги
 
@@ -129,27 +127,6 @@ ln -s /usr/bin/git /opt/whitelist/bin/
 echo 'if id -nG | grep -qw devs; then export PATH="/opt/whitelist/bin"; fi' >/etc/profile.d/whitelist.sh
 ```
 
-SSH-доступ: кого пускаем и как
-
-```bash
-# /etc/ssh/sshd_config (минимум)
-PasswordAuthentication no
-PubkeyAuthentication yes
-AllowGroups ssh-users
-ClientAliveInterval 300
-ClientAliveCountMax 2
-
-# SFTP-только и chroot для группы sftp-alpha:
-Match Group sftp-alpha
-    ChrootDirectory /srv/sftp/%u
-    ForceCommand internal-sftp
-    X11Forwarding no
-    AllowTcpForwarding no
-```
-
----
-
-
 Все будет делать CI/CD, доступ по ssh на сервер нужен только
 
 Администраторы (1-2 человека):
@@ -168,33 +145,3 @@ DevOps/Инженеры развертывания:
 Группы: developers-readonly, ssh-users
 
 Нужен CI/CD пользователь и Docker/Kubernetes
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

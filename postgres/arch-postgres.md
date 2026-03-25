@@ -326,3 +326,24 @@ postgres использует MVCC (Multi-Version Concurrency Control):
 ----------------------------------------------------------------------------------------------------
 
 # Индексы
+
+----------------------------------------------------------------------------------------------------
+
+# Системный каталог и его объекты (pg_*)
+
+----------------------------------------------------------------------------------------------------
+
+# Табличные пространства
+
+----------------------------------------------------------------------------------------------------
+
+# ...
+
+- https://edu.postgrespro.ru/16/dba1-16/dba1_11_data_lowlevel.html
+- https://edu.postgrespro.ru/16/dba1-16/dba1_12_admin_monitoring.html
+- https://edu.postgrespro.ru/16/dba1-16/dba1_13_access_overview.html
+- https://edu.postgrespro.ru/16/dba1-16/dba1_14_backup_overview.html
+- https://edu.postgrespro.ru/16/dba1-16/dba1_15_replica_overview_physical.html
+- https://edu.postgrespro.ru/16/dba1-16/dba1_16_replica_overview_logical.html
+
+----------------------------------------------------------------------------------------------------

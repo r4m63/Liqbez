@@ -62,3 +62,24 @@ ssh-add -l
 - id_ed25519.pub - Публичный ключ к вышеуказанному приватному. Его как раз копируют на сервер в ~/.ssh/authorized_keys.
 - known_hosts - Кэш хост-ключей серверов, к которым уже подключался.
 - known_hosts.old - Бэкап предыдущей версии known_hosts
+
+
+---
+
+SSH-доступ: кого пускаем и как
+
+```bash
+# /etc/ssh/sshd_config (минимум)
+PasswordAuthentication no
+PubkeyAuthentication yes
+AllowGroups ssh-users
+ClientAliveInterval 300
+ClientAliveCountMax 2
+
+# SFTP-только и chroot для группы sftp-alpha:
+Match Group sftp-alpha
+    ChrootDirectory /srv/sftp/%u
+    ForceCommand internal-sftp
+    X11Forwarding no
+    AllowTcpForwarding no
+```
