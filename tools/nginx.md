@@ -1,9 +1,9 @@
+# Nginx
 
 ## Установка
 
-```
-sudo apt update
-sudo apt install -y nginx
+```bash
+sudo dnf install -y nginx
 sudo systemctl enable --now nginx
 sudo systemctl status nginx
 ```
@@ -14,9 +14,12 @@ sudo systemctl status nginx
 
 `/etc/nginx/sites-enabled/` -- активированные конфиги
 
+или:
+
+`/etc/nginx/conf.d` -- для rockylinux
 
 Пример `/etc/nginx/nginx.conf`
-```
+```bash
 user  www-data;
 worker_processes  auto;
 pid /run/nginx.pid;
@@ -109,8 +112,8 @@ http {
 
 ```
 
-Пример `/etc/nginx/sites-available/example.com`
-```
+Пример `/etc/nginx/conf.d/example.com`
+```bash
 server {
     	listen 80;
         server_name example.com;
@@ -124,8 +127,8 @@ server {
 }
 ```
 
-
-```
+для debian-based:
+```bash
 sudo ln -s /etc/nginx/sites-available/example.com /etc/nginx/sites-enabled/example.com
 sudo nginx -t
 sudo systemctl reload nginx
@@ -133,12 +136,13 @@ sudo systemctl reload nginx
 
 ## Сертификаты
 
-```
-sudo apt install -y certbot python3-certbot-nginx
+```bash
+sudo dnf install -y epel-release
+sudo dnf install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d example.com
+sudo systemctl enable --now certbot-renew.timer
 ```
 
-`sudo systemctl enable --now certbot-renew.timer`
 
 
 
