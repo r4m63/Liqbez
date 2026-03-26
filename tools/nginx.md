@@ -225,74 +225,71 @@ sudo certbot --nginx -d example.com
 sudo systemctl enable --now certbot-renew.timer
 ```
 
+## Load Balancer
 
-
-
-
-----
-
-worker_processes auto;
-
-events {
-        worker_connections 1024;
-}
-
+```bash
 http {
-        client_max_body_size 10G;
-        types_hash_max_size 2048;
-        types_hash_bucket_size 128;
-        include       mime.types;
-        default_type  application/octet-stream;
+    upstream api_backend {
+        server 127.0.0.1:8001 max_fails=3 fail_timeout=30s; # backend 1
+        server 127.0.0.1:8002 max_fails=3 fail_timeout=30s; # backend 2
+        keepalive 32;                                       # keepalive к backend
+    }
 
-server {
+    server {
         listen 80;
-        server_name aze-umma.ru;
+        server_name api.example.com;
+
         location / {
-                proxy_pass http://127.0.0.1:45001;
-                proxy_set_header Host $host;
-                proxy_set_header X-Real-IP $remote_addr;
-                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_pass http://api_backend;                  # отправить в upstream
+            proxy_http_version 1.1;                         # HTTP/1.1 к backend
+            proxy_set_header Host $host;                    # передать Host
+            proxy_set_header X-Real-IP $remote_addr;        # IP клиента
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; # цепочка IP
+            proxy_set_header X-Forwarded-Proto $scheme;     # http/https
+            proxy_set_header Connection "";                 # нормально для keepalive
+            proxy_connect_timeout 5s;                       # таймаут соединения к backend
+            proxy_read_timeout 60s;                         # таймаут чтения ответа
+            proxy_send_timeout 60s;                         # таймаут отправки запроса
         }
+    }
 }
+```
 
+round robin -- По умолчанию
 
-server {
-        server_name cloud.ramil21.ru;
-        location / {
-                proxy_pass http://127.0.0.1:21103;
-                proxy_set_header Host $host;
-                proxy_set_header X-Real-IP $remote_addr;
-                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                proxy_set_header X-Forwarded-Proto $scheme;
-        }
-
-        listen 443 ssl; # managed by Certbot
-        ssl_certificate /etc/letsencrypt/live/cloud.ramil21.ru/fullchain.pem; # managed by Certbot
-        ssl_certificate_key /etc/letsencrypt/live/cloud.ramil21.ru/privkey.pem; # managed by Certbot
-        include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-        ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+```bash
+upstream api_backend {
+    server 10.0.0.11:8080;
+    server 10.0.0.12:8080;
 }
+```
 
-# Убираем лишний default сервер
-server {
-        listen 80 default_server;
-        server_name _;
-        return 403;
+least_conn -- Подходит, если запросы сильно отличаются по длительности.
+
+```bash
+upstream api_backend {
+    least_conn;             # меньше активных соединений -> выше шанс получить запрос
+    server 10.0.0.11:8080;
+    server 10.0.0.12:8080;
 }
+```
 
+ip_hash -- Подходит, если нужна “липкость” по IP клиента.
 
-server {
-    if ($host = cloud.ramil21.ru) {
-        return 301 https://$host$request_uri;
-    } # managed by Certbot
-
-
-        listen 80;
-        server_name cloud.ramil21.ru;
-    return 404; # managed by Certbot
-
+```bash
+upstream api_backend {
+    ip_hash;                # один клиентский IP старается ходить в один backend
+    server 10.0.0.11:8080;
+    server 10.0.0.12:8080;
 }
+```
 
+hash -- Подходит, если маршрутизация должна зависеть от ключа.
 
+```bash
+upstream api_backend {
+    hash $request_uri consistent;       # одинаковый URI -> один и тот же backend
+    server 10.0.0.11:8080;
+    server 10.0.0.12:8080;
 }
+```
