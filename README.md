@@ -41,7 +41,7 @@
     - Governance & Compliance
 - Project Management
 
-### Linux
+### [Linux](linux/README.md)
 
 
 
@@ -62,8 +62,8 @@
 
 ### Low-Level
 
-- CPU
+- [CPU](low-level/cpu.md)
 - GPU
-- [TPU](docs/low-level/computer-architecture/tpu.md)
-- Сети
-- Операционные системы
+- [TPU](low-level/tpu.md)
+- [Сети](low-level/nets.md)
+- [Операционные системы](low-level/os.md)
