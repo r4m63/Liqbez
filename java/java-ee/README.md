@@ -1,0 +1,7 @@
+- Servlets
+- JSP
+- CDI
+- EJB, JMS
+- JAX-RS
+- [JPA](java/java-ee/jpa.md)
+- [Hibernate](java/java-ee/hibernate.md)

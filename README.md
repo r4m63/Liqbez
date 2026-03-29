@@ -1,57 +1,41 @@
-# Liqbez – Technology knowledge base
+# Liqbez - Technology knowledge base
 
 ### Java
 
-- Java Core
-    - JDK, JRE, JVM
-    - [Collection API](/docs/java/java-core/collection-api.md)
-    - I/O
-    - Exceptions
-    - Multithreading Concurrency
-    - Аннотации, рефлексия и метапрограммирование
-    - Networking
-    - Security&Encryption
-    - Networking
-    - Паттерны проектирования
-    - ООП
-- Java EE
-    - Servlets
-    - JSP
-    - CDI
-    - EJB, JMS
-    - JAX-RS
-    - [JPA](docs/java/java-ee/jpa.md)
-    - [Hibernate](./docs/java/java-ee/hibernate.md)
-- [Spring](docs/java/spring/spring.md)
-    - [Spring Core](docs/java/spring/spring-core.md)
-    - [Spring Boot](docs/java/spring/spring-boot.md)
-    - [Spring MVC](docs/java/spring/spring-mvc.md)
-    - [Spring Data](docs/java/spring/spring-data.md)
+- [Java Core](java/java-core/README.md)
+- [Java EE](java/java-ee/README.md)
+- [Spring](java/spring/README.md)
+    - [Spring Core](java/spring/spring-core.md)
+    - [Spring Boot](java/spring/spring-boot.md)
+    - [Spring MVC](java/spring/spring-mvc.md)
+    - [Spring Data](java/spring/spring-data.md)
     - Spring Security
 
 ### JS
 
-- [Js core](./docs/js/javascript.md)
-- [React](./docs/js/react.md)
+- [Js core](js/javascript.md)
+- [React](js/react.md)
+
+### [WEB](web/README.md)
 
 ### Database
 
-- [Postgresql](./docs/database/postgres/postgresql.md)
+- [Postgresql](postgres/README.md)
 - Redis
 
 ### Software Engineering
 
 - Requirements Engineering
-- [System Design](./docs/software-engineering/system-design/README.md)
-    - [Deployment/Topology (Macro-Architecture)](./docs/software-engineering/system-design/macro-deployment-architecture.md)
-    - [Communication & API Style (Macro-Architecture)](./docs/software-engineering/system-design/macro-communication-api-style-architecture.md)
+- [System Design](software-engineering/system-design/README.md)
+    - [Deployment/Topology (Macro-Architecture)](software-engineering/system-design/macro-deployment-architecture.md)
+    - [Communication & API Style (Macro-Architecture)](software-engineering/system-design/macro-communication-api-style-architecture.md)
     - Data Architecture
     - Consistency & Transactions
     - Scaling & Performance
     - Fault-Tolerance & Resilience
     - Security Architecture
     - Observability
-    - [Code-Level (Micro-Architecture)](./docs/software-engineering/system-design/micro-code-architecture.md)
+    - [Code-Level (Micro-Architecture)](software-engineering/system-design/micro-code-architecture.md)
     - Build & Delivery
     - Infrastructure Platform
     - Governance & Compliance
@@ -59,31 +43,27 @@
 
 ### Linux
 
-- [Nginx](docs/linux/nginx.md)
-- [Git](docs/tools/git.md)
+
 
 ### Tools
 
-- [SSH](docs/tools/ssh.md)
+- [SSH](tools/ssh.md)
+- [Nginx](tools/nginx.md)
+- [Git](tools/git.md)
+- [Docker](tools/docker.md)
 
 ### Build Tools
 
-- [Maven](./docs/build-tools/make-build.md)
-- [GNU Autotools](./docs/build-tools/gnu-autotools.md)
-- [Make](./docs/build-tools/make-build.md)
+- [Maven](build-tools/make-build.md)
+- [GNU Autotools](build-tools/gnu-autotools.md)
+- [Make](build-tools/make-build.md)
 
 ### С/С++
 
 ### Low-Level
 
-- Архитектура компьютера
-    - CPU
-    - GPU
-    - [TPU](docs/low-level/computer-architecture/tpu.md)
+- CPU
+- GPU
+- [TPU](docs/low-level/computer-architecture/tpu.md)
 - Сети
 - Операционные системы
-
-### Other
-
-- [Автоматическое оглавление Markdown](./docs/other/md-auto-contents-table.md)
-- [Шаблон README.MD](./docs/other/readme-sample.md)
