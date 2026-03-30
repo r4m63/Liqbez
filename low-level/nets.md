@@ -1,6 +1,4 @@
 
-# Оглавление
-
 - [Сеть](#сеть)
   - [LAN (Local Area Network)](#lan-local-area-network)
   - [WAN (Wide Area Network)](#wan-wide-area-network)
