@@ -25,7 +25,7 @@
 Часто используемые:
 
 | Тип                                                           | Где и зачем применяется                                                                                                            |
-|---------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **`application/json`**                                        | Основной формат обмена данными в REST-, GraphQL- и большинстве webhook-API. Читается нативно во фронтенд-фреймворках и на сервере. |
 | **`text/html`**                                               | “Язык” веб-страниц. Каждый браузер по умолчанию ожидает HTML при переходе по URL.                                                  |
 | **`application/x-www-form-urlencoded`**                       | Данные простых HTML-форм (`key=value&…`) — поиск, логин, фильтры. Разбирается любым бэкенд-фреймворком без доп. настроек.          |
@@ -39,14 +39,14 @@
 ## Коды ответов http
 
 | Код | Фраза                 | Для чего нужен                                        |
-|-----|-----------------------|-------------------------------------------------------|
+| --- | --------------------- | ----------------------------------------------------- |
 | 100 | Continue              | Клиент может продолжать тело запроса                  |
 | 101 | Switching Protocols   | Сервер переходит на другой протокол (WebSocket и др.) |
 | 102 | Processing *(WebDAV)* | Долгая операция, ещё выполняется                      |
 | 103 | Early Hints           | Заголовки-подсказки (`Link`) до окончательного ответа |
 
 | Код | Фраза                         | Назначение                                 |
-|-----|-------------------------------|--------------------------------------------|
+| --- | ----------------------------- | ------------------------------------------ |
 | 200 | OK                            | Запрос успешен                             |
 | 201 | Created                       | Создан новый ресурс                        |
 | 202 | Accepted                      | Принят в обработку, результата пока нет    |
@@ -59,7 +59,7 @@
 | 226 | IM Used                       | Ответ содержит delta-обновление (RFC 3229) |
 
 | Код | Фраза              | Что делает                                           |
-|-----|--------------------|------------------------------------------------------|
+| --- | ------------------ | ---------------------------------------------------- |
 | 300 | Multiple Choices   | Несколько вариантов                                  |
 | 301 | Moved Permanently  | Постоянный редирект                                  |
 | 302 | Found              | Временный редирект (исторически «Moved Temporarily») |
@@ -71,7 +71,7 @@
 | 308 | Permanent Redirect | Постоянный, сохраняет метод                          |
 
 | Код | Фраза                                     | Когда возникает                              |
-|-----|-------------------------------------------|----------------------------------------------|
+| --- | ----------------------------------------- | -------------------------------------------- |
 | 400 | Bad Request                               | Синтаксическая ошибка                        |
 | 401 | Unauthorized                              | Требуется аутентификация                     |
 | 402 | Payment Required                          | Зарезервирован (часто для квот/платежей)     |
@@ -103,7 +103,7 @@
 | 451 | Unavailable For Legal Reasons             | Блокировка по закону (DMCA, суд)             |
 
 | Код | Фраза                           | Когда применяется                           |
-|-----|---------------------------------|---------------------------------------------|
+| --- | ------------------------------- | ------------------------------------------- |
 | 500 | Internal Server Error           | Общее «что-то сломалось»                    |
 | 501 | Not Implemented                 | Метод не поддержан                          |
 | 502 | Bad Gateway                     | Промежуточный сервер получил неверный ответ |
@@ -119,7 +119,7 @@
 ## URI vs URL
 
 | Аспект            | URI                                                                        | URL                                                                            |
-|-------------------|----------------------------------------------------------------------------|--------------------------------------------------------------------------------|
+| ----------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | **Цель**          | Однозначно идентифицировать ресурс в абстрактном пространстве имён.        | Указать сетевой механизм доступа + расположение ресурса.                       |
 | **Схема**         | Любая, в т. ч. нестандартная (`urn:`, `tel:`, `data:`).                    | Сетевые протоколы (`http:`, `https:`, `ftp:`, `ws:` …).                        |
 | **Локатор?**      | Может, но не обязан. Пример без локации — URN.                             | Всегда содержит информацию «где» и «как».                                      |
@@ -131,7 +131,93 @@
 ## HTTP Кэширование (заголовки ответа - Cache-Control, Expires, ETag)
 
 
+## Типы body
 
+Content-Type:
 
+Самые популярные:
+application/json
+multipart/form-data
+application/x-www-form-urlencoded
+text/plain
 
+-------------------
+application/json - Обычный JSON
+application/ld+json - JSON-LD (Linked Data)
+application/schema+json - JSON Schema
+application/geo+json - GeoJSON (для геоданных)
+application/csp-report - JSON-отчеты о Content Security Policy
 
+application/xml - Обычный XML
+application/rss+xml - RSS-ленты
+application/atom+xml - Atom-фид
+application/mathml+xml - MathML (математические формулы)
+application/svg+xml - SVG (графика в формате XML)
+application/xslt+xml - XSLT (трансформация XML)
+application/xhtml+xml - XHTML
+
+text/plain - Обычный текст
+text/csv - Табличные данные (CSV)
+text/tab-separated-values - Табличные данные с табуляцией
+text/html - HTML-страницы
+text/css - CSS-файлы
+text/javascript - JS-код (редко используется)
+text/markdown - Markdown
+
+multipart/form-data - Чаще всего используется для загрузки файлов
+multipart/mixed - Несколько частей разных типов (например, JSON + файл)
+multipart/alternative - Альтернативные версии одного контента (HTML + текст)
+multipart/related - Несколько взаимосвязанных частей (например, HTML + изображения)
+multipart/signed - Подписанный контент (с цифровой подписью)
+multipart/encrypted - Зашифрованные данные
+
+application/x-www-form-urlencoded - Данные в виде key=value&key2=value2
+
+application/octet-stream - Бинарные данные (неизвестный формат)
+application/pdf - PDF-документы
+application/zip - ZIP-архивы
+application/gzip - GZIP-архивы
+application/x-bzip2 - BZIP2-архивы
+application/x-tar - TAR-архивы
+application/x-7z-compressed - 7Z-архивы
+application/x-rar-compressed - RAR-архивы
+application/vnd.android.package-archive - APK-файл (Android)
+application/msword - Документы Word (.doc)
+application/vnd.openxmlformats-officedocument.wordprocessingml.document - DOCX
+application/vnd.ms-excel - Файлы Excel (.xls)
+application/vnd.openxmlformats-officedocument.spreadsheetml.sheet - XLSX
+application/vnd.ms-powerpoint - Презентации PowerPoint (.ppt)
+application/vnd.openxmlformats-officedocument.presentationml.presentation - PPTX
+
+image/png - PNG
+image/jpeg - JPEG
+image/gif - GIF
+image/webp - WebP
+image/svg+xml - SVG
+image/bmp - BMP
+image/tiff - TIFF
+image/x-icon - ICO (фавиконка)
+
+audio/mpeg - MP3
+audio/wav - WAV
+audio/ogg - OGG
+audio/flac - FLAC
+audio/aac - AAC
+
+video/mp4 - MP4
+video/webm - WebM
+video/ogg - Ogg Video
+video/x-msvideo - AVI
+video/x-matroska - MKV
+
+application/graphql - GraphQL-запросы
+application/x-ndjson - JSON-поток (Newline Delimited JSON)
+application/vnd.api+json - JSON:API (стандарт для REST API)
+application/problem+json - Ошибки в формате JSON
+application/problem+xml - Ошибки в формате XML
+application/x-pem-file - PEM-файл (ключи SSL)
+application/x-font-ttf - TTF-шрифты
+application/x-font-woff - WOFF-шрифты
+application/x-font-woff2 - WOFF2-шрифты
+application/x-httpd-php - PHP-код
+application/vnd.apple.installer+xml - macOS Installer
