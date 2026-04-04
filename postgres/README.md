@@ -1,6 +1,7 @@
-- [SQL](./sql-postgres.md)
+- [Postgres SQL](./sql-postgres.md)
 - [Postgres Configs](./configs.md)
-- [info](./info)
+- [Postgres Scaling](./)
+- [Postgres info](./info)
 
 # Архитектура Postgres
 
