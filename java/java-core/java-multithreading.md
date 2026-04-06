@@ -1,0 +1,6 @@
+- Многопоточность. Класс Thread, интерфейс Runnable. Модификатор synchronized интерфейсы Lock и Condition
+- Классы-сихронизаторы из пакета java.util.concurrent
+- Модификатор volatile. Атомарные типы данных и операции
+- Коллекции из пакета java.util.concurrent
+- Интерфейсы Executor, ExecutorService, Callable, Futur
+- Пулы потоко
