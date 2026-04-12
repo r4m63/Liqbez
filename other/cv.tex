@@ -1,0 +1,215 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian,english]{babel}
+\usepackage[a4paper,margin=1.55cm]{geometry}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{tabularx}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\tabcolsep}{0pt}
+\raggedbottom
+\urlstyle{same}
+
+\titleformat{\section}
+  {\vspace{4pt}\scshape\large\raggedright}
+  {}
+  {0em}
+  {}
+  [\titlerule \vspace{2pt}]
+
+\titlespacing*{\section}{0pt}{8pt}{4pt}
+
+\newcommand{\resumeHeader}[6]{
+  \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} l r}
+    {\LARGE \textbf{#1}} & #3 \\
+    #2 & #4 \\
+     & #5 \\
+     & #6 \\
+  \end{tabular*}
+}
+
+\newcommand{\resumeEduHeading}[4]{
+  \item
+  \begin{tabular*}{0.985\textwidth}{@{\extracolsep{\fill}} l r}
+    \textbf{#1} & #2 \\
+    #3 & \textit{#4} \\
+  \end{tabular*}
+}
+
+\newcommand{\resumeExpHeading}[4]{
+  \item
+  \begin{tabular*}{0.985\textwidth}{@{\extracolsep{\fill}} l r}
+    \textbf{#1} & #2 \\
+    \textit{#3} & \textit{#4} \\
+  \end{tabular*}
+}
+
+\newcommand{\resumeProjectHeading}[3]{
+  \item
+  \begin{tabular*}{0.985\textwidth}{@{\extracolsep{\fill}} l r}
+    \textbf{#1} & \textit{#2} \\
+  \end{tabular*}
+  \if\relax\detokenize{#3}\relax
+  \else
+    \\[-0.15em]
+    \hspace*{1.55em}\textit{#3}
+  \fi
+}
+
+\newcommand{\resumeProjectSubtitleNoIndent}[1]{
+  \vspace{-0.15em}
+  \begin{tabular*}{0.985\textwidth}{@{}l@{}}
+    \textit{\begin{tabular}[t]{@{}l@{}}#1\end{tabular}}
+  \end{tabular*}
+}
+
+\newcommand{\resumeProjectMixedSubtitle}[2]{
+  \vspace{-0.15em}
+  \begin{tabular*}{0.985\textwidth}{@{}l@{}}
+    \textit{#1}
+  \end{tabular*}
+  \\
+  \hspace*{1.55em}\textit{#2}
+}
+
+\newcommand{\resumeProjectItem}[2]{
+  \item \textbf{#1}: #2
+}
+
+\newcommand{\resumeItem}[1]{
+  \item #1
+}
+
+\newcommand{\resumeSubItem}[2]{
+  \item \textbf{#1}: #2
+}
+
+\newenvironment{resumeTopList}{
+  \begin{itemize}[leftmargin=1.1em,itemsep=0.3em,topsep=0.2em]
+}{
+  \end{itemize}
+}
+
+\newenvironment{resumeSubList}{
+  \begin{itemize}[leftmargin=1.55em,itemsep=0.15em,topsep=0.05em,labelsep=0.35em,label=$\circ$]
+}{
+  \end{itemize}
+}
+
+\begin{document}
+
+\resumeHeader
+  {Рамиль Таджеддинов}
+  {\href{https://tajeddinov.ru}{https://tajeddinov.ru}}
+  {\href{mailto:rm.tj.777@gmail.com}{rm.tj.777@gmail.com}}
+  {+7(952)-578-90-90}
+  {\href{https://github.com/r4m63}{github.com/r4m63}}
+  {\href{https://t.me/r4m63}{t.me/r4m63}}
+
+\section*{О себе}
+
+Студент 3 курса ИТМО Программная Инженерия.
+Ориентирован на развитие через решение реальных задач.
+Трудности и работа не пугают.
+Легко адаптируюсь к новым технологиям.
+Беру ответственность за результат.
+Буду рад познакомиться!
+
+\section*{Навыки}
+\begin{resumeTopList}
+  \resumeProjectItem
+    {Языки программирования}
+    {Java, JavaScript, C/C++}
+  \resumeProjectItem
+    {Архитектура}
+    {Многоуровневый монолит, SOA, микросервисы, REST, gRPC, WebSockets, Saga, Outbox, 2PC, UML, BPMN, Camunda, GoF Design Patterns, Вертикальное и Горизонтальное \\ масштабирование, Балансировка нагрузки, CDN, Партиционирование, Шардирование}
+  \resumeProjectItem
+    {Backend}
+    {Spring Boot, Spring MVC, Spring Security, Spring Data, Jakarta EE, Hibernate,}
+  \resumeProjectItem
+    {Frontend}
+    {React, Next.js, Thymeleaf, Vite}
+  \resumeProjectItem
+    {Данные и инфраструктура}
+    {PostgreSQL, Redis, MinIO, Kafka, RabbitMQ, Flyway, Docker, \\ Kubernetes, Nginx, Tomcat, TomEE, WildFly, Lixux (RHEL-семейство)}
+  \resumeProjectItem
+    {Инструменты}
+    {Git, Gradle, Maven, Bash, OpenAPI/Swagger, GitHub Actions, GitLab CI/CD}
+  \resumeProjectItem
+    {Тестирование}
+    {JUnit5, Mockito, Postman, JMeter, Selenium, Rest Client}
+\end{resumeTopList}
+
+\section*{Проекты}
+\begin{resumeTopList}
+  \resumeProjectHeading
+    {Сайт-портфолио: \href{https://tajeddinov.ru}{tajeddinov.ru}}
+    {Fullstack Developer}
+    {}
+  \resumeProjectMixedSubtitle{Персональный сайт с портфолио, описанием проектов и контактами.}{React, Vite, custom UI lib}
+
+  \resumeProjectHeading
+    {Redline Software}
+    {Fullstack Developer}
+    {}
+  \resumeProjectSubtitleNoIndent{Стартап}
+  \vspace{-0.75em}
+  \begin{resumeSubList}
+    \resumeItem{Отвечал за административный и инфраструктурный контур проектов на двух физических серверах.}
+    \resumeItem{Администрировал окружение на Rocky Linux 10, настраивал деплой и CI/CD-процессы.}
+    \resumeItem{Участвовал в проектировании и разработке внутренних и клиентских продуктов.}
+  \end{resumeSubList}
+
+\resumeProjectHeading
+    {Информационная система Certification Center}
+    {Fullstack Developer}
+    {}
+\resumeProjectMixedSubtitle{Аутсорс фриланс}{Java, Spring (Boot, Security, Data), Thymeleaf, React, PostgreSQL, MinIO, Linux Bare Metal}
+\begin{resumeSubList}
+    \resumeItem{Выступал единственным техническим исполнителем коммерческого проекта на аутсорсе: собирал требования, проектировал архитектуру, реализовывал функциональность, выполнял deployment и сопровождал систему в production.}
+    \resumeItem{Разработал backend и серверную часть приложения на Java Spring/Thymeleaf, реализовав ключевую бизнес-логику и связав пользовательские и административные сценарии в рамках единой системы.}
+    \resumeItem{Реализовал административный интерфейс на React с role-based access control для безопасного управления данными и внутренними процессами.}
+    \resumeItem{Спроектировал модуль контент-менеджмента с поддержкой постов, новостей и вложений, включая хранение файлов в MinIO и метаданных в PostgreSQL.}
+    \resumeItem{Реализовал модуль сертификатов с генерацией QR-кодов для идентификации и проверки сертификатных данных.}
+    \resumeItem{Обеспечил полный цикл эксплуатации решения на Linux bare metal: подготовку окружения, деплой, хостинг, обновления и поддержку после ввода в эксплуатацию.}
+\end{resumeSubList}
+
+\resumeProjectHeading
+    {Waste Management Platform}
+    {Fullstack Developer}
+    {Java, Spring (Boot, Security, Data), PostgreSQL, Docker Compose, React, shadcn, AG Grid}
+  \begin{resumeSubList}
+    \resumeItem{Спроектировал backend архитектуру и доменную модель платформы операционного управления отходами, объединяющей маршрутизацию, диспетчеризацию смен, инцидент-менеджмент, транспорт и POS-terminal операции.}
+    \resumeItem{Реализовал сервисный слой на Spring Boot с транзакционным управлением бизнес-операциями, валидацией входных DTO, централизованной обработкой ошибок и разграничением доступа по ролям через Spring Security.}
+    \resumeItem{Спроектировал Postgresql схему с SQL-ограничениями целостности, и процедурной логикой в БД для поддержки критичных бизнес-сценариев.}
+    \resumeItem{Разработал REST API для полного жизненного цикла маршрутов: автогенерация, назначение водителей, управление остановками, старт/финиш выполнения, а также API для смен, инцидентов и справочных сущностей.}
+  \end{resumeSubList}
+\end{resumeTopList}
+
+\section*{Образование}
+\begin{resumeTopList}
+  \resumeEduHeading
+    {Университет ИТМО}
+    {Санкт-Петербург, Россия}
+    {\textit{Бакалавр, Программная Инженерия <<СППО>>}}
+    {2023 -- 2027}
+  \resumeEduHeading
+    {МБОУ Гимназия 14}
+    {Ростов-на-Дону, Россия}
+    {Среднее общее образование, аттестат с отличием}
+    {2012 -- 2023}
+\end{resumeTopList}
+
+\section*{Языки}
+\begin{resumeTopList}
+  \resumeProjectItem{Русский}{Родной}
+  \resumeProjectItem{English}{Intermediate (B1)}
+\end{resumeTopList}
+
+\end{document}

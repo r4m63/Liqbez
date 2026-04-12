@@ -1,118 +1,229 @@
 
-PostgreSQl: template0, template1, назначение, особенности работы.
-Архитектура PostgreSQL.
-Разделяемая память PostgreSQL.
-Буферная память процессов PostgreSQL.
-Процессы, обеспечивающие работу PostgreSQL.
-Системный каталог, организация, способы взаимодействия.
-Схема, особенности работы со схемами PostgreSQL, search_path.
+
+
 Управление доступом к данным в PostgreSQL, привилегии, пользователи.
+
+    В PostgreSQL формально нет отдельной сущности “пользователь” в бытовом смысле.
+    Основное понятие — роль.
+    Но на практике часто говорят:
+    	•	пользователь — роль с возможностью входа в систему
+    	•	группа — роль без входа, которую используют для объединения прав
+    То есть:
+    	•	CREATE USER — это по сути удобная форма создания роли с LOGIN
+    	•	CREATE ROLE — более общее понятие
+    CREATE ROLE teacher LOGIN PASSWORD 'secret';
+    CREATE USER student1 PASSWORD 'pass1';
+    CREATE ROLE editors;
+
+    pg_hba.conf
+
+
+    Права на базу данных
+        •	CONNECT — право подключаться к БД
+	    •	CREATE — создавать схемы в БД
+	    •	TEMPORARY / TEMP — создавать временные таблицы
+        GRANT CONNECT ON DATABASE education TO student1;
+        GRANT CREATE ON DATABASE education TO teacher;
+        GRANT TEMP ON DATABASE education TO student1;
+    Права на схему
+    	•	USAGE — можно обращаться к объектам схемы
+	    •	CREATE — можно создавать объекты в схеме
+        GRANT USAGE ON SCHEMA studs TO student1;
+        GRANT CREATE ON SCHEMA studs TO teacher;
+        REVOKE CREATE ON SCHEMA studs FROM PUBLIC;
+    Права на таблицы
+	    •	SELECT — читать данные
+	    •	INSERT — добавлять строки
+	    •	UPDATE — изменять строки
+	    •	DELETE — удалять строки
+	    •	TRUNCATE — очищать таблицу
+	    •	REFERENCES — создавать внешние ключи, ссылающиеся на таблицу
+	    •	TRIGGER — создавать триггеры
+        GRANT SELECT ON studs.exams TO student1;
+        GRANT INSERT ON studs.exams TO student1;
+        GRANT UPDATE ON studs.exams TO student1;
+        GRANT DELETE ON studs.exams TO student1;
+        GRANT TRUNCATE ON studs.exams TO teacher;
+        GRANT REFERENCES ON studs.groups TO teacher;
+        GRANT TRIGGER ON studs.exams TO teacher;
+        GRANT ALL PRIVILEGES ON studs.exams TO teacher;
+    Права на представления
+        •	SELECT
+	    •	иногда INSERT, UPDATE, DELETE, если представление обновляемое
+	    •	TRIGGER
+	    •	REFERENCES
+        GRANT SELECT ON studs.exams_view TO student1;
+    Права на последовательности
+	    •	USAGE
+	    •	SELECT
+	    •	UPDATE
+        GRANT USAGE, SELECT ON SEQUENCE studs.exams_id_seq TO student1;
+        GRANT UPDATE ON SEQUENCE studs.exams_id_seq TO teacher;
+    Права на функции
+	    •	EXECUTE
+        GRANT EXECUTE ON FUNCTION calc_score(integer) TO student1;
+
+    CREATE ROLE exams_editors;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON studs.exams TO exams_editors;
+    GRANT exams_editors TO student1;
+    GRANT exams_editors TO student2;
+
+
+
+    GRANT - Выдает привилегии.
+    REVOKE - Забирает привилегии.
+
+
+    У каждого объекта в PostgreSQL есть владелец.
+    Изменить владельца можно так: ALTER TABLE studs.groups OWNER TO teacher;
+
+
+    Атрибуты ролей
+    •	LOGIN — можно входить
+	•	SUPERUSER — суперпользователь
+	•	CREATEDB — можно создавать БД
+	•	CREATEROLE — можно создавать и изменять роли
+	•	REPLICATION — право на репликацию
+	•	BYPASSRLS — обход row-level security
+	•	PASSWORD — пароль
+	•	VALID UNTIL — срок действия пароля
+
+    SUPERUSER
+    PUBLIC - обозначение всех пользователей
+
+    Права по умолчанию: ALTER DEFAULT PRIVILEGES
+
+
+
+
 Роли в PostgreSQL. INHERIT, NOINHERIT.
-Установка PostgreSQL.
+    INHERIT означает:
+    если роль является членом другой роли, то она автоматически получает и использует привилегии этой роли.
+    То есть права унаследованной роли действуют сразу, без дополнительной команды SET ROLE.
+
+    ПРИМЕР:
+    CREATE ROLE exams_editors;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON studs.exams TO exams_editors;
+    CREATE ROLE student1 LOGIN PASSWORD 'pass1' INHERIT;
+    GRANT exams_editors TO student1;
+
+    Теперь student1, подключившись к БД, сразу сможет работать с studs.exams с правами роли exams_editors.
+    То есть права роли-члена доступны автоматически.
 
 
-Изоляция транзакций. Режимы для организации доступа к данным.
-PostgreSQL, создание Базы Данных.
-Файловая структура и конфигурация PostgreSQL.
-Табличные пространства. Назначение. Организация и настройка.
-VACCUM.
+    NOINHERIT означает:
+    даже если роль включена в другую роль, она не использует ее права автоматически.
+    Чтобы воспользоваться правами другой роли, нужно явно переключиться на нее: SET ROLE имя_роли;
+
+
+    INHERIT
+    “Я состою в группе, значит ее права работают у меня сразу.”
+
+    NOINHERIT
+    “Я состою в группе, но ее права сами по себе не активны.
+    Хочу использовать — должен явно сказать: SET ROLE.”
+
+
 steal/no-steal, force/no-force. ARIES.
+    STEAL -- СУБД может вытеснить страницу из буфера и записать её на диск, даже если на этой странице
+    есть изменения незафиксированной транзакции.
+    - T1 еще не сделала COMMIT
+	- но памяти мало
+	- СУБД записывает страницу P на диск
+    Получается: на диске уже есть результат незавершенной транзакции.
+    - Если T1 потом сделает ROLLBACK или система упадет до commit,
+    нужно уметь откатить эти изменения на диске.
+    Значит при STEAL нужен механизм UNDO.
+
+    NO-STEAL -- СУБД не имеет права записывать страницу на диск, если на ней есть изменения
+    незавершенной транзакции.
+
+    FORCE -- В момент COMMIT, СУБД обязана записать на диск все страницы данных, измененные транзакцией.
+    То есть commit не считается завершенным, пока все измененные данные реально не попадут на диск.
+    Если после commit будет сбой, ничего “доделывать” не надо: данные уже на диске.
+    Значит при FORCE обычно не нужен REDO для committed-транзакций.
+    Это медленно:
+	•	commit становится тяжелым
+	•	надо синхронно писать много страниц данных
+	•	падает производительность
+
+    NO-FORCE -- В момент COMMIT не требуется немедленно записывать на диск все измененные страницы данных.
+    На commit достаточно надежно записать лог, а сами страницы данных можно сбросить позже.
+    После commit может оказаться, что:
+	•	транзакция уже подтверждена
+	•	а часть её данных еще не попала на диск
+    Если в этот момент случится сбой, надо будет повторить изменения committed-транзакции.
+    Значит при NO-FORCE нужен механизм REDO.
+
+
+    STEAL - нужен UNDO - потому что на диск могли попасть изменения незавершенной транзакции.
+    NO-STEAL - UNDO не нужен - потому что незавершенные изменения на диск не попадали.
+    FORCE - REDO не нужен - потому что к моменту commit все изменения уже записаны на диск.
+    NO-FORCE - нужен REDO - потому что committed-транзакция могла не успеть записать все страницы на диск.
+
+
+    STEAL + NO-FORCE -- самое частоиспользуемое:
+    для этого нужен WAL и
+
+    ARIES = Algorithms for Recovery and Isolation Exploiting Semantics
+    ARIES использует журналирование и позволяет:
+	•	откатывать незавершенные транзакции
+	•	повторять подтвержденные изменения
+	•	быстро восстанавливаться после сбоя
+    ARIES исходит из того, что:
+	•	на диске могут быть изменения незавершенных транзакций
+	•	на диске могут отсутствовать изменения уже завершенных транзакций
+
+    ARIES ведет лог записей о действиях над страницами.
+    Обычно в log-записи есть:
+	    •	идентификатор транзакции
+	    •	идентификатор страницы
+	    •	тип операции
+	    •	старое значение или достаточная информация для undo
+	    •	новое значение или достаточная информация для redo
+	    •	LSN — log sequence number
+    ARIES после сбоя:
+        1. Analysis
+        2. Redo
+        3. Undo
+
+    В PostgreSQL нет отдельного классического UNDO-журнала, как в некоторых других СУБД.
+    Функцию отката на уровне логики изменений выполняют MVCC, статусы транзакций и последующая очистка через VACUUM.
+    А REDO обеспечивается WAL.
+
+    1) REDO в PostgreSQL обеспечивает WAL (Write-Ahead Logging) — журнал предзаписи.
+    Он нужен для crash recovery, репликации и PITR.  ￼
+
+    Это WAL.
+    Идея
+    Перед тем как измененная страница данных попадет на диск, информация об изменении должна быть записана в WAL. Это и есть принцип write-ahead logging. Если сервер упал, PostgreSQL при старте читает WAL и повторяет нужные изменения, которых может не быть в data files. Это и есть REDO-поведение.  ￼
+    Что происходит при COMMIT
+    Обычно не нужно немедленно писать все измененные страницы таблиц на диск. Достаточно надежно записать в WAL записи об изменениях и запись о COMMIT; сами data pages могут быть записаны позже. Поэтому после сбоя PostgreSQL восстанавливает состояние по WAL. Это как раз типичная логика NO-FORCE с REDO.  ￼
+    После падения сервера
+    PostgreSQL:
+    	•	находит последнюю согласованную точку,
+    	•	читает WAL,
+    	•	применяет изменения к страницам данных,
+    	•	доводит базу до консистентного состояния.
+
+	2) Отдельного UNDO log в PostgreSQL нет. Откат транзакции и невидимость незавершенных/отмененных
+    изменений обеспечиваются в основном через MVCC: старая версия строки остается, новая версия
+    помечается метаданными транзакции, а если транзакция abort, эти версии просто считаются невидимыми.
+    Позже их убирает VACUUM/autovacuum.
+
+    Вот тут главный момент:
+    В PostgreSQL нет отдельного классического UNDO-журнала
+    Это прямо отмечено в PostgreSQL wiki: unlike many DBMS, there is no undo log (before image).  ￼
+    Тогда как работает откат
+    Откат в PostgreSQL обеспечивается прежде всего MVCC, а не undo-журналом.
+    Когда строку изменяют:
+    	•	старая версия строки не “затирается” сразу;
+    	•	создается новая версия строки;
+    	•	у версий есть служебные поля, связанные с транзакциями (xmin, xmax и т.п.);
+    	•	другие транзакции смотрят на snapshot и понимают, какую версию строки можно видеть, а какую нельзя.
+    Если транзакция потом делает ROLLBACK, созданные ею версии строк просто считаются невидимыми для других транзакций. Специально “откатывать старое значение из undo log” не нужно. Позже VACUUM очищает такие мертвые версии и освобождает место.
+
+
+
 Логическое резервное копирование.
 Физическое резервное копирование.
-UNDO-журнал.
-REDO-журнал.
-
-
-Предполагается, что в БД Education (в PostgreSQL) есть пользователи – student1, student2, teacher.
-Также в БД Education созданы таблицы Groups (в схеме studs) и Exams (в схемах studs и test).
-Изначально у student1, student2 нет прав на изменение каких-либо таблиц (в том числе Groups, Exams),
-teacher – имеет возможность добавлять данные в эти таблицы.
-
-Напишите код для создания всех указанных пользователей (с описанными возможностями) и опишите
-необходимые действия (и конфигурационные файлы), чтобы пользователи могли подключиться к БД и:
-
-Вариант 0) при этом пользователи student1, student2 могли изменять таблицу studs.Exams, пользователь
-student2 должен иметь возможность изменять таблицу studs.Groups (y student1 нет такой возможности).
-Параметры подключения для пользователей – ТСP/IР, по имени пользователя.
-Вариант 1) при этом пользователь student2 мог изменять таблицу studs.Exams; пользователь student1
-должен иметь возможность изменять таблицу studs.Groups (y student2 нет такой возможности).
-
-Параметры подключения для пользователей – ТСР/IР, по паролю.
-При выполнении задания: нельзя добавлять напрямую привилегии на изменение каких-либо таблиц
-пользователям – student1, student2.
-
-
-Разбор
-
-Задание 3.
-
-Вариант 0
-
-student1 и student2 могут изменять таблицу studs.Exams;
-student2 может изменять таблицу studs.Groups (у student1 такой возможности нет);
-Подключение по TCP/IP с аутентификацией по имени пользователя (без пароля).
-1. Создание пользователей и ролей
-
-CREATE USER student1;
-CREATE USER student2;
-CREATE USER teacher WITH PASSWORD 'teacher_password';
-
-GRANT USAGE ON SCHEMA studs TO student1, student2, teacher;
-GRANT USAGE ON SCHEMA test TO teacher;
-
-CREATE ROLE exams_access;
-CREATE ROLE groups_access;
-
-GRANT INSERT, UPDATE, DELETE ON studs.Exams TO exams_access;
-GRANT INSERT, UPDATE, DELETE ON studs.Groups TO groups_access;
-
-GRANT exams_access TO student1, student2;
-GRANT groups_access TO student2;
-
-GRANT INSERT ON studs.Groups, studs.Exams, test.Exams TO teacher;
-2. Настройка аутентификации
-
-Добавим в файл pg_hba.conf:
-
-# TYPE  DATABASE     USER        ADDRESS     METHOD
-host    education    student1    0.0.0.0/0   trust  # Аутентификация по имени
-host    education    student2    0.0.0.0/0   trust
-host    education    teacher     0.0.0.0/0   md5    # Для teacher требуется пароль
-Перезагрузим PostgreSQL:
-
-pg_ctl reload -D $PGDATA
-Вариант 1
-
-student2 может изменять таблицу studs.Exams;
-student1 может изменять таблицу studs.Groups;
-Подключение по TCP/IP с аутентификацией по паролю.
-1. Создание пользователей и ролей
-
-CREATE USER student1 WITH PASSWORD 'password1';
-CREATE USER student2 WITH PASSWORD 'password2';
-CREATE USER teacher WITH PASSWORD 'teacher_password';
-
-GRANT USAGE ON SCHEMA studs TO student1, student2, teacher;
-GRANT USAGE ON SCHEMA test TO teacher;
-
-CREATE ROLE update_exams_role;
-CREATE ROLE update_groups_role;
-
-GRANT INSERT, UPDATE, DELETE ON studs.Exams TO update_exams_role;
-GRANT INSERT, UPDATE, DELETE ON studs.Groups TO update_groups_role;
-
-GRANT update_groups_role TO student1;
-GRANT update_exams_role TO student2;
-
-GRANT INSERT ON studs.Groups, studs.Exams, test.Exams TO teacher;
-2. Настройка аутентификации
-
-Добавим в файл pg_hba.conf:
-
-# TYPE  DATABASE     USER        ADDRESS     METHOD
-host    education    student1    0.0.0.0/0   md5  # Аутентификация по паролю
-host    education    student2    0.0.0.0/0   md5
-host    education    teacher     0.0.0.0/0   md5
-Перезагрузим PostgreSQL:
-
-pg_ctl reload -D $PGDATA
