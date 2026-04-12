@@ -26,7 +26,6 @@ PostgreSQL из коробки уже дает важную базу для эт
 - `pg_stat_statements`
 - `pg_stat_io`
 
----
 
 ## 1. Репликация в PostgreSQL
 
@@ -34,29 +33,26 @@ PostgreSQL из коробки уже дает важную базу для эт
 
 **Physical replication** - это репликация всего инстанса PostgreSQL на уровне WAL и файлового состояния.
 
-Для streaming replication серверы работают в ролях:
-
-- `primary` - основной сервер
-- `standby` - резервный сервер, который получает WAL от primary и применяет изменения
-
-Это основной механизм для:
-
-- high availability
-- read-only реплик
-- failover-сценариев
-
-Подвиды physical replication:
-
+**Подвиды physical replication:**
 - **File-based log shipping** - WAL архивируется и копируется как файлы, затем применяется на standby
 - **Streaming replication** - WAL идет потоком почти в реальном времени
 - **Cascading replication** - standby может получать WAL не только от primary, но и от другой standby
 
+Для streaming replication серверы работают в ролях:
+- `primary` - основной сервер
+- `standby` - резервный сервер, который получает WAL от primary и применяет изменения
+
+Это основной механизм для:
+- high availability
+- read-only реплик
+- failover-сценариев
+
 ### 1.2. Logical replication
 
-**Logical replication** - это репликация логических изменений, обычно на уровне таблиц и строк, а не полного файлового состояния кластера.
+**Logical replication** - это репликация логических изменений, обычно на уровне таблиц и строк,
+а не полного файлового состояния кластера.
 
 Она нужна, когда требуется:
-
 - реплицировать не весь сервер, а только часть данных
 - гибко переносить данные между разными кластерами
 - выделять отдельные домены или сервисы
@@ -80,7 +76,6 @@ Physical replication, особенно streaming replication, часто дел�
 | `warm standby` | standby держится в актуальном состоянии, но для запросов не используется |
 | `hot standby`  | на standby можно подключаться и выполнять read-only запросы              |
 
----
 
 ## 2. Кто управляет отказоустойчивостью
 

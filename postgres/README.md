@@ -613,38 +613,31 @@ XID 32-битный (~2 млрд). Регулярный VACUUM/Autovacuum зам
 
 ----------------------------------------------------------------------------------------------------
 
-# Роли и привилегии
+# Роли, Привилегии и Права доступа
 
-Привилегия - отражает конкретную возможность. Роль - именованный набор привелегий.
+**Привилегия** - отражает конкретную возможность. **Роль** - именованный набор привелегий.
+Роль конфигурируется на уровне кластера, назначение и привилегии могут отличаться для разных бд.
 
-Роль конфигурируется на уровне кластера, назначение и привилегии могут
-отличаться для разных бд.
-
-### Роли vs Пользователи
-
-По сути, роли и пользователи - это одно и тоже. Разница только в атрибутах:
-
-- Пользователь: роль с атрибутом LOGIN (может подключаться к бд)
-- Роль: без атрибута LOGIN по умолчанию == группа привилегий
+Роли и пользователи - это одно и тоже. Разница только в атрибутах:
+- **Пользователь**: роль с атрибутом LOGIN (может подключаться к бд)
+- **Роль**: без атрибута LOGIN по умолчанию - группа привилегий
 
 Пользователи могут быть созданы суперпользователем (postgres) и пользователем с
 ролью CREATEROLE
 
-#### Создание ролей и пользователей
-
 ```sql
--- создание роли
-create role myrole;
-
--- создание пользователя (роль с LOGIN)
-create user myuser with password '1234';
-
--- абсолютно эквивалентно:
-create role myuser with login password 'password';
+CREATE ROLE myrole;
+CREATE ROLE myrole LOGIN PASSWORD 'password';
+CREATE USER myuser PASSWORD 'password';
 ```
 
-#### Атрибуты ролей
+`GRANT` - Выдает привилегии.
 
+`REVOKE` - Забирает привилегии.
+
+----------------------------------------------------------------------------------------------------
+
+**Атрибуты ролей**
 - `LOGIN/NOLOGIN` - разрешает/не разрешает подключаться к бд (пользователю)
 - `SUPERUSER/NOSUPERUSER` - даёт/не даёт все привилегии
 - `CREATEDB` - разрешает создавать бд
@@ -657,41 +650,37 @@ create role myuser with login password 'password';
 - `VALID UNTIL` - срок действия пароли/роли
 
 ```sql
-create role admin with login createdb createrole password 'secret1';
+CREATE ROLE admin WITH LOGIN CREATEDB CREATEROLE PASSWORD 'secret1';
 
-alter role myuser with createdb;
-alter role myuser valid until '2026-12-31';
+ALTER ROLE myuser WITH CREATEDB;
+ALTER ROLE myuser VALID UNTIL '2026-12-31';
 
-drop role myuser;
+DROP ROLE myuser;
 ```
 
-> [!NOTE]
-> Синтаксис `WITH` является полностью опциональным и может опускаться.
-
-##### Итого, для подключения к бд надо иметь:
+**Итого, для подключения к бд надо иметь:**
 
 1. LOGIN
 2. CONNECT на нужную бд
 3. разрешение в pg_hba.conf
 
-### Группы ролей
+----------------------------------------------------------------------------------------------------
 
-Роли можно объединять в группы для более удобного взаимодействия
+**Группы ролей** - Роли можно объединять в группы для более удобного взаимодействия
 
 ```sql
 -- создаём группу
-create role devs;
+CREATE ROLE devs;
 
 -- добавляем пользователей к группе
-grant devs to alice, bob;
+GRANT devs TO alice, bob;
 
-
-grant devs to admin with admin option;
+GRANT devs TO admin WITH admin option;
 ```
 
-### Привилегии
+----------------------------------------------------------------------------------------------------
 
-Определяют, что может роль делать с объектами БД
+**Привилегии** - Определяют, что может роль делать с объектами БД
 
 - `SELECT` - чтение данных из таблицы/представления
 - `INSERT` - добавление данных
@@ -707,31 +696,86 @@ grant devs to admin with admin option;
 - `USAGE` - использование схемы, последовательности и т.д.
 - `ALL PRIVILEGES` - все привилегии сразу
 
-#### Наследование привилегий
+----------------------------------------------------------------------------------------------------
 
-- `INHERIT` - автоматическое наследование привелегий (по умолчанию):
-
+**Права на базу данных**
+- `CONNECT` — право подключаться к БД
+- `CREATE` — создавать схемы в БД
+- `TEMPORARY / TEMP` — создавать временные таблицы
 ```sql
-create role dad login noinherit;
-create role mom;
-create role devs;
-
-grant devs to mom; -- автоматическое наследование
-
-grant devs to dad;
-set role devs; -- явная активация привилегий группы
+GRANT CONNECT ON DATABASE education TO student1;
+GRANT CREATE ON DATABASE education TO teacher;
+GRANT TEMP ON DATABASE education TO student1;
 ```
 
-- Управление членством в группах
+**Права на схему**
+- `USAGE` — можно обращаться к объектам схемы
+- `CREATE` — можно создавать объекты в схеме
+```sql
+GRANT USAGE ON SCHEMA studs TO student1;
+GRANT CREATE ON SCHEMA studs TO teacher;
+REVOKE CREATE ON SCHEMA studs FROM PUBLIC;
+```
 
-#### Предоставление привилегий
+**Права на таблицы**
+- `SELECT` — читать данные
+- `INSERT` — добавлять строки
+- `UPDATE` — изменять строки
+- `DELETE` — удалять строки
+- `TRUNCATE` — очищать таблицу
+- `REFERENCES` — создавать внешние ключи, ссылающиеся на таблицу
+- `TRIGGER` — создавать триггеры
+```sql
+GRANT SELECT ON studs.exams TO student1;
+GRANT INSERT ON studs.exams TO student1;
+GRANT UPDATE ON studs.exams TO student1;
+GRANT DELETE ON studs.exams TO student1;
+GRANT TRUNCATE ON studs.exams TO teacher;
+GRANT REFERENCES ON studs.groups TO teacher;
+GRANT TRIGGER ON studs.exams TO teacher;
+GRANT ALL PRIVILEGES ON studs.exams TO teacher;
+```
+
+**Права на представления**
+- `SELECT`
+- `INSERT, UPDATE, DELETE`, если представление обновляемое
+- `TRIGGER`
+- `REFERENCES`
+```sql
+GRANT SELECT ON studs.exams_view TO student1;
+```
+
+**Права на последовательности**
+- `USAGE`
+- `SELECT`
+- `UPDATE`
+```sql
+GRANT USAGE, SELECT ON SEQUENCE studs.exams_id_seq TO student1;
+GRANT UPDATE ON SEQUENCE studs.exams_id_seq TO teacher;
+```
+
+**Права на функции**
+- `EXECUTE`
+```sql
+GRANT EXECUTE ON FUNCTION calc_score(integer) TO student1;
+```
+
+----------------------------------------------------------------------------------------------------
+
+**Наследование привилегий**
+
+- `INHERIT` - права унаследованной роли действуют сразу, без дополнительной команды `SET ROLE`
+- `NOINHERIT` - даже если роль включена в другую роль, она не использует ее права автоматически, нужно писать `SET ROLE`
 
 ```sql
-grant select, insert on mytable to myuser;
-grant all privileges on database edu to student1;
-grant select on studs to student1 with grant option;
-
+create role a login noinherit;
+create role b; -- по дефолту - INHERIT
 create role devs;
--- этот студент теперь может управлять группой привилегий devs
-grant devs to responsible_student with admin option;
+
+grant devs to a; -- автоматическое наследование, SET ROLE - делать не надо
+
+grant devs to b;
+set role devs; -- явная активация привилегий группы для NOINHERIT
 ```
+
+----------------------------------------------------------------------------------------------------

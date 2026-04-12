@@ -3,90 +3,9 @@
 
 Управление доступом к данным в PostgreSQL, привилегии, пользователи.
 
-    В PostgreSQL формально нет отдельной сущности “пользователь” в бытовом смысле.
-    Основное понятие — роль.
-    Но на практике часто говорят:
-    	•	пользователь — роль с возможностью входа в систему
-    	•	группа — роль без входа, которую используют для объединения прав
-    То есть:
-    	•	CREATE USER — это по сути удобная форма создания роли с LOGIN
-    	•	CREATE ROLE — более общее понятие
-    CREATE ROLE teacher LOGIN PASSWORD 'secret';
-    CREATE USER student1 PASSWORD 'pass1';
-    CREATE ROLE editors;
-
-    pg_hba.conf
-
-
-    Права на базу данных
-        •	CONNECT — право подключаться к БД
-	    •	CREATE — создавать схемы в БД
-	    •	TEMPORARY / TEMP — создавать временные таблицы
-        GRANT CONNECT ON DATABASE education TO student1;
-        GRANT CREATE ON DATABASE education TO teacher;
-        GRANT TEMP ON DATABASE education TO student1;
-    Права на схему
-    	•	USAGE — можно обращаться к объектам схемы
-	    •	CREATE — можно создавать объекты в схеме
-        GRANT USAGE ON SCHEMA studs TO student1;
-        GRANT CREATE ON SCHEMA studs TO teacher;
-        REVOKE CREATE ON SCHEMA studs FROM PUBLIC;
-    Права на таблицы
-	    •	SELECT — читать данные
-	    •	INSERT — добавлять строки
-	    •	UPDATE — изменять строки
-	    •	DELETE — удалять строки
-	    •	TRUNCATE — очищать таблицу
-	    •	REFERENCES — создавать внешние ключи, ссылающиеся на таблицу
-	    •	TRIGGER — создавать триггеры
-        GRANT SELECT ON studs.exams TO student1;
-        GRANT INSERT ON studs.exams TO student1;
-        GRANT UPDATE ON studs.exams TO student1;
-        GRANT DELETE ON studs.exams TO student1;
-        GRANT TRUNCATE ON studs.exams TO teacher;
-        GRANT REFERENCES ON studs.groups TO teacher;
-        GRANT TRIGGER ON studs.exams TO teacher;
-        GRANT ALL PRIVILEGES ON studs.exams TO teacher;
-    Права на представления
-        •	SELECT
-	    •	иногда INSERT, UPDATE, DELETE, если представление обновляемое
-	    •	TRIGGER
-	    •	REFERENCES
-        GRANT SELECT ON studs.exams_view TO student1;
-    Права на последовательности
-	    •	USAGE
-	    •	SELECT
-	    •	UPDATE
-        GRANT USAGE, SELECT ON SEQUENCE studs.exams_id_seq TO student1;
-        GRANT UPDATE ON SEQUENCE studs.exams_id_seq TO teacher;
-    Права на функции
-	    •	EXECUTE
-        GRANT EXECUTE ON FUNCTION calc_score(integer) TO student1;
-
-    CREATE ROLE exams_editors;
-    GRANT SELECT, INSERT, UPDATE, DELETE ON studs.exams TO exams_editors;
-    GRANT exams_editors TO student1;
-    GRANT exams_editors TO student2;
-
-
-
-    GRANT - Выдает привилегии.
-    REVOKE - Забирает привилегии.
-
-
     У каждого объекта в PostgreSQL есть владелец.
     Изменить владельца можно так: ALTER TABLE studs.groups OWNER TO teacher;
 
-
-    Атрибуты ролей
-    •	LOGIN — можно входить
-	•	SUPERUSER — суперпользователь
-	•	CREATEDB — можно создавать БД
-	•	CREATEROLE — можно создавать и изменять роли
-	•	REPLICATION — право на репликацию
-	•	BYPASSRLS — обход row-level security
-	•	PASSWORD — пароль
-	•	VALID UNTIL — срок действия пароля
 
     SUPERUSER
     PUBLIC - обозначение всех пользователей
@@ -95,33 +14,6 @@
 
 
 
-
-Роли в PostgreSQL. INHERIT, NOINHERIT.
-    INHERIT означает:
-    если роль является членом другой роли, то она автоматически получает и использует привилегии этой роли.
-    То есть права унаследованной роли действуют сразу, без дополнительной команды SET ROLE.
-
-    ПРИМЕР:
-    CREATE ROLE exams_editors;
-    GRANT SELECT, INSERT, UPDATE, DELETE ON studs.exams TO exams_editors;
-    CREATE ROLE student1 LOGIN PASSWORD 'pass1' INHERIT;
-    GRANT exams_editors TO student1;
-
-    Теперь student1, подключившись к БД, сразу сможет работать с studs.exams с правами роли exams_editors.
-    То есть права роли-члена доступны автоматически.
-
-
-    NOINHERIT означает:
-    даже если роль включена в другую роль, она не использует ее права автоматически.
-    Чтобы воспользоваться правами другой роли, нужно явно переключиться на нее: SET ROLE имя_роли;
-
-
-    INHERIT
-    “Я состою в группе, значит ее права работают у меня сразу.”
-
-    NOINHERIT
-    “Я состою в группе, но ее права сами по себе не активны.
-    Хочу использовать — должен явно сказать: SET ROLE.”
 
 
 steal/no-steal, force/no-force. ARIES.
