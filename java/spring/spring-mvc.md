@@ -369,9 +369,9 @@ HandlerExceptionResolver
 
 ## Контроллеры
 
-Контроллер — это bean, помеченный `@Controller` или `@RestController`, методы которого обрабатывают HTTP-запросы.
-Он принимает HTTP-данные через параметры метода, вызывает сервисный слой, возвращает результат
-(view name, DTO, ResponseEntity ...).
+Контроллер — это bean, помеченный `@Controller` или `@RestController`, методы которого обрабатывают
+HTTP-запросы. Он принимает HTTP-данные через параметры метода, вызывает сервисный слой, возвращает
+результат (view name, DTO, ResponseEntity ...).
 
 `@Controller`:
 - Помечает класс как Spring MVC controller.
@@ -461,7 +461,6 @@ public class ProductController {
 - **Один контроллер на один ресурс**: `UserController`, `OrderController`.
 - **Разделять page-контроллеры и API-контроллеры** при гибридных приложениях.
 
-----------------------------------------------------------------------------------------------------
 
 `@RequestMapping` - Базовая аннотация маппинга. Может стоять на классе и/или методе.
 На классе — задает базовый путь. На методе — уточняет маппинг.
@@ -818,17 +817,14 @@ public List<CarDto> cars(@MatrixVariable String color,
 
 ----------------------------------------------------------------------------------------------------
 
-## 9. Data Binding
-
-### 9.1. Что такое binding
+## Data Binding
 
 **Data Binding** — автоматическое преобразование HTTP-данных из URL/query/form fields в Java-объекты.
-
 Spring MVC выполняет binding через `WebDataBinder`.
+JSON/XML body для `@RequestBody` читается прежде всего через `HttpMessageConverter`;
+После десериализации может запускаться validation.
 
-JSON/XML body для `@RequestBody` читается прежде всего через `HttpMessageConverter`; после десериализации может запускаться validation.
-
-### 9.2. Привязка request-параметров к Java-объекту
+Привязка request-параметров к Java-объекту
 
 ```java
 // GET /search?name=Alice&minAge=18&maxAge=30
@@ -844,7 +840,7 @@ public List<UserDto> search(@ModelAttribute SearchCriteria criteria) { ... }
 // Spring сам свяжет query params с полями SearchCriteria
 ```
 
-### 9.3. WebDataBinder
+WebDataBinder
 
 `WebDataBinder` выполняет:
 - type conversion (String → int, String → Date, ...),
@@ -867,7 +863,7 @@ public void initBinder(WebDataBinder binder) {
 - зарегистрировать legacy `PropertyEditor`,
 - подключить кастомный validator для конкретной формы.
 
-### 9.4. Типовые преобразования данных
+Типовые преобразования данных
 
 Встроенные конверторы и formatter'ы:
 - `String` → `int`, `long`, `double`, `boolean`
@@ -875,7 +871,7 @@ public void initBinder(WebDataBinder binder) {
 - `String` → `enum`
 - `String` → `UUID`
 
-### 9.5. Custom converters и formatters
+Custom converters и formatters
 
 **Converter** — конвертирует один тип в другой:
 
@@ -924,22 +920,21 @@ public class WebConfig implements WebMvcConfigurer {
 }
 ```
 
-### 9.6. Ошибки binding
+Ошибки binding
 
 Если binding не удался (например, буква вместо числа для `int`-поля):
 - создается `BindingResult` с ошибками типа `FieldError`,
 - если `BindingResult` объявлен сразу после bindable-объекта — контроллер сам решает, что делать с ошибками,
 - если подходящего `BindingResult` нет — Spring выбрасывает exception; конкретный тип зависит от аргумента: `MethodArgumentNotValidException`, `BindException`, `MethodArgumentTypeMismatchException`, `HandlerMethodValidationException` и др.
 
----
+----------------------------------------------------------------------------------------------------
 
-## 10. Валидация данных
+## Валидация данных
 
-### 10.1. Зачем нужна validation
+Валидация — проверка входных данных на корректность на границе приложения (контроллер).
+Цель: не пропустить некорректные данные в сервисный слой и БД.
 
-Валидация — проверка входных данных на корректность на границе приложения (контроллер). Цель: не пропустить некорректные данные в сервисный слой и БД.
-
-### 10.2. @Valid
+@Valid
 
 Стандартная аннотация из Jakarta Bean Validation (`jakarta.validation.Valid`). Запускает валидацию объекта:
 
@@ -948,7 +943,8 @@ public class WebConfig implements WebMvcConfigurer {
 public UserDto create(@RequestBody @Valid CreateUserRequest request) { ... }
 ```
 
-Важно: в Boot 4 / Boot 3 validation не считается частью web starter'а. Для Bean Validation обычно добавляют отдельный starter:
+Важно: в Boot 4 / Boot 3 validation не считается частью web starter'а.
+Для Bean Validation обычно добавляют отдельный starter:
 
 ```xml
 <dependency>
@@ -957,7 +953,7 @@ public UserDto create(@RequestBody @Valid CreateUserRequest request) { ... }
 </dependency>
 ```
 
-### 10.3. @Validated
+@Validated
 
 Spring-аннотация. На параметрах и типах DTO полезна прежде всего для **групп валидации**:
 
@@ -967,7 +963,9 @@ public UserDto update(@PathVariable Long id,
                       @RequestBody @Validated(Update.class) UpdateUserRequest req) { ... }
 ```
 
-В Spring Framework 6.1+ / 7.x MVC умеет встроенную method validation для controller methods. Поэтому для новых контроллеров обычно не ставят `@Validated` на класс только ради `@RequestParam` / `@PathVariable`; достаточно constraint-аннотаций на параметрах:
+В Spring Framework 6.1+ / 7.x MVC умеет встроенную method validation для controller methods.
+Поэтому для новых контроллеров обычно не ставят `@Validated` на класс только ради
+`@RequestParam` / `@PathVariable`; достаточно constraint-аннотаций на параметрах:
 
 ```java
 @RestController
@@ -977,9 +975,10 @@ public class UserController {
 }
 ```
 
-Если поставить `@Validated` на класс контроллера, включается старый AOP-based механизм method validation через proxy. Это может быть нужно в legacy-сценариях, но для современного MVC чаще лишнее.
+Если поставить `@Validated` на класс контроллера, включается старый AOP-based механизм method
+validation через proxy. Это может быть нужно в legacy-сценариях, но для современного MVC чаще лишнее.
 
-### 10.4. BindingResult
+BindingResult
 
 Содержит ошибки валидации и binding. Должен идти сразу после валидируемого объекта:
 
@@ -994,7 +993,7 @@ public String register(@Valid @ModelAttribute RegisterForm form, BindingResult r
 }
 ```
 
-### 10.5. Bean Validation
+Bean Validation
 
 Аннотации из `jakarta.validation`:
 
@@ -1053,7 +1052,7 @@ public class CreateUserRequest {
 | `@Pattern`                      | `String`                         | Проверка регулярным выражением.                                                    |
 | `@Past` / `@Future`             | date/time                        | Дата/время в прошлом или будущем.                                                  |
 
-### 10.6. Обработка ошибок валидации
+**Обработка ошибок валидации**
 
 При использовании `@RequestBody @Valid` без `BindingResult`:
 - выбрасывается `MethodArgumentNotValidException`,
@@ -1083,7 +1082,7 @@ public class GlobalExceptionHandler {
 
 В современных REST API также можно возвращать стандартный `ProblemDetail` (`application/problem+json`) вместо собственного DTO ошибки.
 
-### 10.7. Validation в HTML-формах
+**Validation в HTML-формах**
 
 ```java
 @PostMapping("/register")
@@ -1105,7 +1104,7 @@ public String register(@Valid @ModelAttribute RegisterForm form,
 <span th:errors="*{name}" class="error-msg"></span>
 ```
 
-### 10.8. Validation в REST API
+**Validation в REST API**
 
 ```java
 @PostMapping("/users")
@@ -1116,11 +1115,11 @@ public ResponseEntity<UserDto> create(@RequestBody @Valid CreateUserRequest req)
 
 При ошибке — `400 Bad Request` с телом ошибки через `@ControllerAdvice`.
 
----
+----------------------------------------------------------------------------------------------------
 
-## 11. Возвращаемые значения контроллеров
+## Возвращаемые значения контроллеров
 
-### 11.1. String как имя view
+**String как имя view**
 
 ```java
 @GetMapping("/home")
@@ -1129,7 +1128,7 @@ public String home() {
 }
 ```
 
-### 11.2. Model + view name
+**Model + view name**
 
 ```java
 @GetMapping("/users/{id}")
@@ -1139,7 +1138,7 @@ public String user(@PathVariable Long id, Model model) {
 }
 ```
 
-### 11.3. ModelAndView
+**ModelAndView**
 
 ```java
 @GetMapping("/users/{id}")
@@ -1152,7 +1151,7 @@ public ModelAndView user(@PathVariable Long id) {
 
 Старый стиль, но всё ещё работает. Удобно когда view и модель определяются условно.
 
-### 11.4. View
+**View**
 
 ```java
 @GetMapping("/special")
@@ -1161,7 +1160,7 @@ public View special() {
 }
 ```
 
-### 11.5. void
+**void**
 
 Если response пишется вручную через `HttpServletResponse`:
 
@@ -1175,7 +1174,7 @@ public void download(HttpServletResponse response) throws IOException {
 
 Если `void`-метод не записал response сам, Spring может попытаться определить view name из request path. Поэтому для REST лучше явно возвращать `ResponseEntity<Void>` или ставить `@ResponseStatus`.
 
-### 11.6. DTO / object
+**DTO / object**
 
 Только при `@ResponseBody` или `@RestController`:
 
@@ -1186,7 +1185,7 @@ public UserDto getUser(@PathVariable Long id) {
 }
 ```
 
-### 11.7. @ResponseBody
+**@ResponseBody**
 
 Указывает, что return value должен писаться прямо в тело ответа:
 
@@ -1199,7 +1198,7 @@ public class UserController {
 }
 ```
 
-### 11.8. ResponseEntity<T>
+**ResponseEntity<T>**
 
 Полный контроль над ответом: статус, заголовки, тело:
 
@@ -1224,7 +1223,7 @@ return ResponseEntity.ok()
     .body(dto);
 ```
 
-### 11.9. HttpEntity<T>
+**HttpEntity<T>**
 
 Как `ResponseEntity`, но без статус-кода (только заголовки + тело):
 
@@ -1237,7 +1236,7 @@ public HttpEntity<InfoDto> info() {
 }
 ```
 
-### 11.10. redirect
+**redirect**
 
 ```java
 // Простой redirect:
@@ -1261,7 +1260,7 @@ public ResponseEntity<Void> redirect() {
 }
 ```
 
-### 11.11. forward
+**forward**
 
 ```java
 @GetMapping("/old")
@@ -1270,7 +1269,7 @@ public String forward() {
 }
 ```
 
-### 11.12. Возврат файлов и ресурсов
+**Возврат файлов и ресурсов**
 
 ```java
 // через Resource:
@@ -1284,7 +1283,7 @@ public ResponseEntity<Resource> downloadFile(@PathVariable String filename) {
 }
 ```
 
-### 11.13. Async return types
+**Async return types**
 
 ```java
 // Callable — выполняется в другом потоке, освобождает servlet-поток:
@@ -1313,7 +1312,7 @@ public StreamingResponseBody stream() {
 }
 ```
 
-### 11.14. Аннотации и типы return value
+**Аннотации и типы return value**
 
 | Return value / аннотация               | Что делает                                                                                                 |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -1328,17 +1327,15 @@ public StreamingResponseBody stream() {
 | `Callable<T>` / `DeferredResult<T>`    | Servlet async processing; результат будет обработан обычными return value handlers.                        |
 | `StreamingResponseBody` / `SseEmitter` | Потоковая отдача или Server-Sent Events.                                                                   |
 
----
+----------------------------------------------------------------------------------------------------
 
-## 12. Model в Spring MVC
-
-### 12.1. Что такое Model
+## Model в Spring MVC
 
 `Model` — контейнер атрибутов, которые контроллер передает во view (шаблон).
 
 Это Map `String → Object`: ключ — имя атрибута в шаблоне, значение — Java-объект.
 
-### 12.2. Передача данных из controller во view
+**Передача данных из controller во view:**
 
 ```java
 @GetMapping("/dashboard")
@@ -1356,7 +1353,7 @@ public String dashboard(Model model) {
 <span th:text="${stats.total}"></span>
 ```
 
-### 12.3. Model, Map, ModelMap
+**Model, Map, ModelMap**
 
 Три взаимозаменяемых варианта:
 
@@ -1382,12 +1379,12 @@ public String page(ModelMap modelMap) {
 
 Все три работают одинаково — Spring их поддерживает.
 
-### 12.4. Когда использовать Model
+**Когда использовать Model**
 
 Только для классического MVC с HTML-шаблонизатором.
 В REST-контроллерах (`@RestController`) — `Model` не нужен, данные передаются через return value.
 
-### 12.5. Добавление атрибутов в model
+**Добавление атрибутов в model**
 
 ```java
 // Через параметр метода:
@@ -1401,11 +1398,10 @@ public List<Category> categories() {
 }
 ```
 
----
+----------------------------------------------------------------------------------------------------
 
-## 13. View и ViewResolver
+## View и ViewResolver
 
-### 13.1. Что такое View
 
 `View` — интерфейс Spring MVC, представляющий объект, который рендерит response. В HTML-сценариях это обычно шаблон, но `View` может быть и redirect/internal resource/custom renderer.
 
@@ -1417,7 +1413,7 @@ public interface View {
 
 View получает атрибуты модели и рендерит HTML (или другой формат) в response.
 
-### 13.2. Что такое ViewResolver
+**Что такое ViewResolver**
 
 `ViewResolver` — интерфейс, преобразующий строковое имя view в объект `View`.
 
@@ -1429,7 +1425,7 @@ public interface ViewResolver {
 
 Spring перебирает зарегистрированные `ViewResolver` по приоритету до первого успешного.
 
-### 13.3. Разрешение имени представления
+**Разрешение имени представления**
 
 ```java
 return "users/profile";
@@ -1443,14 +1439,14 @@ return "redirect:/login";   // специальный redirect-префикс, �
 return "forward:/internal"; // внутренний forward
 ```
 
-### 13.4. Рендеринг HTML
+**Рендеринг HTML**
 
 1. Контроллер возвращает view name.
 2. `ViewResolver` находит шаблон.
 3. `View.render()` берет model attributes и рендерит шаблон в HTML.
 4. HTML записывается в `HttpServletResponse`.
 
-### 13.5. Основные шаблонизаторы
+**Основные шаблонизаторы**
 
 | Шаблонизатор      | ViewResolver                   | Описание                                   |
 | ----------------- | ------------------------------ | ------------------------------------------ |
@@ -1460,7 +1456,7 @@ return "forward:/internal"; // внутренний forward
 | **JSP**           | `InternalResourceViewResolver` | Классика, устаревший подход                |
 | **Groovy Markup** | `GroovyMarkupViewResolver`     | DSL на Groovy                              |
 
-### 13.6. Thymeleaf в Spring MVC
+**Thymeleaf в Spring MVC**
 
 Зависимость: `spring-boot-starter-thymeleaf`
 
@@ -1487,7 +1483,7 @@ Auto-configuration:
 </html>
 ```
 
-### 13.7. JSP и другие view technologies
+**JSP и другие view technologies**
 
 JSP — старый подход (встроен в Tomcat/Jetty).
 Не работает с embedded Jetty в fat-jar. Требует `war`-деплой или `spring-boot-starter-tomcat`.
@@ -1497,16 +1493,14 @@ spring.mvc.view.prefix=/WEB-INF/jsp/
 spring.mvc.view.suffix=.jsp
 ```
 
----
+----------------------------------------------------------------------------------------------------
 
-## 14. REST в Spring MVC
-
-### 14.1. Spring MVC как REST framework
+## REST в Spring MVC
 
 Spring MVC — это не только HTML. Он является полноценным REST-фреймворком.
 Исторически создавался для HTML, но REST-поддержка добавлялась постепенно и сейчас это основной сценарий.
 
-### 14.2. @RestController
+`@RestController`
 
 ```java
 @RestController
@@ -1516,7 +1510,7 @@ public class OrderController {
 }
 ```
 
-### 14.3. JSON-ответы
+**JSON-ответы**
 
 По умолчанию Jackson сериализует Java-объекты в JSON.
 `Content-Type: application/json` устанавливается автоматически.
@@ -1528,7 +1522,7 @@ public List<OrderDto> getAll() {
 }
 ```
 
-### 14.4. DTO как формат обмена
+**DTO как формат обмена**
 
 DTO (Data Transfer Object) — отдельные классы для входа и выхода API:
 
@@ -1550,7 +1544,7 @@ public record OrderDto(
 
 Никогда не возвращайте Entity напрямую из контроллера.
 
-### 14.5. ResponseEntity
+**ResponseEntity**
 
 ```java
 @GetMapping("/{id}")
@@ -1561,7 +1555,7 @@ public ResponseEntity<OrderDto> getById(@PathVariable Long id) {
 }
 ```
 
-### 14.6. Status codes
+**Status codes**
 
 | Ситуация                       | Статус                    |
 | ------------------------------ | ------------------------- |
@@ -1581,7 +1575,7 @@ public ResponseEntity<OrderDto> getById(@PathVariable Long id) {
 public OrderDto create(@RequestBody @Valid CreateOrderRequest req) { ... }
 ```
 
-### 14.7. Headers
+**Headers**
 
 ```java
 @GetMapping("/{id}")
@@ -1592,7 +1586,7 @@ public ResponseEntity<OrderDto> get(@PathVariable Long id) {
 }
 ```
 
-### 14.8. Content negotiation
+**Content negotiation**
 
 Spring выбирает формат ответа на основе заголовка `Accept`:
 
@@ -1608,7 +1602,7 @@ Spring выбирает формат ответа на основе заголо
 public List<UserDto> getUsers() { ... }
 ```
 
-### 14.9. Аннотации REST-раздела
+**Аннотации REST-раздела**
 
 | Аннотация / тип                                               | Где                  | Что делает                                                                          |
 | ------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------- |
@@ -1620,7 +1614,7 @@ public List<UserDto> getUsers() { ... }
 | `ProblemDetail`                                               | return value         | Стандартный формат REST-ошибки.                                                     |
 | `@JsonProperty`, `@JsonIgnore`, `@JsonInclude`, `@JsonFormat` | DTO fields/accessors | Jackson-аннотации для управления JSON-контрактом.                                   |
 
----
+----------------------------------------------------------------------------------------------------
 
 ## 15. HttpMessageConverter
 
