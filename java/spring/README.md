@@ -2,13 +2,14 @@
 
 ## Фреймворки внутри
 
-- Spring Core
-- Spring Web MVC
+- [Spring Core](./spring-core.md)
+- [Spring Web MVC](./spring-mvc.md)
+- [Spring Data](./spring-data.md)
+- [Spring Security](./spring-security.md)
+- [Spring Boot](./spring-boot.md)
 - Spring WebFlux
-- Spring Data
-- Spring Security
 - Spring Cloud
-- Spring Boot
+
 
 ## Идейные отличия от Java EE
 
@@ -86,16 +87,3 @@ Spring:
 
 В Spring: Я сам собираешь всё приложение из бинов, Spring-контейнер - это конструктор, куда я стаскиваю всё, что нужно,
 и контролирую поведение.
-
-
-
-
-
-
-
-
-
-
-
-
-
