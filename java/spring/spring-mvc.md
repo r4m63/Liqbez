@@ -4,14 +4,14 @@ Spring MVC — это слой обработки HTTP поверх Servlet API:
 
 ```
 HTTP request
-  → Servlet Filter chain
-  → DispatcherServlet
-  → HandlerMapping
-  → HandlerAdapter
-  → Controller method
-  → ReturnValueHandler
-  → ViewResolver или HttpMessageConverter
-  → HTTP response
+  -> Servlet Filter chain
+  -> DispatcherServlet
+  -> HandlerMapping
+  -> HandlerAdapter
+  -> Controller method
+  -> ReturnValueHandler
+  -> ViewResolver или HttpMessageConverter
+  -> HTTP response
 ```
 
 | Аннотация                                                                       | Где используется | Что делает                                                      |
@@ -144,11 +144,11 @@ Filters (Servlet API уровень)
   ▼
 DispatcherServlet
   │
-  ├─► HandlerMapping → ищет контроллер/метод
+  ├─► HandlerMapping -> ищет контроллер/метод
   │
   ├─► HandlerInterceptor.preHandle
   │
-  ├─► HandlerAdapter → подготавливает и вызывает метод
+  ├─► HandlerAdapter -> подготавливает и вызывает метод
   │       └─► ArgumentResolvers (binding аргументов)
   │       └─► Validation
   │       └─► Controller Method
@@ -156,7 +156,7 @@ DispatcherServlet
   │
   ├─► HandlerInterceptor.postHandle
   │
-  ├─► ViewResolver → View render для HTML
+  ├─► ViewResolver -> View render для HTML
   │
   └─► HandlerInterceptor.afterCompletion
 
@@ -171,7 +171,7 @@ DispatcherServlet
 | `HandlerInterceptor`   | Перехватчики до/после вызова контроллера        |
 | `ArgumentResolver`     | Подставляет аргументы в метод контроллера       |
 | `HttpMessageConverter` | JSON/XML ↔ Java object                          |
-| `ViewResolver`         | Имя view → реальный шаблон                      |
+| `ViewResolver`         | Имя view -> реальный шаблон                     |
 | `View`                 | Рендерит HTML                                   |
 | `ExceptionResolver`    | Обрабатывает исключения                         |
 
@@ -223,9 +223,9 @@ chain.triggerAfterCompletion(request, response, ex);       // 7. afterCompletion
 Обработка результата
 
 `HandlerMethodReturnValueHandler` обрабатывает return value:
-- если `@ResponseBody` / `@RestController` → `HttpMessageConverter` сериализует объект в тело ответа,
-- если String / `ModelAndView` → ViewResolver ищет шаблон,
-- если `ResponseEntity` → устанавливает статус, заголовки, тело.
+- если `@ResponseBody` / `@RestController` -> `HttpMessageConverter` сериализует объект в тело ответа,
+- если String / `ModelAndView` -> ViewResolver ищет шаблон,
+- если `ResponseEntity` -> устанавливает статус, заголовки, тело.
 
 Формирование HTTP-ответа
 
@@ -242,7 +242,7 @@ chain.triggerAfterCompletion(request, response, ex);       // 7. afterCompletion
 
 Он расширяет цепочку:
 ```
-Servlet → GenericServlet → HttpServlet → HttpServletBean → FrameworkServlet → DispatcherServlet
+Servlet -> GenericServlet -> HttpServlet -> HttpServletBean -> FrameworkServlet -> DispatcherServlet
 ```
 
 **Front Controller** — паттерн, при котором один объект принимает все входящие запросы и делегирует их конкретным обработчикам.
@@ -298,7 +298,7 @@ HandlerMapping
 - `RouterFunctionMapping` — для функционального стиля WebFlux/MVC.
 
 `RequestMappingHandlerMapping` при старте сканирует все `@Controller`-бины и строит карту:
-`{method, URL, params, headers, consumes, produces}` → `HandlerMethod`.
+`{method, URL, params, headers, consumes, produces}` -> `HandlerMethod`.
 
 HandlerAdapter
 
@@ -371,12 +371,15 @@ HandlerExceptionResolver
 
 Контроллер — это bean, помеченный `@Controller` или `@RestController`, методы которого обрабатывают
 HTTP-запросы. Он принимает HTTP-данные через параметры метода, вызывает сервисный слой, возвращает
-результат (view name, DTO, ResponseEntity ...).
+результат (view, DTO, ResponseEntity ...).
 
 `@Controller`:
 - Помечает класс как Spring MVC controller.
 - Включает Component Scan.
-- Методы по умолчанию возвращают имя view.
+- По умолчанию возвращает имя view.
+- Для HTML-приложения
+- Использует `ViewResolver`
+- `HttpMessageConverter` используется для `@ResponseBody` методов
 
 ```java
 @Controller
@@ -393,7 +396,10 @@ public class UserController {
 `@RestController`:
 - `@RestController` = `@Controller` + `@ResponseBody`.
 - `@ResponseBody` на уровне класса означает: все методы возвращают тело ответа напрямую.
-- Никакого ViewResolver — только HttpMessageConverter.
+- Не использует `ViewResolver` — использует `HttpMessageConverter`.
+- По умолчанию возвращает тело HTTP ответа
+- Для REST API
+- `HttpMessageConverter` используется для всех методов
 
 ```java
 @RestController
@@ -406,78 +412,23 @@ public class UserRestController {
 }
 ```
 
-**Разница между ними:**
-
-|                      | `@Controller`                            | `@RestController`               |
-| -------------------- | ---------------------------------------- | ------------------------------- |
-| Метаннотация         | `@Component`                             | `@Controller` + `@ResponseBody` |
-| Возврат по умолчанию | имя view                                 | тело HTTP-ответа                |
-| Для чего             | HTML-приложения                          | REST API                        |
-| ViewResolver         | используется                             | не используется                 |
-| HttpMessageConverter | используется для `@ResponseBody`-методов | используется для всех методов   |
-
-**Аннотации раздела:**
-
-| Аннотация         | Где ставится | Что означает                                                                                                                               |
-| ----------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `@Controller`     | класс        | Регистрирует класс как Spring bean и MVC-controller. Методы обычно возвращают имя view, `ModelAndView`, `View` или пишут response вручную. |
-| `@RestController` | класс        | Составная аннотация: `@Controller` + `@ResponseBody`. Все return values по умолчанию идут в HTTP body.                                     |
-| `@ResponseBody`   | метод/класс  | Отключает трактовку return value как имени view и передает значение в `HttpMessageConverter`.                                              |
-| `@RequestMapping` | класс/метод  | Задает общий URL и условия выбора handler'а. На классе обычно задает базовый path.                                                         |
-
-`@Controller` и `@RestController` — это stereotype-аннотации: они участвуют в component scan и делают класс Spring bean'ом.
-
-Структура controller-класса
-
-```java
-@RestController
-@RequestMapping("/api/products")
-@RequiredArgsConstructor
-public class ProductController {
-    @GetMapping
-    public List<ProductDto> getAll() { ... }
-
-    @GetMapping("/{id}")
-    public ProductDto getById(@PathVariable Long id) { ... }
-
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public ProductDto create(@RequestBody @Valid CreateProductRequest req) { ... }
-
-    @PutMapping("/{id}")
-    public ProductDto update(@PathVariable Long id, @RequestBody @Valid UpdateProductRequest req) { ... }
-
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) { ... }
-}
-```
-
-**Хорошие практики проектирования контроллеров:**
-
-- **Тонкий контроллер**: только HTTP-слой, вся логика — в service.
-- **Не использовать Entity напрямую**: работать только с DTO.
-- **Явные status codes**: через `@ResponseStatus` или `ResponseEntity`.
-- **Один контроллер на один ресурс**: `UserController`, `OrderController`.
-- **Разделять page-контроллеры и API-контроллеры** при гибридных приложениях.
-
+`@ResponseBody` - Отключает трактовку return value как имени view и передает значение в `HttpMessageConverter`.
 
 `@RequestMapping` - Базовая аннотация маппинга. Может стоять на классе и/или методе.
-На классе — задает базовый путь. На методе — уточняет маппинг.
+На классе — задает базовый url. На методе — уточняет маппинг.
 
 ```java
 @RequestMapping(
-    value = "/users",         // URL pattern
-    method = RequestMethod.GET, // HTTP method
-    params = "active=true",   // query param
-    headers = "X-API=v2",     // header
+    value = "/users",               // URL pattern
+    method = RequestMethod.GET,     // HTTP method
+    params = "active=true",         // query param
+    headers = "X-API=v2",           // header
     consumes = "application/json",  // Content-Type входящего запроса
     produces = "application/json"   // Accept клиента
 )
 ```
 
-
-Специализированные аннотации - Shortcutы над `@RequestMapping`. Все принимают те же параметры
+Есть специализированные аннотации - Shortcutы над `@RequestMapping`. Все принимают те же параметры
 (`params`, `headers`, `consumes`, `produces`):
 
 ```java
@@ -488,24 +439,6 @@ public class ProductController {
 @PatchMapping("/path")
 ```
 
-Аннотации и атрибуты mapping
-
-| Аннотация/атрибут | Где                        | Значение                                                                                                          |
-| ----------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `@RequestMapping` | класс/метод                | Универсальный mapping. Используется, когда нужны нестандартные условия или общий base path.                       |
-| `@GetMapping`     | метод                      | `GET`, безопасное чтение ресурса.                                                                                 |
-| `@PostMapping`    | метод                      | `POST`, создание ресурса или command/action.                                                                      |
-| `@PutMapping`     | метод                      | `PUT`, полная замена ресурса.                                                                                     |
-| `@PatchMapping`   | метод                      | `PATCH`, частичное изменение ресурса.                                                                             |
-| `@DeleteMapping`  | метод                      | `DELETE`, удаление ресурса.                                                                                       |
-| `value` / `path`  | атрибут                    | URL pattern: `"/users/{id}"`. `value` и `path` — aliases.                                                         |
-| `method`          | атрибут `@RequestMapping`  | HTTP method: `RequestMethod.GET`. В shortcut-аннотациях уже задан.                                                |
-| `params`          | атрибут                    | Дополнительное условие по query/form params: `"active=true"`, `"!debug"`.                                         |
-| `headers`         | атрибут                    | Дополнительное условие по headers: `"X-Version=2"`, `"!X-Legacy"`.                                                |
-| `consumes`        | атрибут                    | Какой `Content-Type` endpoint принимает. Несовпадение обычно приводит к `415 Unsupported Media Type`.             |
-| `produces`        | атрибут                    | Какой response media type endpoint умеет отдавать. Несовпадение с `Accept` может привести к `406 Not Acceptable`. |
-| `version`         | атрибут Spring Framework 7 | Условие по API version, если включена MVC API versioning.                                                         |
-
 Mapping по URL Поддерживает паттерны:
 
 ```java
@@ -515,56 +448,38 @@ Mapping по URL Поддерживает паттерны:
 @GetMapping("/v{version}/users")    // переменная в сегменте
 ```
 
-Паттерны используют `PathPatternParser` по умолчанию в современных Spring Boot приложениях.
-Старый `AntPathMatcher` еще встречается в legacy-проектах, но новые приложения лучше проектировать
-под `PathPatternParser`.
+Паттерны используют `PathPatternParser` по умолчанию. Старый `AntPathMatcher` еще встречается в
+legacy-проектах, но новые приложения лучше проектировать под `PathPatternParser`.
 
-Mapping по HTTP method
 
 ```java
+// Mapping по HTTP method, Если метод не указан — маппинг работает для всех HTTP-методов.
 @RequestMapping(value = "/users", method = RequestMethod.GET)
-// или просто
 @GetMapping("/users")
-```
-
-Если метод не указан — маппинг работает для всех HTTP-методов.
-
-Mapping по params
-
-```java
+----------------------------------------------------------------------------------------------------
+// Mapping по params
 @GetMapping(value = "/users", params = "active=true")
 @GetMapping(value = "/users", params = "!active")       // параметра нет
 @GetMapping(value = "/users", params = {"active", "role=admin"})
-```
-
-Mapping по headers
-
-```java
+----------------------------------------------------------------------------------------------------
+// Mapping по headers
 @GetMapping(value = "/users", headers = "X-Version=2")
 @GetMapping(value = "/users", headers = "!X-Version")
-```
-
-consumes и produces
-
-```java
+----------------------------------------------------------------------------------------------------
 // consumes — Content-Type входящего запроса (что мы принимаем)
 @PostMapping(value = "/users", consumes = MediaType.APPLICATION_JSON_VALUE)
-
 // produces — Accept из запроса (что мы отдаем)
 @GetMapping(value = "/users", produces = MediaType.APPLICATION_JSON_VALUE)
-
 // Content negotiation — несколько вариантов
 @GetMapping(value = "/users", produces = {
     MediaType.APPLICATION_JSON_VALUE,
     MediaType.APPLICATION_XML_VALUE
 })
-```
+----------------------------------------------------------------------------------------------------
+// API versioning в Spring Framework 7
+// Spring Framework 7 добавил встроенную поддержку API versioning в Spring MVC.
+// Сначала нужно настроить, откуда брать версию:
 
-API versioning в Spring Framework 7
-
-Spring Framework 7 добавил встроенную поддержку API versioning в Spring MVC. Сначала нужно настроить, откуда брать версию:
-
-```java
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
     @Override
@@ -572,125 +487,94 @@ public class WebConfig implements WebMvcConfigurer {
         configurer.useRequestHeader("API-Version");
     }
 }
-```
 
-После этого mapping может учитывать version:
-
-```java
+// После этого mapping может учитывать version:
 @GetMapping(path = "/accounts/{id}", version = "1.0")
-public AccountDto getV1(@PathVariable Long id) { ... }
+public AccountDto getV1(@PathVariable Long id)
 
 @GetMapping(path = "/accounts/{id}", version = "2.0")
-public AccountDto getV2(@PathVariable Long id) { ... }
+public AccountDto getV2(@PathVariable Long id)
 
 @GetMapping(path = "/accounts/{id}", version = "2.0+")
-public AccountDto getV2AndNewer(@PathVariable Long id) { ... }
-```
+public AccountDto getV2AndNewer(@PathVariable Long id)
 
-Версию можно резолвить из header, query parameter, path segment или media type parameter.
-Если запрошенная версия не поддерживается, Spring выбрасывает `InvalidApiVersionException`,
-что обычно приводит к `400 Bad Request`.
+// Версию можно резолвить из header, query parameter, path segment или media type parameter.
+// Если запрошенная версия не поддерживается, Spring выбрасывает `InvalidApiVersionException`,
+// что обычно приводит к `400 Bad Request`.
+```
 
 ----------------------------------------------------------------------------------------------------
 
 ## Параметры методов контроллера
 
-`@PathVariable`
-
-Извлекает значение из URL-шаблона.
-
 ```java
+// @PathVariable
 @GetMapping("/users/{id}")
-public UserDto getUser(@PathVariable Long id) { ... }
+public UserDto getUser(@PathVariable Long id)
 
 @GetMapping("/users/{userId}/orders/{orderId}")
-public OrderDto getOrder(@PathVariable Long userId, @PathVariable Long orderId) { ... }
+public OrderDto getOrder(@PathVariable Long userId, @PathVariable Long orderId)x
 
 // Если имя переменной отличается от имени параметра:
 @GetMapping("/users/{user-id}")
-public UserDto get(@PathVariable("user-id") Long userId) { ... }
+public UserDto get(@PathVariable("user-id") Long userId)
 
 // Опциональный:
 @GetMapping({"/users/{id}", "/users"})
-public UserDto get(@PathVariable(required = false) Long id) { ... }
-```
+public UserDto get(@PathVariable(required = false) Long id)
 
-`@RequestParam`
-
-Извлекает query-параметр или form-параметр.
-
-```java
+----------------------------------------------------------------------------------------------------
+// @RequestParam
 // GET /users?role=admin&page=2
 @GetMapping("/users")
 public List<UserDto> getUsers(
     @RequestParam String role,
     @RequestParam(defaultValue = "0") int page,
     @RequestParam(required = false) String name
-) { ... }
+)
 
 // Несколько значений одного параметра:
 // GET /filter?tag=java&tag=spring
 @GetMapping("/filter")
-public List<Item> filter(@RequestParam List<String> tag) { ... }
-```
+public List<Item> filter(@RequestParam List<String> tag)
 
-`@RequestBody`
+----------------------------------------------------------------------------------------------------
+// @RequestBody
+// Читает body HTTP-запроса и десериализует через `HttpMessageConverter`.
 
-Читает тело HTTP-запроса и десериализует через `HttpMessageConverter`.
-
-```java
 @PostMapping("/users")
-public UserDto create(@RequestBody CreateUserRequest request) { ... }
+public UserDto create(@RequestBody CreateUserRequest request)
 
 // С валидацией:
 @PostMapping("/users")
-public UserDto create(@RequestBody @Valid CreateUserRequest request) { ... }
-```
+public UserDto create(@RequestBody @Valid CreateUserRequest request)
 
-`Content-Type: application/json` → Jackson десериализует JSON в Java-объект.
+----------------------------------------------------------------------------------------------------
 
-`@ModelAttribute`
-
-Привязывает данные формы (или query params) к Java-объекту.
-
-```java
+// @ModelAttribute -- Content-Type: application/json -> Jackson десериализует JSON в Java-объект.
 // GET /search?name=Alice&age=25
 @GetMapping("/search")
-public String search(@ModelAttribute SearchForm form, Model model) { ... }
+public String search(@ModelAttribute SearchForm form, Model model)
 
 // POST /register с form data
 @PostMapping("/register")
-public String register(@ModelAttribute @Valid RegisterForm form, BindingResult result) { ... }
-```
+public String register(@ModelAttribute @Valid RegisterForm form, BindingResult result)
 
-Также может обозначать метод, заполняющий модель перед каждым запросом в контроллере:
+----------------------------------------------------------------------------------------------------
 
-```java
-@ModelAttribute("categories")
-public List<Category> populateCategories() {
-    return categoryService.findAll(); // добавляется в model автоматически
-}
-```
-
-`@RequestHeader`
-
-Извлекает значение HTTP-заголовка.
-
-```java
+// @RequestHeader
 @GetMapping("/profile")
 public UserDto getProfile(
     @RequestHeader("Authorization") String authHeader,
     @RequestHeader(value = "X-Request-Id", required = false) String requestId
-) { ... }
-```
+)
 
-`@CookieValue`
+----------------------------------------------------------------------------------------------------
 
-Извлекает значение cookie.
+// @CookieValue
 
-```java
 @GetMapping("/dashboard")
-public String dashboard(@CookieValue("sessionId") String sessionId) { ... }
+public String dashboard(@CookieValue("sessionId") String sessionId)
 ```
 
 `@RequestPart`
@@ -702,7 +586,7 @@ public String dashboard(@CookieValue("sessionId") String sessionId) { ... }
 public void upload(
     @RequestPart("file") MultipartFile file,
     @RequestPart("meta") @Valid FileMeta meta
-) { ... }
+)
 ```
 
 `HttpServletRequest / HttpServletResponse`
@@ -774,7 +658,7 @@ public String checkout(@SessionAttribute("cart") Cart cart, Model model) {
 
 ```java
 @GetMapping("/trace")
-public String trace(@RequestAttribute("traceId") String traceId) { ... }
+public String trace(@RequestAttribute("traceId") String traceId)
 ```
 
 
@@ -787,7 +671,7 @@ GET /cars;color=red;year=2024
 ```java
 @GetMapping("/cars")
 public List<CarDto> cars(@MatrixVariable String color,
-                         @MatrixVariable int year) { ... }
+                         @MatrixVariable int year)
 ```
 
 На практике matrix variables встречаются редко и могут требовать явной настройки path matching / URL handling.
@@ -836,14 +720,14 @@ public class SearchCriteria {
 }
 
 @GetMapping("/search")
-public List<UserDto> search(@ModelAttribute SearchCriteria criteria) { ... }
+public List<UserDto> search(@ModelAttribute SearchCriteria criteria)
 // Spring сам свяжет query params с полями SearchCriteria
 ```
 
 WebDataBinder
 
 `WebDataBinder` выполняет:
-- type conversion (String → int, String → Date, ...),
+- type conversion (String -> int, String -> Date, ...),
 - binding полей,
 - валидацию.
 
@@ -866,10 +750,10 @@ public void initBinder(WebDataBinder binder) {
 Типовые преобразования данных
 
 Встроенные конверторы и formatter'ы:
-- `String` → `int`, `long`, `double`, `boolean`
-- `String` → `LocalDate`, `LocalDateTime`, `OffsetDateTime` при стандартных ISO-форматах или через `@DateTimeFormat`
-- `String` → `enum`
-- `String` → `UUID`
+- `String` -> `int`, `long`, `double`, `boolean`
+- `String` -> `LocalDate`, `LocalDateTime`, `OffsetDateTime` при стандартных ISO-форматах или через `@DateTimeFormat`
+- `String` -> `enum`
+- `String` -> `UUID`
 
 Custom converters и formatters
 
@@ -902,9 +786,9 @@ public class StringToStatusConverter implements Converter<String, Status> {
 @Component
 public class MoneyFormatter implements Formatter<Money> {
     @Override
-    public Money parse(String text, Locale locale) { ... }
+    public Money parse(String text, Locale locale)
     @Override
-    public String print(Money money, Locale locale) { ... }
+    public String print(Money money, Locale locale)
 }
 ```
 
@@ -940,7 +824,7 @@ public class WebConfig implements WebMvcConfigurer {
 
 ```java
 @PostMapping("/users")
-public UserDto create(@RequestBody @Valid CreateUserRequest request) { ... }
+public UserDto create(@RequestBody @Valid CreateUserRequest request)
 ```
 
 Важно: в Boot 4 / Boot 3 validation не считается частью web starter'а.
@@ -960,7 +844,7 @@ Spring-аннотация. На параметрах и типах DTO поле�
 ```java
 @PutMapping("/users/{id}")
 public UserDto update(@PathVariable Long id,
-                      @RequestBody @Validated(Update.class) UpdateUserRequest req) { ... }
+                      @RequestBody @Validated(Update.class) UpdateUserRequest req)
 ```
 
 В Spring Framework 6.1+ / 7.x MVC умеет встроенную method validation для controller methods.
@@ -971,7 +855,7 @@ public UserDto update(@PathVariable Long id,
 @RestController
 public class UserController {
     @GetMapping("/users/{id}")
-    public UserDto get(@PathVariable @Min(1) Long id) { ... }
+    public UserDto get(@PathVariable @Min(1) Long id)
 }
 ```
 
@@ -1194,7 +1078,7 @@ public UserDto getUser(@PathVariable Long id) {
 public class UserController {
     @GetMapping("/api/users/{id}")
     @ResponseBody
-    public UserDto getUser(@PathVariable Long id) { ... }
+    public UserDto getUser(@PathVariable Long id)
 }
 ```
 
@@ -1333,7 +1217,7 @@ public StreamingResponseBody stream() {
 
 `Model` — контейнер атрибутов, которые контроллер передает во view (шаблон).
 
-Это Map `String → Object`: ключ — имя атрибута в шаблоне, значение — Java-объект.
+Это Map `String -> Object`: ключ — имя атрибута в шаблоне, значение — Java-объект.
 
 **Передача данных из controller во view:**
 
@@ -1429,7 +1313,7 @@ Spring перебирает зарегистрированные `ViewResolver` 
 
 ```java
 return "users/profile";
-// ViewResolver: "users/profile" → templates/users/profile.html
+// ViewResolver: "users/profile" -> templates/users/profile.html
 // Thymeleaf: prefix = "classpath:/templates/", suffix = ".html"
 ```
 
@@ -1518,7 +1402,7 @@ public class OrderController {
 ```java
 @GetMapping
 public List<OrderDto> getAll() {
-    return orderService.findAll(); // → JSON array
+    return orderService.findAll(); // -> JSON array
 }
 ```
 
@@ -1572,7 +1456,7 @@ public ResponseEntity<OrderDto> getById(@PathVariable Long id) {
 ```java
 @ResponseStatus(HttpStatus.CREATED)
 @PostMapping
-public OrderDto create(@RequestBody @Valid CreateOrderRequest req) { ... }
+public OrderDto create(@RequestBody @Valid CreateOrderRequest req)
 ```
 
 **Headers**
@@ -1590,16 +1474,16 @@ public ResponseEntity<OrderDto> get(@PathVariable Long id) {
 
 Spring выбирает формат ответа на основе заголовка `Accept`:
 
-- `Accept: application/json` → JSON
-- `Accept: application/xml` → XML (если добавлен `jackson-dataformat-xml`)
-- `Accept: */*` → первый доступный converter
+- `Accept: application/json` -> JSON
+- `Accept: application/xml` -> XML (если добавлен `jackson-dataformat-xml`)
+- `Accept: */*` -> первый доступный converter
 
 ```java
 @GetMapping(value = "/users", produces = {
     MediaType.APPLICATION_JSON_VALUE,
     MediaType.APPLICATION_XML_VALUE
 })
-public List<UserDto> getUsers() { ... }
+public List<UserDto> getUsers()
 ```
 
 **Аннотации REST-раздела**
@@ -1634,8 +1518,8 @@ public interface HttpMessageConverter<T> {
 ### 15.2. Преобразование JSON ↔ Java object
 
 `MappingJackson2HttpMessageConverter`:
-- `@RequestBody CreateUserRequest request` → Jackson читает JSON в Java object
-- Java object из `@ResponseBody` / `@RestController` → Jackson пишет JSON в response body
+- `@RequestBody CreateUserRequest request` -> Jackson читает JSON в Java object
+- Java object из `@ResponseBody` / `@RestController` -> Jackson пишет JSON в response body
 
 Условие: `Content-Type: application/json` для запроса, `Accept: application/json` для ответа.
 
@@ -1649,7 +1533,7 @@ public UserDto create(@RequestBody CreateUserRequest request) {
     // Spring:
     // 1. Смотрит Content-Type: application/json
     // 2. Ищет converter, который canRead(CreateUserRequest.class, application/json)
-    // 3. MappingJackson2HttpMessageConverter.read() → объект
+    // 3. MappingJackson2HttpMessageConverter.read() -> объект
 }
 ```
 
@@ -1662,7 +1546,7 @@ public UserDto getUser(@PathVariable Long id) {
     // Spring:
     // 1. Смотрит Accept: application/json
     // 2. Ищет converter, который canWrite(UserDto.class, application/json)
-    // 3. MappingJackson2HttpMessageConverter.write() → JSON в body
+    // 3. MappingJackson2HttpMessageConverter.write() -> JSON в body
 }
 ```
 
@@ -1732,7 +1616,7 @@ public Jackson2ObjectMapperBuilderCustomizer customizer() {
 
 ```java
 @PostMapping("/register")
-public String register(@ModelAttribute RegisterForm form) { ... }
+public String register(@ModelAttribute RegisterForm form)
 ```
 
 Также используется для подготовки пустого объекта формы для GET-запроса:
@@ -1776,7 +1660,7 @@ public String register(@Valid @ModelAttribute("form") RegisterForm form,
 
 ### 16.5. Повторный показ формы с ошибками
 
-При `result.hasErrors()` → `return "register"`:
+При `result.hasErrors()` -> `return "register"`:
 - Spring оставляет заполненный form-объект в модели,
 - шаблон отображает ранее введенные данные,
 - Thymeleaf показывает ошибки через `th:errors`.
@@ -2287,13 +2171,13 @@ if (!filePath.startsWith(root)) {
 
 ### 21.3. Разница между redirect и forward
 
-|                                 | Redirect              | Forward                        |
-| ------------------------------- | --------------------- | ------------------------------ |
-| HTTP-запросов                   | 2                     | 1                              |
-| URL меняется                    | да                    | нет                            |
-| Request-объект                  | новый                 | тот же                         |
-| Данные из оригинального request | нет                   | да                             |
-| Используется для                | POST → redirect → GET | внутренняя передача управления |
+|                                 | Redirect                | Forward                        |
+| ------------------------------- | ----------------------- | ------------------------------ |
+| HTTP-запросов                   | 2                       | 1                              |
+| URL меняется                    | да                      | нет                            |
+| Request-объект                  | новый                   | тот же                         |
+| Данные из оригинального request | нет                     | да                             |
+| Используется для                | POST -> redirect -> GET | внутренняя передача управления |
 
 ### 21.4. PRG pattern (Post-Redirect-Get)
 
@@ -2446,11 +2330,11 @@ Spring Boot по умолчанию раздает статику из:
 ```
 src/main/resources/static/
     css/
-        main.css     → /css/main.css
+        main.css     -> /css/main.css
     js/
-        app.js       → /js/app.js
+        app.js       -> /js/app.js
     images/
-        logo.png     → /images/logo.png
+        logo.png     -> /images/logo.png
 ```
 
 ### 23.3. Настройка resource handling
@@ -2695,7 +2579,7 @@ redirectAttributes.addAttribute("id", createdId); // redirect:/items?id=42
 ```java
 @Configuration
 @EnableWebMvc
-public class WebConfig { ... }
+public class WebConfig
 ```
 
 **В Spring Boot**: `@EnableWebMvc` говорит приложению: “я сам полностью управляю MVC-конфигурацией”. Поэтому Boot MVC auto-configuration больше не добавляет свои обычные настройки поверх. В Boot-приложениях почти всегда используйте `WebMvcConfigurer` без `@EnableWebMvc`.
@@ -2855,7 +2739,7 @@ Bean Validation подключается отдельно:
 | `ContentNegotiationStrategy` | по `Accept` header                                               |
 | Static resources             | `/static/`, `/public/`, `/resources/`                            |
 | `MessageSource`              | `messages.properties`                                            |
-| Error handling               | `/error` → `BasicErrorController`                                |
+| Error handling               | `/error` -> `BasicErrorController`                               |
 | Multipart                    | включен, лимиты настраиваются через `spring.servlet.multipart.*` |
 
 ### 27.4. Когда нужна ручная конфигурация
@@ -3045,11 +2929,11 @@ public ResponseEntity<OrderDto> create(@RequestBody @Valid CreateOrderRequest re
 ```java
 // НЕ возвращайте Entity:
 @GetMapping("/{id}")
-public User getUser(@PathVariable Long id) { ... } // плохо
+public User getUser(@PathVariable Long id) // плохо
 
 // Возвращайте DTO:
 @GetMapping("/{id}")
-public UserDto getUser(@PathVariable Long id) { ... } // хорошо
+public UserDto getUser(@PathVariable Long id) // хорошо
 ```
 
 Отдельные DTO для запроса и ответа: `CreateUserRequest`, `UpdateUserRequest`, `UserDto`, `UserSummaryDto`.
@@ -3079,9 +2963,9 @@ public record ErrorResponse(
 ### 29.6. Разделение page controllers и api controllers
 
 ```
-com.example.web.pages     → @Controller с Thymeleaf (URL: /*)
-com.example.web.api       → @RestController с JSON (URL: /api/*)
-com.example.service       → shared сервисный слой
+com.example.web.pages     -> @Controller с Thymeleaf (URL: /*)
+com.example.web.api       -> @RestController с JSON (URL: /api/*)
+com.example.service       -> shared сервисный слой
 ```
 
 ---
@@ -3102,7 +2986,7 @@ public class UserController {
 
 // Правильно:
 @RestController  // или добавить @ResponseBody на метод
-public class UserController { ... }
+public class UserController
 ```
 
 ### 30.2. Неправильный возврат String
@@ -3132,11 +3016,11 @@ public class Controller {
 ```java
 // Ошибка: BindingResult не сразу после валидируемого объекта
 @PostMapping("/register")
-public String register(BindingResult result, @Valid RegisterForm form) { ... } // WRONG!
+public String register(BindingResult result, @Valid RegisterForm form) // WRONG!
 
 // Правильно:
 @PostMapping("/register")
-public String register(@Valid RegisterForm form, BindingResult result) { ... } // OK
+public String register(@Valid RegisterForm form, BindingResult result) // OK
 ```
 
 ```java
@@ -3221,41 +3105,41 @@ public String dashboard(Model model) {
 ### 31.2. Полный путь HTTP-запроса
 
 ```
-1.  Клиент → HTTP-запрос
+1.  Клиент -> HTTP-запрос
 2.  Servlet Container принимает, создает HttpServletRequest/Response
 3.  Filters (CharacterEncodingFilter, Spring Security, ...)
 4.  DispatcherServlet.doDispatch()
-5.    HandlerMapping → HandlerExecutionChain (handler + interceptors)
+5.    HandlerMapping -> HandlerExecutionChain (handler + interceptors)
 6.    HandlerInterceptor.preHandle() [все, по порядку]
-7.    HandlerAdapter → подготовка аргументов (ArgumentResolvers)
+7.    HandlerAdapter -> подготовка аргументов (ArgumentResolvers)
 8.      @PathVariable, @RequestParam, @RequestBody, @ModelAttribute, ...
 9.      Валидация (`@Valid`, constraint-аннотации, method validation)
 10.   Controller метод — вызов Java-метода
-11.   Controller → Service → Repository → DB
+11.   Controller -> Service -> Repository -> DB
 12.   Возврат результата (DTO, ResponseEntity, String, ...)
 13.   Обработка return value внутри HandlerAdapter:
-        → если @ResponseBody/REST: HttpMessageConverter → JSON/XML
-        → если ResponseEntity: status + headers + body
-        → если view name: готовится ModelAndView
+        -> если @ResponseBody/REST: HttpMessageConverter -> JSON/XML
+        -> если ResponseEntity: status + headers + body
+        -> если view name: готовится ModelAndView
 14.   HandlerInterceptor.postHandle() [после успешного handler return, в обратном порядке; ModelAndView может быть null]
-15.   Если нужен view render: ViewResolver → View → HTML
+15.   Если нужен view render: ViewResolver -> View -> HTML
 16.   Если redirect: 3xx + Location header
 17.   Формирование HTTP response (status, headers, body)
 18.   HandlerInterceptor.afterCompletion() [для interceptor'ов, чей preHandle успешно прошел]
-19.   Servlet Container → HTTP-ответ → Клиент
+19.   Servlet Container -> HTTP-ответ -> Клиент
 
 При exception на любом шаге:
-      HandlerExceptionResolver → @ExceptionHandler / @ControllerAdvice
+      HandlerExceptionResolver -> @ExceptionHandler / @ControllerAdvice
 ```
 
 ### 31.3. Варианты реализации контроллеров
 
 ```
 Вариант 1: HTML-приложение (Thymeleaf)
-  @Controller → Model + view name → ViewResolver → HTML
+  @Controller -> Model + view name -> ViewResolver -> HTML
 
 Вариант 2: REST JSON API
-  @RestController → DTO → HttpMessageConverter → JSON
+  @RestController -> DTO -> HttpMessageConverter -> JSON
 
 Вариант 3: Гибридный
   @Controller + @RestController в разных пакетах
@@ -3407,7 +3291,7 @@ CORS не заменяет authentication/authorization. Это только п�
 public class UserApiController {
 
     @GetMapping
-    public List<UserDto> getUsers() { ... }
+    public List<UserDto> getUsers()
 }
 ```
 
@@ -3416,7 +3300,7 @@ public class UserApiController {
 ```java
 @GetMapping("/{id}")
 @CrossOrigin(origins = "http://localhost:3000", methods = RequestMethod.GET)
-public UserDto getById(@PathVariable Long id) { ... }
+public UserDto getById(@PathVariable Long id)
 ```
 
 ### 33.3. Глобальная настройка CORS
