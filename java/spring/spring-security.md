@@ -5,9 +5,86 @@
 
 
 
-## Архитектура Spring Security
+----------------------------------------------------------------------------------------------------
+
+## Аутентификация
+
+Аутентификация почти всегда проходит по одной и той же схеме:
+
+```text
+1. Filter извлекает credentials из запроса
+2. Создает Authentication object (еще не authenticated)
+3. Передает его в AuthenticationManager
+4. AuthenticationManager -> AuthenticationProvider
+5. Provider проверяет пользователя и credentials
+6. Возвращается новый authenticated Authentication
+7. Он кладется в SecurityContext
+8. Запрос идет дальше как от уже аутентифицированного пользователя
+```
 
 
+```text
+POST /login
+  username=alice
+  password=secret
+
+UsernamePasswordAuthenticationFilter
+  -> создает UsernamePasswordAuthenticationToken(unauthenticated)
+  -> AuthenticationManager.authenticate(...)
+      -> ProviderManager
+          -> DaoAuthenticationProvider
+              -> UserDetailsService.loadUserByUsername("alice")
+              -> PasswordEncoder.matches(raw, encoded)
+              -> вернуть authenticated token
+  -> SecurityContextHolder.getContext().setAuthentication(authenticatedToken)
+```
+
+
+### Basic Auth
+
+```text
+Authorization: Basic base64(username:password)
+
+BasicAuthenticationFilter
+  -> извлекает header
+  -> декодирует username/password
+  -> создает Authentication
+  -> AuthenticationManager
+  -> ProviderManager / DaoAuthenticationProvider
+  -> SecurityContext
+```
+
+### JWT Bearer Token
+
+```text
+Authorization: Bearer <jwt>
+
+BearerTokenAuthenticationFilter
+  -> достает token из header
+  -> AuthenticationManager / AuthenticationProvider
+  -> проверка подписи, exp, aud, iss, claims
+  -> создается JwtAuthenticationToken
+  -> SecurityContext
+```
+
+При JWT обычно нет server-side session, и аутентификация выполняется **на каждом запросе заново** по токену.
+
+----------------------------------------------------------------------------------------------------
+
+## Авторизация
+
+После аутентификации Spring Security проверяет: имеет ли текущий пользователь право на этот URL / HTTP method / method call
+
+В современном servlet stack это обычно делает `AuthorizationFilter`.
+
+```text
+AuthorizationFilter
+  -> берет текущий Authentication из SecurityContextHolder
+  -> передает его в AuthorizationManager
+  -> AuthorizationManager решает grant / deny
+  -> если grant -> запрос идет дальше
+  -> если deny -> AccessDeniedException
+```
 
 ----------------------------------------------------------------------------------------------------
 
@@ -85,47 +162,54 @@ OAuth2
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Архитектура Spring Security
 
-Spring Security — это не "одна аннотация для логина", а целая инфраструктура безопасности, которая:
-
-- перехватывает HTTP-запросы **до входа в контроллер**,
-- определяет, кто пользователь,
-- проверяет, можно ли ему выполнять действие,
-- хранит текущую аутентификацию в контексте,
-- обрабатывает ошибки безопасности,
-- умеет защищать не только web-слой, но и **method/service layer**.
-
-
 ```text
-Запрос
-  -> Servlet Container
-  -> DelegatingFilterProxy
-  -> FilterChainProxy
-  -> SecurityFilterChain
-  -> Security Filters
-  -> DispatcherServlet
-  -> Controller
+HTTP request
+    > Servlet Container
+    > DelegatingFilterProxy
+    > FilterChainProxy
+    > SecurityFilterChain
+    > Security Filters
+        > SecurityContext (load)
+        > HeaderWriterFilter
+        > CorsFilter / CsrfFilter
+        > LogoutFilter
+        > Authentication filter
+        > AuthenticationManager
+        > AuthenticationProvider
+        > UserDetailsService / external auth source
+        > AnonymousAuthenticationFilter
+        > ExceptionTranslationFilter
+        > AuthorizationFilter
+        > SecurityContext (save/clear)
+    > DispatcherServlet
+    > Controller
+    > Method Security
+    > Service
+    > HTTP response
 ```
 
-То есть Spring Security в servlet-приложении живет **прежде всего как цепочка фильтров**.
-
-```text
-Client
-  -> Servlet Container
-      -> DelegatingFilterProxy
-          -> FilterChainProxy
-              -> SecurityFilterChain (первая подошедшая)
-                  -> SecurityContextHolderFilter
-                  -> CSRF / CORS / headers filters
-                  -> Authentication filters
-                  -> AnonymousAuthenticationFilter
-                  -> ExceptionTranslationFilter
-                  -> AuthorizationFilter
-                      -> DispatcherServlet
-                          -> Controller
-                              -> Service
-```
+------------------------------------------------------------------------------------------------------------------------
+`Servlet container`
 1. **Servlet container** знает только про обычные servlet filters.
 2. Spring подставляет туда `DelegatingFilterProxy`.
 3. `DelegatingFilterProxy` передает работу Spring-bean'у.
@@ -143,7 +227,22 @@ FilterChainProxy - главный координатор security-фильтро
 4. Выполнить авторизацию
 5. Передать запрос дальше в приложение
 6. Сохранить/очистить SecurityContext
+------------------------------------------------------------------------------------------------------------------------
+`DelegatingFilterProxy` - Это bridge между servlet container и Spring ApplicationContext.
+Это мост между Servlet Container и Spring Context.
+Servlet container знает только обычный servlet filter, а DelegatingFilterProxy уже делегирует
+выполнение Spring-bean’у, обычно springSecurityFilterChain.
 
+Servlet container умеет регистрировать только `Filter`, но не знает, как искать Spring beans.
+`DelegatingFilterProxy` решает эту проблему: он сам зарегистрирован как servlet filter, но делегирует
+работу Spring-bean'у.
+
+```text
+Tomcat/Jetty
+  -> DelegatingFilterProxy
+      -> bean springSecurityFilterChain
+          -> FilterChainProxy
+```
 ------------------------------------------------------------------------------------------------------------------------
 `FilterChainProxy` - Центральный filter Spring Security. Это **главный координационный объект** всей web security.
 - принять запрос,
@@ -151,6 +250,10 @@ FilterChainProxy - главный координатор security-фильтро
 - выполнить filters в правильном порядке,
 - очистить контекст после завершения запроса,
 - применить `HttpFirewall`.
+
+Это центральный security-filter Spring Security.
+Он управляет всеми security filters и является стартовой точкой servlet security architecture.
+Spring docs прямо говорят, что security filters обычно регистрируются именно через FilterChainProxy.
 ------------------------------------------------------------------------------------------------------------------------
 `SecurityFilterChain` - правило вида: если request подходит под matcher -> применить нужный набор security filters
 ```java
@@ -162,6 +265,10 @@ SecurityFilterChain webChain(HttpSecurity http) { ... }      // все оста�
 - `FilterChainProxy` выбирает **первую** подходящую цепочку,
 - цепочки могут быть разными для API, admin, actuator, статических ресурсов,
 - у каждой цепочки свой matcher и свой набор правил.
+
+FilterChainProxy выбирает подходящую SecurityFilterChain для конкретного запроса по matcher’ам.
+То есть у тебя может быть одна цепочка для /api/**, другая для /admin/**, третья для всего остального.
+Это и есть архитектурная модель Spring Security web layer.
 ------------------------------------------------------------------------------------------------------------------------
 `HttpSecurity` — DSL-билдер, через который настраивается `SecurityFilterChain`. Через него добавляется:
 - правила авторизации,
@@ -179,20 +286,98 @@ HttpSecurity -> строит SecurityFilterChain
 SecurityFilterChain -> используется FilterChainProxy
 FilterChainProxy -> реально исполняет защиту на запросе
 ```
-------------------------------------------------------------------------------------------------------------------------
-`DelegatingFilterProxy` - Это bridge между servlet container и Spring ApplicationContext.
 
-Servlet container умеет регистрировать только `Filter`, но не знает, как искать Spring beans.
-`DelegatingFilterProxy` решает эту проблему: он сам зарегистрирован как servlet filter, но делегирует
-работу Spring-bean'у.
-
-```text
-Tomcat/Jetty
-  -> DelegatingFilterProxy
-      -> bean springSecurityFilterChain
-          -> FilterChainProxy
-```
 ------------------------------------------------------------------------------------------------------------------------
+
+После выбора `SecurityFilterChain` начинают работать `Security filters`.
+
+1. Загрузка `SecurityContext`
+
+Spring Security сначала работает с `SecurityContext` — контекстом безопасности текущего запроса.
+По умолчанию `SecurityContextHolder` хранит его в ThreadLocal, а `FilterChainProxy` гарантирует
+корректную очистку после обработки запроса.  ￼
+
+1. `Authentication filter`
+
+Один из authentication filters извлекает учетные данные из запроса.
+Это может быть:
+- username/password,
+- bearer token,
+- basic auth header,
+- session/cookie,
+- OAuth2 login response.
+
+Конкретный фильтр зависит от configured authentication mechanism.
+
+1. `AuthenticationManager`
+
+Фильтр передает запрос на аутентификацию в `AuthenticationManager`.
+Это главный orchestrator authentication flow.  ￼
+
+1. `AuthenticationProvider`
+
+Обычно `AuthenticationManager` реализован как `ProviderManager`, который делегирует проверку одному
+или нескольким `AuthenticationProvider`. Spring docs прямо говорят, что default
+implementation — `ProviderManager`, который опрашивает список `AuthenticationProvider`.  ￼
+
+1. Проверка пользователя
+
+AuthenticationProvider уже делает реальную проверку:
+- через UserDetailsService,
+- password encoder,
+- JWT verification,
+- LDAP,
+- OAuth2/OpenID Connect provider,
+- другой внешний источник identity.
+
+Для username/password Spring обычно строит `AuthenticationManager` с `DaoAuthenticationProvider`.  ￼
+
+1. Сохранение результата в `SecurityContextHolder`
+
+Если аутентификация успешна, в `SecurityContextHolder` сохраняется `Authentication` текущего пользователя.
+После этого текущий principal доступен дальше по цепочке и в том же потоке.
+
+------------------------------------------------------------------------------------------------------------------------
+
+После аутентификации идет авторизация, проверка: можно ли этому пользователю выполнять данный запрос.
+
+1. `AuthorizationFilter`
+
+Spring docs указывают, что AuthorizationFilter по умолчанию находится последним в security filter chain.
+Это означает, что перед authorization уже успевают выполниться authentication filters и exploit protections.  ￼
+
+Именно здесь проверяется:
+- authenticated ли пользователь,
+- есть ли у него нужная role/authority,
+- разрешен ли доступ к URL.
+
+1. Переход в Spring MVC
+
+Если запрос прошел security filter chain:
+- он идет дальше в DispatcherServlet,
+- потом уже в HandlerMapping,
+- HandlerAdapter,
+- controller method.
+
+То есть Spring Security стоит перед Spring MVC в servlet request pipeline.
+
+------------------------------------------------------------------------------------------------------------------------
+
+`Method Security` — второй уровень защиты
+
+После web-level authorization может включаться Method Security.
+
+Это уже не filter chain, а защита вызовов методов:
+- `@PreAuthorize`
+- `@PostAuthorize`
+- `@Secured`
+- `@RolesAllowed`
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+## Абстракции Spring Security
 
 | Абстракция               | Что означает                                                            |
 | ------------------------ | ----------------------------------------------------------------------- |
@@ -302,144 +487,6 @@ UserDetails loadUserByUsername(String username)
 - современный дефолт — bcrypt/argon2/pbkdf2/scrypt,
 - `NoOpPasswordEncoder` — только для демо и тестов.
 ------------------------------------------------------------------------------------------------------------------------
-
-Основные модули Spring Security
-
-| Модуль                 | Артефакт                                      | Что внутри                                                                                                                                |
-| ---------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Core                   | `spring-security-core`                        | базовые интерфейсы: `Authentication`, `GrantedAuthority`, `SecurityContext`, `AuthenticationManager`, `UserDetails`, method security base |
-| Web                    | `spring-security-web`                         | servlet filters, `FilterChainProxy`, session/security context web infrastructure, CSRF, headers, request cache                            |
-| Config                 | `spring-security-config`                      | Java DSL (`HttpSecurity`), конфигурация `SecurityFilterChain`, `@EnableWebSecurity`, `@EnableMethodSecurity`                              |
-| OAuth2 Core            | `spring-security-oauth2-core`                 | общие OAuth2 / OIDC модели и контракты                                                                                                    |
-| OAuth2 Client          | `spring-security-oauth2-client`               | login через Google/GitHub/Keycloak, OAuth2 client flows                                                                                   |
-| OAuth2 Resource Server | обычно через oauth2 modules + Boot autoconfig | JWT / opaque token validation для API                                                                                                     |
-| OAuth2 JOSE            | `spring-security-oauth2-jose`                 | JWS/JWE/JWT support, Nimbus integration                                                                                                   |
-| LDAP                   | `spring-security-ldap`                        | интеграция с LDAP/Active Directory                                                                                                        |
-| ACL                    | `spring-security-acl`                         | объектно-уровневые ACL-права, используется редко                                                                                          |
-| Test                   | `spring-security-test`                        | `@WithMockUser`, `SecurityMockMvcRequestPostProcessors`, helpers для тестов                                                               |
-
-------------------------------------------------------------------------------------------------------------------------
-
-## Как проходит HTTP-запрос под капотом
-
-
-```text
-1. Приходит HTTP request
-2. Запрос попадает в DelegatingFilterProxy
-3. DelegatingFilterProxy вызывает FilterChainProxy
-4. FilterChainProxy выбирает SecurityFilterChain
-5. SecurityContext загружается/инициализируется
-6. Срабатывают security filters
-7. Если нужно — выполняется аутентификация
-8. Выполняется авторизация
-9. Если доступ разрешен -> запрос идет в DispatcherServlet / controller
-10. После завершения запроса контекст очищается/сохраняется
-```
-
-
-```text
-Client
-  -> Request
-      -> DelegatingFilterProxy
-          -> FilterChainProxy
-              -> SecurityContextHolderFilter
-              -> CorsFilter / CsrfFilter / HeaderWriterFilter
-              -> LogoutFilter
-              -> Authentication Filters
-              -> AnonymousAuthenticationFilter
-              -> ExceptionTranslationFilter
-              -> AuthorizationFilter
-              -> DispatcherServlet
-                  -> Controller
-                  -> Service
-                  -> Response
-```
-
-----------------------------------------------------------------------------------------------------
-
-## Как работает аутентификация под капотом
-
-Аутентификация почти всегда проходит по одной и той же схеме:
-
-```text
-1. Filter извлекает credentials из запроса
-2. Создает Authentication object (еще не authenticated)
-3. Передает его в AuthenticationManager
-4. AuthenticationManager -> AuthenticationProvider
-5. Provider проверяет пользователя и credentials
-6. Возвращается новый authenticated Authentication
-7. Он кладется в SecurityContext
-8. Запрос идет дальше как от уже аутентифицированного пользователя
-```
-
-
-```text
-POST /login
-  username=alice
-  password=secret
-
-UsernamePasswordAuthenticationFilter
-  -> создает UsernamePasswordAuthenticationToken(unauthenticated)
-  -> AuthenticationManager.authenticate(...)
-      -> ProviderManager
-          -> DaoAuthenticationProvider
-              -> UserDetailsService.loadUserByUsername("alice")
-              -> PasswordEncoder.matches(raw, encoded)
-              -> вернуть authenticated token
-  -> SecurityContextHolder.getContext().setAuthentication(authenticatedToken)
-```
-
-
-
-
-### Basic Auth
-
-```text
-Authorization: Basic base64(username:password)
-
-BasicAuthenticationFilter
-  -> извлекает header
-  -> декодирует username/password
-  -> создает Authentication
-  -> AuthenticationManager
-  -> ProviderManager / DaoAuthenticationProvider
-  -> SecurityContext
-```
-
-### JWT Bearer Token
-
-```text
-Authorization: Bearer <jwt>
-
-BearerTokenAuthenticationFilter
-  -> достает token из header
-  -> AuthenticationManager / AuthenticationProvider
-  -> проверка подписи, exp, aud, iss, claims
-  -> создается JwtAuthenticationToken
-  -> SecurityContext
-```
-
-При JWT обычно нет server-side session, и аутентификация выполняется **на каждом запросе заново** по токену.
-
-----------------------------------------------------------------------------------------------------
-
-## Как работает авторизация под капотом
-
-После аутентификации Spring Security проверяет: имеет ли текущий пользователь право на этот URL / HTTP method / method call
-
-В современном servlet stack это обычно делает `AuthorizationFilter`.
-
-
-```text
-AuthorizationFilter
-  -> берет текущий Authentication из SecurityContextHolder
-  -> передает его в AuthorizationManager
-  -> AuthorizationManager решает grant / deny
-  -> если grant -> запрос идет дальше
-  -> если deny -> AccessDeniedException
-```
-
-----------------------------------------------------------------------------------------------------
 `AuthorizationManager` - Это стратегия принятия решения об авторизации. Она может учитывать:
 - роли (`ROLE_ADMIN`)
 - authorities (`user:read`, `order:write`)
@@ -456,12 +503,30 @@ http.authorizeHttpRequests(auth -> auth
     .anyRequest().authenticated()
 );
 ```
-
 ----------------------------------------------------------------------------------------------------
+
+
+## Основные модули Spring Security
+
+| Модуль                 | Артефакт                                      | Что внутри                                                                                                                                |
+| ---------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Core                   | `spring-security-core`                        | базовые интерфейсы: `Authentication`, `GrantedAuthority`, `SecurityContext`, `AuthenticationManager`, `UserDetails`, method security base |
+| Web                    | `spring-security-web`                         | servlet filters, `FilterChainProxy`, session/security context web infrastructure, CSRF, headers, request cache                            |
+| Config                 | `spring-security-config`                      | Java DSL (`HttpSecurity`), конфигурация `SecurityFilterChain`, `@EnableWebSecurity`, `@EnableMethodSecurity`                              |
+| OAuth2 Core            | `spring-security-oauth2-core`                 | общие OAuth2 / OIDC модели и контракты                                                                                                    |
+| OAuth2 Client          | `spring-security-oauth2-client`               | login через Google/GitHub/Keycloak, OAuth2 client flows                                                                                   |
+| OAuth2 Resource Server | обычно через oauth2 modules + Boot autoconfig | JWT / opaque token validation для API                                                                                                     |
+| OAuth2 JOSE            | `spring-security-oauth2-jose`                 | JWS/JWE/JWT support, Nimbus integration                                                                                                   |
+| LDAP                   | `spring-security-ldap`                        | интеграция с LDAP/Active Directory                                                                                                        |
+| ACL                    | `spring-security-acl`                         | объектно-уровневые ACL-права, используется редко                                                                                          |
+| Test                   | `spring-security-test`                        | `@WithMockUser`, `SecurityMockMvcRequestPostProcessors`, helpers для тестов                                                               |
+
+------------------------------------------------------------------------------------------------------------------------
+
+
 
 ## Обработка security-исключений
 
-----------------------------------------------------------------------------------------------------
 `ExceptionTranslationFilter`
 
 Это не "фильтр аутентификации" и не "фильтр авторизации".
@@ -484,7 +549,7 @@ ExceptionTranslationFilter
   -> при необходимости сохраняет исходный запрос
   -> вызывает AuthenticationEntryPoint
 ```
-----------------------------------------------------------------------------------------------------
+
 `AuthenticationEntryPoint` решает, как запросить credentials:
 
 - redirect на login page,
@@ -492,7 +557,6 @@ ExceptionTranslationFilter
 - добавить `WWW-Authenticate`,
 - отдать JSON-ошибку.
 
-----------------------------------------------------------------------------------------------------
 Если пользователь аутентифицирован, но доступа нет:
 
 Когда возникает `AccessDeniedException`:
@@ -515,7 +579,7 @@ ExceptionTranslationFilter
 
 ## `SecurityContext` в течение запроса
 
-### 11.1. Жизненный цикл контекста
+Жизненный цикл контекста
 
 ```text
 Начало запроса
@@ -527,7 +591,7 @@ ExceptionTranslationFilter
   -> очистить SecurityContextHolder
 ```
 
-### Почему это важно
+Почему это важно
 
 Если контекст не очищать:
 
@@ -537,7 +601,7 @@ ExceptionTranslationFilter
 
 Поэтому `FilterChainProxy` и related filters не только ставят `Authentication`, но и **обязаны правильно очищать контекст**.
 
-### Где хранится context
+Где хранится context
 
 Зависит от режима:
 
@@ -603,7 +667,7 @@ Login request
 
 ----------------------------------------------------------------------------------------------------
 
-## 13. Method Security
+## Method Security
 
 Spring Security умеет защищать не только URL, но и вызовы методов.
 
