@@ -86,94 +86,7 @@ AuthorizationFilter
   -> если deny -> AccessDeniedException
 ```
 
-----------------------------------------------------------------------------------------------------
-
-
-BASIC AUTH - Spring
-
-Процесс предоставления доступа пользователю:
-1) Идентификация - поиск пользователя в системе по (ид, логину, почте и тд - однозначно идентифицировать)
-2) Аутентификация - подтверждение подлиности по (секретной информации, паролю, коду, OTP, одноразовый пароль, последние цифры номера телефона)
-	1+2 пункты в современных приложениях происходит одновременно, но внтури приложения все происходит раздельно
-3) Авторизация - Определение прав доступа, разграничение прав доступа для ресурсов.
-
-
-Как Spring Security интегрируется в приложения - через систему ФИЛЬТРОВ - прежде чем попасть в сервлет
-Пользователь отправляет запрос на получение доступа к ресурсу.
-
-
-
-
-Абстракции в Spring Security:
-
-	Authentication - Представляет текущего аутентифицированного пользователя.
-		Содержит:
-		Principal (основная информация о пользователе, например, имя).
-		Credentials (пароль или токен).
-		Authorities (роли и права).
-	AuthenticationManager - Главный компонент, который обрабатывает аутентификацию.
-		Проверяет данные пользователя с помощью AuthenticationProvider.
-	AuthenticationProvider - Проверяет данные для аутентификации.
-		Например, DaoAuthenticationProvider для проверки логина/пароля.
-	SecurityContext - Хранит информацию о текущей аутентификации.
-		Связан с текущей сессией.
-	SecurityContextHolder - Статический хранилище, где SecurityContext доступен во время выполнения.
-
-	FilterChainProxy - Центральный класс, управляющий цепочкой фильтров.
-		Каждый запрос проходит через набор фильтров, например:
-		UsernamePasswordAuthenticationFilter — обрабатывает логин/пароль.
-		BasicAuthenticationFilter — проверяет Basic Auth.
-
-
-
-Подробная логика работы Spring Security:
-
-	Входящий запрос:
-		Каждый запрос обрабатывается FilterChainProxy.
-	Аутентификация:
-		Если пользователь не аутентифицирован, запускается фильтр (например, BasicAuthenticationFilter или
-		UsernamePasswordAuthenticationFilter).
-		Данные передаются в AuthenticationManager.
-	Авторизация:
-		После успешной аутентификации проверяются права пользователя на запрашиваемый ресурс (через
-		AccessDecisionManager).
-	Ответ клиенту:
-		Если запрос разрешен, он передается дальше в приложение.
-		Если нет, возвращается ошибка (например, 403 Forbidden).
-
-
-
 ------------------------------------------------------------------------------------------------------------------------
-
-Form-based Authentication
-HTTP Basic Authentication
-JWT
-OAuth2
-
-
-
-Интеграция Spring Security с PostgreSQL
-    UserDetailsService
-
-
-------------------------------------------------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -286,9 +199,7 @@ HttpSecurity -> строит SecurityFilterChain
 SecurityFilterChain -> используется FilterChainProxy
 FilterChainProxy -> реально исполняет защиту на запросе
 ```
-
 ------------------------------------------------------------------------------------------------------------------------
-
 После выбора `SecurityFilterChain` начинают работать `Security filters`.
 
 1. Загрузка `SecurityContext`
@@ -338,7 +249,6 @@ AuthenticationProvider уже делает реальную проверку:
 После этого текущий principal доступен дальше по цепочке и в том же потоке.
 
 ------------------------------------------------------------------------------------------------------------------------
-
 После аутентификации идет авторизация, проверка: можно ли этому пользователю выполнять данный запрос.
 
 1. `AuthorizationFilter`
@@ -373,27 +283,56 @@ Spring docs указывают, что AuthorizationFilter по умолчани
 - `@Secured`
 - `@RolesAllowed`
 
+Spring Security умеет защищать не только URL, но и вызовы методов.
 
+Подключается обычно так:
+
+```java
+@Configuration
+@EnableMethodSecurity
+public class MethodSecurityConfig {
+}
+```
+
+После этого работают аннотации:
+
+- `@PreAuthorize`
+- `@PostAuthorize`
+- `@PreFilter`
+- `@PostFilter`
+- `@Secured`
+- `@RolesAllowed`
+
+Пример:
+
+```java
+@PreAuthorize("hasRole('ADMIN') or #id == authentication.name")
+public UserDto getUser(String id) { ... }
+```
+
+Под капотом это работает через Spring AOP / method interceptors:
+
+```text
+Method invocation
+  -> Security interceptor
+  -> AuthorizationManager / expression evaluation
+  -> grant / deny
+  -> вызов метода или exception
+```
+
+Это важно, потому что URL-защиты недостаточно: сервис может вызываться не только из одного контроллера.
 
 ------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
 
 ## Абстракции Spring Security
 
-| Абстракция               | Что означает                                                            |
-| ------------------------ | ----------------------------------------------------------------------- |
-| `Authentication`         | текущая попытка аутентификации или уже аутентифицированный пользователь |
-| `Principal`              | "кто это" — пользователь, client, subject                               |
-| `Credentials`            | чем подтверждает себя пользователь: пароль, токен, code, secret         |
-| `GrantedAuthority`       | права/роли пользователя                                                 |
-| `SecurityContext`        | контейнер для текущего `Authentication`                                 |
-| `SecurityContextHolder`  | глобальная точка доступа к текущему `SecurityContext`                   |
-| `AuthenticationManager`  | фасад для аутентификации                                                |
-| `AuthenticationProvider` | конкретная стратегия проверки credentials                               |
-| `UserDetailsService`     | загрузка пользователя по username/login/email                           |
-| `PasswordEncoder`        | сравнение/хеширование пароля                                            |
-| `AuthorizationManager`   | проверка: можно ли выполнить действие                                   |
-
-------------------------------------------------------------------------------------------------------------------------
 `Authentication` — одна из центральных сущностей Spring Security. Она бывает в двух состояниях:
 1. **до успешной аутентификации** - содержит credentials, но еще не trusted
 2. **после успешной аутентификации** - содержит principal, authorities и признак authenticated
@@ -409,14 +348,24 @@ Authentication
 
 **Примеры реализаций:**
 - `UsernamePasswordAuthenticationToken`
+- `authenticated UsernamePasswordAuthenticationToken`
+- `BearerTokenAuthenticationToken`
+- `JwtAuthenticationProvider`
+- `JwtAuthenticationToken`
 - `AnonymousAuthenticationToken`
 - `RememberMeAuthenticationToken`
-- `JwtAuthenticationToken`
-- `BearerTokenAuthenticationToken`
 ------------------------------------------------------------------------------------------------------------------------
 `SecurityContext` - хранит текущий `Authentication`.
+Внутри него лежит:
+- текущий Authentication
+- а внутри Authentication:
+- principal
+- credentials
+- authorities
+- details
+- флаг authenticated
 
-`SecurityContextHolder` — это статическая точка доступа:
+`SecurityContextHolder` — это holder / доступ к текущему security context, это статическая точка доступа:
 
 ```java
 Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -424,8 +373,11 @@ Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
 ```text
 SecurityContextHolder
-  -> SecurityContext
-      -> Authentication
+    > SecurityContext
+        > Authentication
+            > principal
+            > authorities
+            > credentials
 ```
 
 В servlet-приложении контекст обычно живет **на время запроса** и привязан к текущему потоку выполнения.
@@ -506,7 +458,13 @@ http.authorizeHttpRequests(auth -> auth
 ----------------------------------------------------------------------------------------------------
 
 
-## Основные модули Spring Security
+
+
+
+
+
+
+## Модули Spring Security
 
 | Модуль                 | Артефакт                                      | Что внутри                                                                                                                                |
 | ---------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
@@ -522,6 +480,11 @@ http.authorizeHttpRequests(auth -> auth
 | Test                   | `spring-security-test`                        | `@WithMockUser`, `SecurityMockMvcRequestPostProcessors`, helpers для тестов                                                               |
 
 ------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
 
 
 
@@ -577,7 +540,17 @@ ExceptionTranslationFilter
 
 ----------------------------------------------------------------------------------------------------
 
+
+
+
+
+
+
+
 ## `SecurityContext` в течение запроса
+
+SecurityContext — это объект, который хранит информацию о текущей безопасности запроса/потока выполнения.
+
 
 Жизненный цикл контекста
 
@@ -613,11 +586,16 @@ ExceptionTranslationFilter
 
 ----------------------------------------------------------------------------------------------------
 
+
+
+
+
+
+
+
 ## Stateful и Stateless архитектура
 
-### Stateful
-
-Типичный сценарий:
+**Stateful.** Типичный сценарий:
 
 - form login,
 - после логина есть session,
@@ -636,9 +614,7 @@ Login request
   -> пользователь уже считается вошедшим
 ```
 
-### Stateless
-
-Типичный сценарий:
+**Stateless.** Типичный сценарий:
 
 - REST API,
 - JWT/Bearer token,
@@ -656,8 +632,6 @@ Login request
   -> после ответа очистить
 ```
 
-### Разница
-
 | Характеристика                                      | Stateful        | Stateless                  |
 | --------------------------------------------------- | --------------- | -------------------------- |
 | Где хранится auth state                             | session         | в токене / снаружи сервера |
@@ -667,52 +641,14 @@ Login request
 
 ----------------------------------------------------------------------------------------------------
 
-## Method Security
 
-Spring Security умеет защищать не только URL, но и вызовы методов.
 
-Подключается обычно так:
 
-```java
-@Configuration
-@EnableMethodSecurity
-public class MethodSecurityConfig {
-}
-```
 
-После этого работают аннотации:
 
-- `@PreAuthorize`
-- `@PostAuthorize`
-- `@PreFilter`
-- `@PostFilter`
-- `@Secured`
-- `@RolesAllowed`
 
-Пример:
 
-```java
-@PreAuthorize("hasRole('ADMIN') or #id == authentication.name")
-public UserDto getUser(String id) { ... }
-```
-
-Под капотом это работает через Spring AOP / method interceptors:
-
-```text
-Method invocation
-  -> Security interceptor
-  -> AuthorizationManager / expression evaluation
-  -> grant / deny
-  -> вызов метода или exception
-```
-
-Это важно, потому что URL-защиты недостаточно: сервис может вызываться не только из одного контроллера.
-
-----------------------------------------------------------------------------------------------------
-
-## Часто встречающиеся filters
-
-Это не полный список, а именно те filters, которые чаще всего встречаются в реальных приложениях.
+## Фильтры Spring Security
 
 | Filter                                 | Роль                                                        |
 | -------------------------------------- | ----------------------------------------------------------- |
@@ -728,88 +664,7 @@ Method invocation
 | `ExceptionTranslationFilter`           | переводит security exceptions в HTTP response               |
 | `AuthorizationFilter`                  | проверка доступа                                            |
 
-Важно: порядок filters имеет значение.
-Например:
-
+Важно: порядок filters имеет значение. Например:
 - authentication должна произойти **до** authorization,
 - exception handling должен стоять так, чтобы поймать нужные исключения,
 - anonymous auth обычно ставится после реальной попытки аутентификации.
-
-----------------------------------------------------------------------------------------------------
-
-## Как Spring Security строит решение по шагам
-
-
-```text
-1. Приходит request
-2. DelegatingFilterProxy передает его в FilterChainProxy
-3. FilterChainProxy выбирает первую подходящую SecurityFilterChain
-4. SecurityContext подготавливается
-5. Применяются security filters защиты (headers, CORS, CSRF, logout и т.д.)
-6. Authentication filter пытается извлечь credentials
-7. AuthenticationManager делегирует в AuthenticationProvider
-8. При успехе authenticated Authentication кладется в SecurityContext
-9. AuthorizationFilter вызывает AuthorizationManager
-10. Если доступ есть -> request идет в controller/service
-11. Если нет -> exception
-12. ExceptionTranslationFilter превращает exception в 401/403/redirect
-13. После завершения запроса контекст очищается/сохраняется
-```
-
-
-Spring Security — это **pipeline безопасности**, где:
-
-- filters отвечают за перехват запроса,
-- `AuthenticationManager` + `AuthenticationProvider` отвечают за проверку личности,
-- `SecurityContextHolder` хранит текущего пользователя,
-- `AuthorizationManager` отвечает за доступ,
-- `ExceptionTranslationFilter` превращает security-ошибки в HTTP-ответ.
-
-----------------------------------------------------------------------------------------------------
-
-## Самые важные классы, которые нужно знать наизусть
-
-| Класс / интерфейс            | Зачем нужен                                    |
-| ---------------------------- | ---------------------------------------------- |
-| `SecurityFilterChain`        | конфигурация набора security filters           |
-| `HttpSecurity`               | DSL для построения security chain              |
-| `FilterChainProxy`           | главный координатор фильтров                   |
-| `Authentication`             | текущий пользователь / попытка логина          |
-| `SecurityContext`            | контейнер для `Authentication`                 |
-| `SecurityContextHolder`      | доступ к текущему контексту                    |
-| `AuthenticationManager`      | фасад аутентификации                           |
-| `ProviderManager`            | стандартная реализация `AuthenticationManager` |
-| `AuthenticationProvider`     | конкретная стратегия проверки                  |
-| `UserDetailsService`         | загрузка пользователя                          |
-| `PasswordEncoder`            | проверка пароля                                |
-| `AuthorizationManager`       | принятие решения о доступе                     |
-| `ExceptionTranslationFilter` | превращает exceptions в 401/403/redirect       |
-| `AuthenticationEntryPoint`   | запускает login / возвращает 401               |
-| `AccessDeniedHandler`        | обрабатывает 403                               |
-
-----------------------------------------------------------------------------------------------------
-
-### Короткая мнемосхема
-
-```text
-Request
-  -> FilterChainProxy
-  -> Authentication
-  -> SecurityContext
-  -> Authorization
-  -> Controller
-```
-
-```text
-Кто ты?
-  -> Authentication
-
-Где это хранится?
-  -> SecurityContext
-
-Можно ли тебе сюда?
-  -> AuthorizationManager
-
-Кто все это запускает?
-  -> Security filters / FilterChainProxy
-```
