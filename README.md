@@ -21,6 +21,8 @@
 ### Database
 
 - [Postgresql](postgres/README.md)
+- [Kafka](other/kafka/README.md)
+- [Distributed Transactions](other/distributed-transactions/README.md)
 - Redis
 
 ### Software Engineering

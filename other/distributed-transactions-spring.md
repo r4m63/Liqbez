@@ -1,37 +1,72 @@
 
 
-## 2. @Transactional — механика работы в Spring
+В Spring под “распределённые транзакции” на практике смешивают три разных вещи, и их лучше разделять:
 
-### 2.1 Как работает под капотом
+1. одна локальная транзакция внутри одного ресурса,
+2. настоящий distributed transaction / 2PC через JTA/XA,
+3. координация без 2PC — Outbox, event-driven подход, Saga.
 
-Spring использует **AOP-прокси** (JDK dynamic proxy или CGLIB) для перехвата вызовов методов, аннотированных `@Transactional`. Последовательность:
+Первый — declarative transactions через @Transactional.
+Второй — programmatic transactions через TransactionTemplate
+
+
+JtaTransactionManager
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## @Transactional
+
+Spring использует **AOP-прокси** для перехвата вызовов методов, аннотированных `@Transactional`.
+Последовательность:
 
 ```
 Вызов метода
-    → TransactionInterceptor перехватывает
-        → PlatformTransactionManager.getTransaction()
-            → DataSource.getConnection()
-            → connection.setAutoCommit(false)
-        → Выполнение бизнес-логики
-        → Если нет исключений: manager.commit()
-        → Если RuntimeException/Error: manager.rollback()
-        → connection.setAutoCommit(true), возврат в пул
+    > TransactionInterceptor перехватывает
+        > PlatformTransactionManager.getTransaction()
+            > DataSource.getConnection()
+            > connection.setAutoCommit(false)
+        > Выполнение бизнес-логики
+        > Если нет исключений: manager.commit()
+        > Если RuntimeException/Error: manager.rollback()
+        > connection.setAutoCommit(true), возврат в пул
 ```
 
-### 2.2 Ключевые подводные камни
-
-**Самовызов (self-invocation)** — главная ловушка. Вызов `@Transactional`-метода из того же класса обходит прокси, транзакция не создаётся:
+**Самовызов (self-invocation)** — главная ловушка. Вызов `@Transactional` метода из того же класса
+обходит прокси, транзакция не создаётся:
 
 ```java
 @Service
 public class OrderService {
-
     public void processOrder(Order order) {
-        // ⛔ Вызов идёт через this, а не через прокси
+        // Вызов идёт через this, а не через прокси
         // Транзакция НЕ будет создана
         this.saveOrder(order);
     }
-
     @Transactional
     public void saveOrder(Order order) {
         repository.save(order);
@@ -39,58 +74,45 @@ public class OrderService {
 }
 ```
 
-**Решения:** вынести метод в другой бин; инжектить себя (`@Lazy private OrderService self;`); использовать `TransactionTemplate` программно; использовать AspectJ compile-time weaving вместо proxy-based AOP.
+**Решения:** вынести метод в другой бин; инжектить себя (`@Lazy private OrderService self;`);
+использовать `TransactionTemplate` программно; использовать AspectJ compile-time weaving вместо proxy-based AOP.
 
-**Checked exceptions** — по умолчанию `@Transactional` откатывает только при `RuntimeException` и `Error`. Для checked exceptions нужно указать явно:
-
+----------------------------------------------------------------------------------------------------
+**Checked exceptions** — по умолчанию `@Transactional` откатывает только при `RuntimeException` и `Error`.
+Для checked exceptions нужно указать явно:
 ```java
 @Transactional(rollbackFor = Exception.class)
 public void riskyOperation() throws IOException { ... }
 ```
-
-**readOnly = true** — это НЕ просто подсказка. В Hibernate отключается dirty-checking, что даёт реальный выигрыш на read-heavy операциях. PostgreSQL переключается в read-only snapshot mode. Spring может маршрутизировать на реплику через `AbstractRoutingDataSource`.
-
+----------------------------------------------------------------------------------------------------
+**readOnly = true** — это НЕ просто подсказка. В Hibernate отключается dirty-checking, что даёт
+реальный выигрыш на read-heavy операциях. PostgreSQL переключается в read-only snapshot mode.
+Spring может маршрутизировать на реплику через `AbstractRoutingDataSource`.
 ```java
 @Transactional(readOnly = true)
 public List<Order> findAllOrders() {
     return orderRepository.findAll();
 }
 ```
-
+----------------------------------------------------------------------------------------------------
 **timeout** — задаёт максимальное время выполнения транзакции в секундах. Если превышен — откат:
-
 ```java
 @Transactional(timeout = 5) // 5 секунд
 public void longRunningOperation() { ... }
 ```
-
----
-
-### 3.2 Уровни изоляции в SQL стандарте и Spring
-
+----------------------------------------------------------------------------------------------------
+Уровни изоляции в SQL стандарте и Spring
 ```java
 @Transactional(isolation = Isolation.READ_COMMITTED)
 ```
 
-| Уровень            |
-| ------------------ |
-| `READ_UNCOMMITTED` |
-| `READ_COMMITTED`   |
-| `REPEATABLE_READ`  |
-| `SERIALIZABLE`     |
-
-
 **Isolation.DEFAULT** — использует уровень изоляции, настроенный в БД. PostgreSQL по умолчанию — `READ_COMMITTED`
-
----
-
-## 4. Propagation — стратегии распространения транзакций
+----------------------------------------------------------------------------------------------------
+Propagation — стратегии распространения транзакций
 
 ```java
 @Transactional(propagation = Propagation.REQUIRED)
 ```
-
-### 4.1 Полная таблица всех режимов
 
 | Propagation          | Есть внешняя TX                         | Нет внешней TX     | Когда использовать                                                 |
 | -------------------- | --------------------------------------- | ------------------ | ------------------------------------------------------------------ |
@@ -101,8 +123,6 @@ public void longRunningOperation() { ... }
 | `NOT_SUPPORTED`      | Приостанавливает внешнюю                | Без TX             | Тяжёлые вычисления, не требующие TX                                |
 | `MANDATORY`          | Присоединяется                          | Бросает исключение | Методы, которые ДОЛЖНЫ вызываться в контексте TX                   |
 | `NEVER`              | Бросает исключение                      | Без TX             | Методы, которые НЕЛЬЗЯ вызывать внутри TX                          |
-
-### 4.2 Тонкости REQUIRES_NEW vs NESTED
 
 **REQUIRES_NEW** — физически новое соединение из пула. Внешняя TX приостановлена (suspended). Внутренняя TX коммитится/откатывается независимо. Дедлок-риск: если обе TX блокируют одни и те же строки.
 
@@ -135,14 +155,9 @@ public class AuditService {
 }
 ```
 
----
+----------------------------------------------------------------------------------------------------
 
-## 5. Optimistic vs Pessimistic Locking
-
-### 5.1 Optimistic Locking (оптимистичная блокировка)
-
-Философия: конфликты редки, поэтому не блокируем заранее, а проверяем при сохранении.
-
+Optimistic Locking (оптимистичная блокировка). Философия: конфликты редки, поэтому не блокируем заранее, а проверяем при сохранении.
 **Реализация через @Version в JPA/Hibernate:**
 
 ```java
@@ -169,9 +184,30 @@ WHERE id = ? AND version = ?
 
 **Когда использовать:** высокий read/write ratio; редкие конфликты; web-формы с длительным временем редактирования пользователем; микросервисная архитектура (нельзя держать DB lock между HTTP-запросами).
 
-### 5.2 Pessimistic Locking (пессимистичная блокировка)
+Паттерн Optimistic Lock + Retry
 
-Философия: конфликты вероятны, блокируем строки на время работы.
+```java
+@Service
+public class AccountService {
+
+    @Retryable(
+        retryFor = OptimisticLockException.class,
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 100, multiplier = 2)
+    )
+    @Transactional
+    public void transfer(Long fromId, Long toId, BigDecimal amount) {
+        Account from = accountRepo.findById(fromId).orElseThrow();
+        Account to = accountRepo.findById(toId).orElseThrow();
+        from.debit(amount);
+        to.credit(amount);
+        // При конфликте версий — OptimisticLockException → retry
+    }
+}
+```
+
+----------------------------------------------------------------------------------------------------
+Pessimistic Locking (пессимистичная блокировка). Философия: конфликты вероятны, блокируем строки на время работы.
 
 ```java
 public interface AccountRepository extends JpaRepository<Account, Long> {
@@ -200,45 +236,11 @@ Account findByIdForUpdate(Long id);
 
 **Когда использовать:** высокая конкуренция за одни и те же строки; критичные финансовые операции; короткие транзакции, где блокировка не создаёт проблем.
 
-### 5.3 Сравнительная таблица
+----------------------------------------------------------------------------------------------------
 
-| Критерий                                 | Optimistic                | Pessimistic                           |
-| ---------------------------------------- | ------------------------- | ------------------------------------- |
-| Блокировка строк в БД                    | Нет                       | Да (FOR UPDATE / FOR SHARE)           |
-| Момент проверки                          | При UPDATE/COMMIT         | При SELECT                            |
-| Конфликт-стратегия                       | Retry (повтор)            | Wait (ожидание)                       |
-| Дедлоки                                  | Невозможны                | Возможны                              |
-| Пропускная способность (low contention)  | Высокая                   | Ниже из-за блокировок                 |
-| Пропускная способность (high contention) | Деградирует (много retry) | Стабильная                            |
-| Пригодность для распределённых систем    | Отлично                   | Плохо (lock не выходит за границу БД) |
+## Параллельные транзакции в Spring
 
-### 5.4 Паттерн Optimistic Lock + Retry
-
-```java
-@Service
-public class AccountService {
-
-    @Retryable(
-        retryFor = OptimisticLockException.class,
-        maxAttempts = 3,
-        backoff = @Backoff(delay = 100, multiplier = 2)
-    )
-    @Transactional
-    public void transfer(Long fromId, Long toId, BigDecimal amount) {
-        Account from = accountRepo.findById(fromId).orElseThrow();
-        Account to = accountRepo.findById(toId).orElseThrow();
-        from.debit(amount);
-        to.credit(amount);
-        // При конфликте версий — OptimisticLockException → retry
-    }
-}
-```
-
----
-
-## 6. Параллельные транзакции в Spring
-
-### 6.1 Проблема: TransactionSynchronizationManager и ThreadLocal
+### Проблема: TransactionSynchronizationManager и ThreadLocal
 
 Spring привязывает транзакцию к текущему потоку через `ThreadLocal`. Это означает, что `@Async` метод или `CompletableFuture.supplyAsync()` выполняются в другом потоке — без контекста транзакции вызывающего метода.
 
@@ -253,7 +255,7 @@ public void processInParallel(List<Item> items) {
 }
 ```
 
-### 6.2 Правильные подходы
+### Правильные подходы
 
 **Подход 1: Каждый поток — своя транзакция**
 
@@ -345,11 +347,10 @@ public TaskExecutor taskExecutor() {
 
 Virtual threads работают с `ThreadLocal` — транзакционный контекст привязывается к virtual thread точно так же, как к platform thread. Но будьте осторожны: virtual threads + JDBC = pinning carrier thread при synchronized-блоках внутри JDBC-драйвера. PostgreSQL JDBC 42.7.0+ — resolved. MySQL Connector/J — в процессе.
 
----
+----------------------------------------------------------------------------------------------------
 
-## 7. Retry-механизмы
+## Retry-механизмы
 
-### 7.1 Spring Retry
 
 ```xml
 <dependency>
@@ -389,7 +390,7 @@ public class PaymentService {
 }
 ```
 
-### 7.2 Критическое правило: @Retryable ДОЛЖЕН быть НАД @Transactional
+### Критическое правило: @Retryable ДОЛЖЕН быть НАД @Transactional
 
 Retry должен оборачивать целую транзакцию, а не наоборот. Если retry внутри транзакции — после `OptimisticLockException` EntityManager становится невалидным, повторная попытка в той же TX бессмысленна.
 
@@ -426,7 +427,7 @@ public class TransferService {
 }
 ```
 
-### 7.3 RetryTemplate — программный подход
+### RetryTemplate — программный подход
 
 ```java
 @Bean
@@ -448,7 +449,7 @@ retryTemplate.execute(context -> {
 });
 ```
 
-### 7.4 Resilience4j Retry (альтернатива)
+### Resilience4j Retry (альтернатива)
 
 ```java
 @Retry(name = "paymentRetry", fallbackMethod = "fallback")
@@ -470,11 +471,11 @@ resilience4j:
           - org.springframework.dao.TransientDataAccessException
 ```
 
----
+----------------------------------------------------------------------------------------------------
 
-## 8. XA и двухфазный коммит (2PC)
+## XA и двухфазный коммит (2PC)
 
-### 8.1 Архитектура XA (eXtended Architecture)
+### Архитектура XA (eXtended Architecture)
 
 XA — стандарт Open Group (X/Open), определяющий интерфейс между **Transaction Manager (TM)** и **Resource Manager (RM)**. Позволяет координировать транзакции через несколько ресурсов (БД, очереди сообщений и т.д.).
 

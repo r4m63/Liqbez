@@ -1,0 +1,237 @@
+# 2PC на Spring
+
+**2PC** (`Two-Phase Commit`) — это протокол, который позволяет **атомарно** зафиксировать изменения
+сразу в нескольких ресурсах.
+
+
+## Что важно понять сразу
+
+В Spring приложении 2PC обычно **не пишут руками через вызовы `prepare()` и `commit()`**.
+
+Обычно делают так:
+
+1. подключают **JTA transaction manager**;
+2. используют **XA-совместимые ресурсы**;
+3. пишут обычный `@Transactional`;
+4. Spring + JTA manager уже сами координируют двухфазный коммит.
+
+То есть:
+
+- бизнес-код остается относительно обычным;
+- сложность прячется в конфигурации JTA/XA.
+
+
+## Что нужно, чтобы 2PC вообще заработал
+
+
+Spring Boot пишет, что распределенные JTA-транзакции работают через `JtaTransactionManager`,
+а `DataSource` и JMS-ресурсы переводятся в XA-режим, если есть JTA-окружение.
+
+Spring Boot также отдельно указывает, что для embedded transaction manager используются
+`XADataSourceWrapper` и `XAConnectionFactoryWrapper`, которые оборачивают `XADataSource` и
+`XAConnectionFactory` в обычные `DataSource` / `ConnectionFactory`, автоматически участвующие
+в distributed transaction.
+
+
+# Практический вариант для Spring Boot
+
+Ниже самый понятный вариант для учебного понимания:
+
+- Spring Boot;
+- JTA transaction manager;
+- две PostgreSQL-базы;
+- один сервисный метод под `@Transactional`.
+
+Для примера покажу подход через **Narayana**, потому что это живой JTA transaction manager для Spring Boot.
+
+
+
+
+narayana-spring-boot-starter
+
+# src/main/resources/application.yml
+server:
+  port: 8080
+
+narayana:
+  node-identifier: spring-2pc-demo-node-1
+  log-dir: ./transaction-logs
+
+app:
+  datasource:
+    first:
+      host: localhost
+      port: 5432
+      database: db1
+      username: postgres
+      password: postgres
+      unique-resource-name: xa-db-1
+    second:
+      host: localhost
+      port: 5433
+      database: db2
+      username: postgres
+      password: postgres
+      unique-resource-name: xa-db-2
+
+
+```java
+// src/main/java/com/example/twopc/config/XaDataSourceConfig.java
+package com.example.twopc.config;
+
+import jakarta.sql.DataSource;
+import org.postgresql.xa.PGXADataSource;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.jdbc.XADataSourceWrapper;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import javax.sql.XADataSource;
+
+@Configuration
+public class XaDataSourceConfig {
+
+    @Bean
+    @ConfigurationProperties("app.datasource.first")
+    public DbProps firstDbProps() {
+        return new DbProps();
+    }
+
+    @Bean
+    @ConfigurationProperties("app.datasource.second")
+    public DbProps secondDbProps() {
+        return new DbProps();
+    }
+
+    @Bean
+    public DataSource firstDataSource(XADataSourceWrapper wrapper,
+                                      @Qualifier("firstDbProps") DbProps props) throws Exception {
+        return wrapper.wrapDataSource(firstXaDataSource(props));
+    }
+
+    @Bean
+    public DataSource secondDataSource(XADataSourceWrapper wrapper,
+                                       @Qualifier("secondDbProps") DbProps props) throws Exception {
+        return wrapper.wrapDataSource(secondXaDataSource(props));
+    }
+
+    @Bean
+    public JdbcTemplate firstJdbcTemplate(@Qualifier("firstDataSource") DataSource ds) {
+        return new JdbcTemplate(ds);
+    }
+
+    @Bean
+    public JdbcTemplate secondJdbcTemplate(@Qualifier("secondDataSource") DataSource ds) {
+        return new JdbcTemplate(ds);
+    }
+
+    private XADataSource firstXaDataSource(DbProps props) {
+        PGXADataSource ds = new PGXADataSource();
+        ds.setServerNames(new String[]{props.getHost()});
+        ds.setPortNumbers(new int[]{props.getPort()});
+        ds.setDatabaseName(props.getDatabase());
+        ds.setUser(props.getUsername());
+        ds.setPassword(props.getPassword());
+        return ds;
+    }
+
+    private XADataSource secondXaDataSource(DbProps props) {
+        PGXADataSource ds = new PGXADataSource();
+        ds.setServerNames(new String[]{props.getHost()});
+        ds.setPortNumbers(new int[]{props.getPort()});
+        ds.setDatabaseName(props.getDatabase());
+        ds.setUser(props.getUsername());
+        ds.setPassword(props.getPassword());
+        return ds;
+    }
+
+    public static class DbProps {
+        private String host;
+        private int port;
+        private String database;
+        private String username;
+        private String password;
+        private String uniqueResourceName;
+
+        public String getHost() { return host; }
+        public void setHost(String host) { this.host = host; }
+
+        public int getPort() { return port; }
+        public void setPort(int port) { this.port = port; }
+
+        public String getDatabase() { return database; }
+        public void setDatabase(String database) { this.database = database; }
+
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
+
+        public String getPassword() { return password; }
+        public void setPassword(String password) { this.password = password; }
+
+        public String getUniqueResourceName() { return uniqueResourceName; }
+        public void setUniqueResourceName(String uniqueResourceName) { this.uniqueResourceName = uniqueResourceName; }
+    }
+}
+```
+
+```java
+// src/main/java/com/example/twopc/service/TransferService.java
+package com.example.twopc.service;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class TransferService {
+
+    private final JdbcTemplate firstJdbc;
+    private final JdbcTemplate secondJdbc;
+
+    public TransferService(@Qualifier("firstJdbcTemplate") JdbcTemplate firstJdbc,
+                           @Qualifier("secondJdbcTemplate") JdbcTemplate secondJdbc) {
+        this.firstJdbc = firstJdbc;
+        this.secondJdbc = secondJdbc;
+    }
+
+    @Transactional
+    public void success(String value) {
+        firstJdbc.update("insert into orders(id, description) values (?, ?)", 1L, value);
+        secondJdbc.update("insert into audit_log(id, message) values (?, ?)", 1L, value);
+    }
+
+    @Transactional
+    public void fail(String value) {
+        firstJdbc.update("insert into orders(id, description) values (?, ?)", 2L, value);
+        secondJdbc.update("insert into audit_log(id, message) values (?, ?)", 2L, value);
+
+        throw new RuntimeException("boom -> оба insert будут rollback");
+    }
+}
+```
+
+
+----------------------------------------------------------------------------------------------------
+
+XA + XA
+Можно делать настоящий 2PC.
+
+XA + non-XA
+Это уже не полноценный 2PC. Обычно тут упираются в last resource / best-effort подходы, но это компромисс, а не строгая атомарность. Narayana и JTA-документация в целом рассматривают полноценную распределённую транзакцию именно через XA-участников.
+
+non-XA + non-XA
+Настоящий 2PC так не сделать.
+Именно поэтому Spring ecosystem обычно уводит такие задачи в outbox/event-driven решения, а не в попытку “склеить” два обычных ресурса как будто это XA. Spring team отдельно отмечает, что distributed transactions на практике сложны, и для многих use case лучше подходят недистрибьютед подходы.
+
+----------------------------------------------------------------------------------------------------
+
+* propagation (REQUIRED, REQUIRES_NEW, NESTED и т.д.) — как одна транзакция ведёт себя внутри другой.
+* declarative transactions через @Transactional.
+* programmatic transactions через TransactionTemplate.
+* transaction-bound callbacks/events через @TransactionalEventListener.
+* low-level synchronizations через TransactionSynchronizationManager.
+* JTA integration через JtaTransactionManager для distributed/XA cases.
+

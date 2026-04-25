@@ -165,11 +165,12 @@ Spring Core предоставляет абстракцию Environment
 - параметры запуска JVM;
 - переменные окружения.
 
+----------------------------------------------------------------------------------------------------
+`напиши базу spring -- как он стартует, какие контексты -- распиши как для senior java developer коротко и по делу, без дублирования информации и без тупых примерах`
 
 
-
-
-
-
-
-
+Spring — это прежде всего IoC container вокруг BeanFactory/ApplicationContext.
+ApplicationContext — центральный runtime-контейнер: он одновременно является BeanFactory, ApplicationEventPublisher, MessageSource, ResourcePatternResolver и EnvironmentCapable. То есть это не просто “хранилище бинов”, а главный orchestration object приложения.
+Коротко:
+* BeanFactory — базовый DI/container layer.
+* ApplicationContext — BeanFactory + environment + events + resources + message resolution.

@@ -22,7 +22,6 @@
 8. Запрос идет дальше как от уже аутентифицированного пользователя
 ```
 
-
 ```text
 POST /login
   username=alice
@@ -98,6 +97,7 @@ AuthorizationFilter
 ```text
 HTTP request
     > Servlet Container
+-------------------------------
     > DelegatingFilterProxy
     > FilterChainProxy
     > SecurityFilterChain
@@ -122,40 +122,20 @@ HTTP request
 ```
 
 ------------------------------------------------------------------------------------------------------------------------
-`Servlet container`
-1. **Servlet container** знает только про обычные servlet filters.
-2. Spring подставляет туда `DelegatingFilterProxy`.
-3. `DelegatingFilterProxy` передает работу Spring-bean'у.
-4. Этим bean'ом обычно является `FilterChainProxy`.
-5. `FilterChainProxy` выбирает подходящую `SecurityFilterChain`.
-6. Уже внутри нее выполняются security filters.
-
-Servlet container не знает про Spring Security напрямую
-DelegatingFilterProxy - мост между servlet-миром и Spring context
-FilterChainProxy - главный координатор security-фильтров
-
-1. Загрузить SecurityContext
-2. Защитить запрос от типовых угроз
-3. Выполнить аутентификацию
-4. Выполнить авторизацию
-5. Передать запрос дальше в приложение
-6. Сохранить/очистить SecurityContext
+`Servlet container` - не знает про Spring Security напрямую. `DelegatingFilterProxy` - мост между
+servlet и Spring context Spring подставляет туда `DelegatingFilterProxy`,
+а он передает работу Spring-beanу. Этим bean'ом обычно является `FilterChainProxy`.
+`FilterChainProxy` - главный координатор security-фильтров. Он выбирает подходящую
+`SecurityFilterChain`. Уже внутри нее выполняются security filters.
 ------------------------------------------------------------------------------------------------------------------------
 `DelegatingFilterProxy` - Это bridge между servlet container и Spring ApplicationContext.
 Это мост между Servlet Container и Spring Context.
 Servlet container знает только обычный servlet filter, а DelegatingFilterProxy уже делегирует
-выполнение Spring-bean’у, обычно springSecurityFilterChain.
+выполнение Spring-beanу, обычно springSecurityFilterChain.
 
 Servlet container умеет регистрировать только `Filter`, но не знает, как искать Spring beans.
 `DelegatingFilterProxy` решает эту проблему: он сам зарегистрирован как servlet filter, но делегирует
-работу Spring-bean'у.
-
-```text
-Tomcat/Jetty
-  -> DelegatingFilterProxy
-      -> bean springSecurityFilterChain
-          -> FilterChainProxy
-```
+работу Spring-beanу.
 ------------------------------------------------------------------------------------------------------------------------
 `FilterChainProxy` - Центральный filter Spring Security. Это **главный координационный объект** всей web security.
 - принять запрос,
