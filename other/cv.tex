@@ -151,18 +151,52 @@
   \resumeExpHeading
     {tune-it}
     {Frontend Developer}
-    {c 20.03.2026}
+    {2025}
     {}
   \begin{resumeSubList}
-    \resumeItem{Разрабатывал интерфейсы платформы Tuxedo для разных ролей пользователей, учитывая различия в сценариях работы и доступах.}
+    \resumeItem{Разрабатывал интерфейсы платформы Tuxedo для разных ролей пользователей, учитывая различия в сценариях работы и доступах на React.}
     \resumeItem{Реализовал личный кабинет студента с отображением курсов и ключевой информации по обучению.}
     \resumeItem{Разработал интерактивный модуль достижений студента, отражающий прогресс и результаты по мере прохождения курса.}
     \resumeItem{Создал административный интерфейс для управления и мониторинга достижений студентов в рамках курсов.}
     \resumeItem{Участвовал в рефакторинге frontend кода и оптимизации проекта для улучшения поддерживаемости и качества разработки.}
   \end{resumeSubList}
+
+  \resumeExpHeading
+    {Redline Software \href{https://redline-software.xyz}{redline-software.xyz}}
+    {Backend / System Administrator}
+    {2024 - Startup}
+    {}
+  \begin{resumeSubList}
+    \resumeItem{Отвечал за административный и инфраструктурный контур компании на трех физических production и dev серверах под управлением Rocky Linux 10.}
+    \resumeItem{Занимался физической сборкой серверов, настройкой сети, маршрутизации и базовой серверной инфраструктуры.}
+    \resumeItem{Развернул GitLab для внутренней разработки: настроил безопасность, команды, роли, организации, репозитории и рабочие процессы с kanban-досками.}
+    \resumeItem{Поднял GitLab Runner и настроил CI/CD-процессы проектов, включая деплой на production-серверы и автоматическое поднятие development-стендов.}
+    \resumeItem{Сопровождал переезд внутренней инфраструктуры на Gitea и выполнил аналогичную настройку репозиториев, прав доступа и рабочих процессов.}
+    \resumeItem{Настроил безопасность production-серверов: RBAC в Linux, разграничение прав доступа, конфигурации сервисов, Fail2Ban и дополнительные меры защиты.}
+    \resumeItem{Администрировал серверы RHEL-семейства, в основном Rocky Linux 10, а также сопровождал PostgreSQL кластеры.}
+    \resumeItem{Внедрил собственную систему скриптинга для безопасности и мониторинга сервисов на Rocky Linux 10.}
+    \resumeItem{Развернул корпоративный почтовый сервер на базе Postfix, Dovecot, PostgreSQL и OpenDKIM.}
+  \end{resumeSubList}
+
+  \resumeExpHeading
+    {Информационная система Certification Center}
+    {Fullstack Developer}
+    {2024 - Аутсорс фриланс}
+
+  \begin{resumeSubList}
+    {Java, Spring (Boot, Security, Data), Thymeleaf, React, PostgreSQL, MinIO, Linux Bare Metal}
+
+    \resumeItem{Выступал единственным техническим исполнителем проекта: собирал требования, проектировал архитектуру, реализовывал функциональность и бизнес-логику, выполнял deployment и сопровождал систему в production.}
+    \resumeItem{Разработал backend и серверную часть приложения на Java Spring + Thymeleaf, связав пользовательские и административные сценарии в единой системе.}
+    \resumeItem{Реализовал административный интерфейс на React с role-based access control.}
+    \resumeItem{Спроектировал модуль контент-менеджмента с поддержкой постов, новостей и вложений, включая хранение файлов в MinIO и метаданных в PostgreSQL.}
+    \resumeItem{Реализовал модуль сертификатов с генерацией QR-кодов для идентификации и проверки сертификатных данных.}
+    \resumeItem{Обеспечил полный цикл эксплуатации решения на Linux bare metal: подготовку окружения, деплой, хостинг, обновления и поддержку после ввода в эксплуатацию.}
+  \end{resumeSubList}
 \end{resumeTopList}
 
 \section*{Проекты}
+
 \begin{resumeTopList}
   \resumeProjectHeading
     {Сайт-портфолио: \href{https://tajeddinov.ru}{tajeddinov.ru}}
@@ -171,40 +205,20 @@
   \resumeProjectMixedSubtitle{Персональный сайт с портфолио, описанием проектов и контактами.}{React, Vite, custom UI lib}
 
   \resumeProjectHeading
-    {Redline Software \href{https://redline-software.xyz}{redline-software.xyz}}
-    {Fullstack Developer}
-    {}
-  \resumeProjectSubtitleNoIndent{Стартап}
-  \vspace{-0.75em}
+    {Backend-сервис аренды жилья}
+    {Backend Developer}
+    {Бизнес-логика заявок на компенсацию ущерба между арендатором, арендодателем и администратором.}
+  \resumeProjectSubtitleNoIndent{Java 17, Spring Boot 3, Spring Web, Spring Security, Spring Data JPA, Spring Kafka, PostgreSQL, Kafka, \\ ZooKeeper, Gradle Multi-Module, Docker Compose, PlantUML}
   \begin{resumeSubList}
-    \resumeItem{Отвечал за административный и инфраструктурный контур проектов на двух физических серверах.}
-    \resumeItem{Администрировал окружение на Rocky Linux 10, настраивал деплой и CI/CD-процессы.}
-    \resumeItem{Участвовал в проектировании и разработке внутренних и клиентских продуктов.}
-  \end{resumeSubList}
-
-\resumeProjectHeading
-    {Информационная система Certification Center}
-    {Fullstack Developer}
-    {}
-\resumeProjectMixedSubtitle{Аутсорс фриланс}{Java, Spring (Boot, Security, Data), Thymeleaf, React, PostgreSQL, MinIO, Linux Bare Metal}
-\begin{resumeSubList}
-    \resumeItem{Выступал единственным техническим исполнителем коммерческого проекта на аутсорсе: собирал требования, проектировал архитектуру, реализовывал функциональность, выполнял deployment и сопровождал систему в production.}
-    \resumeItem{Разработал backend и серверную часть приложения на Java Spring/Thymeleaf, реализовав ключевую бизнес-логику и связав пользовательские и административные сценарии в рамках единой системы.}
-    \resumeItem{Реализовал административный интерфейс на React с role-based access control для безопасного управления данными и внутренними процессами.}
-    \resumeItem{Спроектировал модуль контент-менеджмента с поддержкой постов, новостей и вложений, включая хранение файлов в MinIO и метаданных в PostgreSQL.}
-    \resumeItem{Реализовал модуль сертификатов с генерацией QR-кодов для идентификации и проверки сертификатных данных.}
-    \resumeItem{Обеспечил полный цикл эксплуатации решения на Linux bare metal: подготовку окружения, деплой, хостинг, обновления и поддержку после ввода в эксплуатацию.}
-\end{resumeSubList}
-
-\resumeProjectHeading
-    {Waste Management Platform}
-    {Fullstack Developer}
-    {Java, Spring (Boot, Security, Data), PostgreSQL, Docker Compose, React, shadcn, AG Grid}
-  \begin{resumeSubList}
-    \resumeItem{Спроектировал backend архитектуру и доменную модель платформы операционного управления отходами, объединяющей маршрутизацию, диспетчеризацию смен, инцидент-менеджмент, транспорт и POS-terminal операции.}
-    \resumeItem{Реализовал сервисный слой на Spring Boot с транзакционным управлением бизнес-операциями, валидацией входных DTO, централизованной обработкой ошибок и разграничением доступа по ролям через Spring Security.}
-    \resumeItem{Спроектировал Postgresql схему с SQL-ограничениями целостности, и процедурной логикой в БД для поддержки критичных бизнес-сценариев.}
-    \resumeItem{Разработал REST API для полного жизненного цикла маршрутов: автогенерация, назначение водителей, управление остановками, старт/финиш выполнения, а также API для смен, инцидентов и справочных сущностей.}
+    \resumeItem{Декомпозировал монолит предыдущей версии на микросервисную архитектуру: 6 микросервисов и 1 общий shared-модуль.}
+    \resumeItem{Спроектировал надежное event-driven взаимодействие между сервисами.}
+    \resumeItem{Отказался от модели глобальных распределенных транзакций 2PC на XA-ресурсах и перевел систему на Saga choreography + Inbox / processed\_messages.}
+    \resumeItem{Решил dual write problem через Transactional Outbox.}
+    \resumeItem{Обеспечил идемпотентность consumers и устойчивость к duplicate delivery.}
+    \resumeItem{Реализовал отдельные PostgreSQL для каждого сервиса, а также отдельные SQL init/drop скрипты под сущности.}
+    \resumeItem{Поднял локальную инфраструктуру через Docker Compose: Kafka, ZooKeeper, Kafka UI, MinIO и отдельные PostgreSQL-инстансы под каждый сервис.}
+    \resumeItem{Перестроил проект в Gradle multi-module структуру: services/* для микросервисов и lib/* для shared modules.}
+    \resumeItem{Подготовил полную документацию проекта: system design, BPMN, event catalog, data model, distributed transactions, deployment и UML/PlantUML-диаграммы.}
   \end{resumeSubList}
 \end{resumeTopList}
 
