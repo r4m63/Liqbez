@@ -1,226 +1,2255 @@
-# Micro Architecture
+# Микро-архитектура кода
 
-Как устроен код внутри одного deployable unit.
+Это нижний слой system design: как устроен исходный код внутри одного deployable unit.
+Про то, как разложен код одного сервиса, чтобы его было не больно менять.
 
-- Layered Architecture
-- Clean Architecture
-- Onion Architecture
-- Hexagonal Architecture
-- Vertical Slice Architecture
-- Feature-Based Architecture
-- Modular Monolith
-- Component-Based Architecture
-- Screaming Architecture
+Три отдельных вопроса, которые часто валят в кучу:
+- как устроен код внутри deployable unit — [Layered](#layered-architecture),
+  [Hexagonal](#hexagonal-architecture-ports--adapters), [Onion](#onion-architecture),
+  [Clean](#clean-architecture), [Vertical Slice](#vertical-slice-и-feature-based-architecture),
+  [Feature-Based](#vertical-slice-и-feature-based-architecture),
+  [Modular Monolith](#modular-monolith-component-based-screaming-architecture),
+  [Component-Based](#modular-monolith-component-based-screaming-architecture),
+  [Screaming](#modular-monolith-component-based-screaming-architecture)
+- как организован UI / presentation слой — [MVC](#ui-классические-триады--mvc-mvp-mvvm-pac),
+  [MVP](#ui-классические-триады--mvc-mvp-mvvm-pac),
+  [MVVM](#ui-классические-триады--mvc-mvp-mvvm-pac),
+  [PAC](#ui-классические-триады--mvc-mvp-mvvm-pac),
+  [Flux](#ui-однонаправленный-поток--flux-redux-mvuelm-mvi-viper),
+  [Redux](#ui-однонаправленный-поток--flux-redux-mvuelm-mvi-viper),
+  [MVU / Elm](#ui-однонаправленный-поток--flux-redux-mvuelm-mvi-viper),
+  [MVI](#ui-однонаправленный-поток--flux-redux-mvuelm-mvi-viper),
+  [VIPER](#ui-однонаправленный-поток--flux-redux-mvuelm-mvi-viper)
+- как организована бизнес-логика —
+  [Transaction Script](#бизнес-логика-transaction-script-table-module-domain-model-service-layer),
+  [Table Module](#бизнес-логика-transaction-script-table-module-domain-model-service-layer),
+  [Domain Model](#бизнес-логика-transaction-script-table-module-domain-model-service-layer),
+  [Service Layer](#бизнес-логика-transaction-script-table-module-domain-model-service-layer),
+  [Anemic Domain Model](#бизнес-логика-anemic-vs-rich-domain-model-и-ddd-tactical),
+  [Rich Domain Model](#бизнес-логика-anemic-vs-rich-domain-model-и-ddd-tactical),
+  [DDD tactical](#бизнес-логика-anemic-vs-rich-domain-model-и-ddd-tactical)
 
-Как организован UI/presentation слой.
+> [!NOTE]
+> Самая частая путаница: Clean, Onion и Hexagonal — это не три разные архитектуры, а одно
+> семейство. У всех трёх business/application core внутри, infrastructure/framework/database
+> снаружи, dependencies point inward. Разница только в акценте и словаре. DDD стоит на отдельной
+> оси — это подход к моделированию домена, а не структура папок.
 
-- MVC
-- MVP
-- MVVM
-- MVU / Elm Architecture
-- MVI
-- Flux
-- Redux
-- VIPER
-- PAC
+----------------------------------------------------------------------------------------------------
 
-Способы организации бизнес-логики
+**Как устроен код внутри одного deployable unit:**
 
-- Transaction Script
-- Domain Model
-- Table Module
-- Service Layer
-- Anemic Domain Model
-- Rich Domain Model
-- DDD Tactical Patterns
+7 способов разложить код одного сервиса. Первые четыре — про направление зависимостей, дальше —
+про оси нарезки (по слоям, по фичам, по модулям) и про то, что структура должна сообщать о домене.
 
+# Layered Architecture
 
-> Важное уточнение: Clean, Onion и Hexagonal — близкие
-> это не три радикально разные штуки.
-> Они все из одного семейства:
-> business/application core внутри
-> infrastructure/framework/database снаружи
-> dependencies point inward
-> Разница лишь в акценте
-> Это разные формулировки одного семейства идей: business/application core должен быть отделён от UI, БД, framework и infrastructure.
+ОНА ЖЕ: **Слоистая / многослойная / многоуровневая**.
 
-## Layered Architecture
-
-Главная идея: Разделить код по слоям ответственности.
-
-То есть layered architecture говорит: Положи код в правильный слой.
-Но она не всегда жёстко говорит: Application core не должен зависеть от инфраструктуры.
-
-Классическая схема:
+Это разбиение системы на горизонтальные слои абстракции, где
+каждый слой обслуживает слой выше и опирается на слой ниже.
 
 ```text
-Controller -> Service -> Repository -> Database
-
-Controller  отвечает за HTTP/API
-            читает HTTP request
-            парсит JSON/form
-            валидирует формат
-            вызывает service
-            мапит ошибку в HTTP response
-            возвращает JSON/HTML
-Service     отвечает за бизнес-логику
-            бизнес-сценарии
-            координацию операций
-            проверки правил
-            вызов repository
-            вызов внешних сервисов
-Repository  отвечает за работу с БД
-            читает из БД
-            пишет в БД
-            мапит row/entity в объект приложения
+HTTP request
+    │
+    ▼
+┌─────────────┐
+│ Controller  │  HTTP/IO: парсит запрос, отдаёт ответ
+└─────────────┘
+    │
+    ▼
+┌─────────────┐
+│  Service    │  бизнес-логика, оркестрация
+└─────────────┘
+    │
+    ▼
+┌─────────────┐
+│ Repository  │  доступ к данным, SQL
+└─────────────┘
+    │
+    ▼
+  Database
 ```
 
-- легко стартовать
-- мало абстракций
-- подходит для CRUD
-- понятна большинству backend-разработчиков
-- хорошо ложится на web framework
+Что делает каждый слой:
+- Controller — край системы. Парсит HTTP-запрос, валидирует формат, дёргает service, мапит
+  результат в response и статус-код. Бизнес-решений не принимает.
+- Service — бизнес-логика и оркестрация. Решает что делать: проверяет инварианты, считает,
+  координирует несколько repository в одной операции.
+- Repository — доступ к данным. Прячет SQL и схему таблиц за методами вроде `FindByID`, `Save`.
+  Наружу отдаёт доменные структуры, а не строки результата.
 
-Проблема в том, что со временем Service часто превращается в огромный мешок и внутри оказывается
-всё: бизнес-логика, SQL, Redis, JWT, HTTP ошибки, валидация, аудит, работа с cookies, работа с Kafka
+Зачем:
+- Разделение ответственности — каждый слой про одно. HTTP отдельно от логики, логика отдельно от хранилища.
+- Понятный порядок вызовов — поток обычно идёт сверху вниз, читается линейно.
+- Сменность нижнего слоя — переезд с одной БД на другую чаще всего бьёт по repository, не по service.
 
-Формально всё ещё есть слои: Controller -> Service -> Repository, но фактически Service знает слишком много.
+----------------------------------------------------------------------------------------------------
 
-## Hexagonal Architecture
+**Главная грабля: fat service**
 
-Главная идея: Бизнес/application core не знает про HTTP, Postgres, Redis, Kafka, HTML,
-JWT-библиотеки и прочие детали. Core знает только интерфейсы
+Service притягивает к себе всё, что не легло явно в controller или repository. Так рождается
+fat service — класс, который знает слишком много.
 
-Гексагональная архитектура, или Ports & Adapters, говорит:
-В центре находится бизнес/application core. Всё внешнее подключается через адаптеры.
+Симптомы fat service:
+- собирает SQL прямо в методе, минуя repository
+- лезет в Redis и кэш напрямую
+- парсит и подписывает JWT
+- возвращает HTTP-ошибки со статус-кодами — то есть знает про транспорт
+- держит низкоуровневую валидацию формата вместо доменных инвариантов
+
+Корень в том, что service — это Service Layer из PoEAA (запись паттерна — Randy Stafford, 2002), а
+он задуман тонкой границей-оркестратором поверх Domain Model. Когда в него сваливают всю логику и
+инфраструктуру, получаешь Anemic Domain Model (Fowler, 2003): доменные объекты — мешок геттеров,
+всё поведение снаружи в раздутом сервисе.
+
+Как держать service в форме:
+- транспорт (HTTP-коды, заголовки) — оставляешь в controller
+- весь доступ к данным, включая кэш и Redis — за repository
+- JWT, подписи, внешние API — отдельные адаптеры, service их только дёргает
+- в самом service — только бизнес-правила и порядок шагов
+
+----------------------------------------------------------------------------------------------------
+
+**Чем отличается от Clean / Onion / Hexagonal**
+
+Это ключевое и почти всегда упускаемое. Layered не требует «dependencies point inward».
+
+- В layered слой данных лежит снизу, и бизнес зависит от него напрямую. Service импортирует
+  repository, repository импортирует драйвер БД. Зависимость идёт вниз, к инфраструктуре.
+- В Hexagonal (Cockburn, 2005), Onion (Palermo, 2008) и Clean (Martin, 2012) правило обратное —
+  The Dependency Rule: зависимости направлены внутрь, к домену. Инфраструктура там самое внешнее
+  кольцо, заменяемая деталь, а не фундамент.
+
+Практически разница в том, кто от кого зависит на уровне `import`:
 
 ```text
-              HTTP Handler
-                   |
-                   v
-              Use Case
-                   |
-        ┌──────────┴──────────┐
-        v                     v
-  UserRepository          TokenSigner
-        ^                     ^
-        |                     |
-Postgres Adapter        JWT Adapter
+Layered:     Service  ──import──▶  Repository  ──import──▶  DB driver
+             (бизнес зависит от инфраструктуры, стрелка вниз)
 
-
-Inbound Adapters -> Application Core -> Output Ports <- Output Adapters
+Clean/Onion: Repository (impl) ──implements──▶ Port (в домене)
+             (инфраструктура зависит от домена, стрелка внутрь)
 ```
 
+В layered нет port/adapter и инверсии зависимости. Это и проще для прямолинейных вещей, и хуже
+изолируется при росте сложности.
 
-Главная идея hexagonal architecture: Не просто controller -> service -> repository, а
-внешний мир не должен протекать в бизнес-логику.
+----------------------------------------------------------------------------------------------------
 
-То есть core не должен знать про:
-- HTTP
-- Go templates
-- PostgreSQL
-- Redis
-- Kafka
-- JWT library
-- pgx
-- net/http
-- html/template
-- конкретный framework
+**Плюсы, минусы, когда подходит**
 
-Core должен знать только про свои интерфейсы:
-- UserRepository
-- SessionStore
-- TokenSigner
-- PasswordHasher
-- AuditRecorder
-- Clock
-- RandomGenerator
+Плюсы:
+- низкий порог входа — структура очевидна, новый человек читает поток сверху вниз
+- мало церемоний — нет лишних интерфейсов и инверсий ради инверсий
+- хорошо ложится на CRUD — запрос пришёл, провалидировал, сходил в БД, ответил
 
+Минусы:
+- бизнес сцеплен с БД — service зависит от repository, тот от драйвера
+- тесты service тянут за собой инфраструктуру или требуют мокать конкретный repository
+- при росте логики service пухнет в fat service, границы плывут
 
-**Ключевые термины:**
+Когда подходит:
+- CRUD и прямолинейные сервисы, где логика тонкая поверх таблиц
+- ранние стадии, прототипы, MVP — когда цена изоляции домена пока не оправдана
+- команда небольшая, домен несложный, переживать за смену БД пока рано
 
-Core - domain, application use cases, business rules
+----------------------------------------------------------------------------------------------------
 
-Port — это интерфейс, который описывает потребность core. Порт описывает не технологию, а потребность use case.
+**Набросок на Go**
 
-Adapter — это реализация порта через конкретную технологию.
-Inbound adapter - то, что вызывает use case
-Outbound adapter - то, что вызывается из use case через порт
+Три слоя, поток сверху вниз. Repository отдаёт доменную структуру, service оркеструет,
+controller занят только HTTP.
 
-## Clean Architecture
+```go
+// repository — доступ к данным, прячет SQL
+type UserRepository struct {
+	db *pgxpool.Pool
+}
 
-Clean Architecture — это более формализованная версия той же идеи: зависимости всегда направлены внутрь.
+func (r *UserRepository) FindByID(ctx context.Context, id int64) (*User, error) {
+	const q = `SELECT id, email FROM users WHERE id = $1`
+	var u User
+	err := r.db.QueryRow(ctx, q, id).Scan(&u.ID, &u.Email)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
 
-Главное правило: Внутренние слои не знают про внешние.
+// service — бизнес-логика, зависит от repository напрямую (стрелка вниз)
+type UserService struct {
+	repo *UserRepository
+}
+
+func (s *UserService) Get(ctx context.Context, id int64) (*User, error) {
+	if id <= 0 {
+		return nil, ErrInvalidID // доменный инвариант, не HTTP
+	}
+	return s.repo.FindByID(ctx, id)
+}
+
+// controller — только HTTP: парсинг, статус-коды, маппинг ответа
+type UserController struct {
+	svc *UserService
+}
+
+func (c *UserController) Get(w http.ResponseWriter, req *http.Request) {
+	id, err := strconv.ParseInt(req.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, "bad id", http.StatusBadRequest)
+		return
+	}
+	u, err := c.svc.Get(req.Context(), id)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	json.NewEncoder(w).Encode(u)
+}
+```
+
+Обрати внимание: `UserService` импортирует `*UserRepository` напрямую, без интерфейса-порта.
+Это и есть layered — никакой инверсии зависимости. Захочешь подменять хранилище в тестах или
+развязать домен от БД — это уже шаг в сторону Clean/Hexagonal, с интерфейсом на стороне домена.
+
+----------------------------------------------------------------------------------------------------
+
+# Hexagonal Architecture (Ports & Adapters)
+
+Alistair Cockburn, 2005. Первый рисунок — около 1994, обсуждался на C2 wiki. Сначала звался
+Hexagonal, в 2005 переименован в Ports and Adapters. Второе имя честнее описывает суть.
+
+**Главная идея:** core в центре, всё внешнее — за адаптерами. Снаружи внутрь ничего не протекает.
+
+**Port** — это интерфейс, описывающий потребность use case, а не технологию.
+- порт говорит «мне нужно сохранить пользователя», а не «мне нужен Postgres».
+- объявлен внутри core, на языке домена.
+- стабилен: технология за ним меняется, порт — нет.
+
+**Adapter** — это реализация порта под конкретную технологию.
+- `PostgresUserRepository`, `RedisSessionStore`, `BcryptPasswordHasher`.
+- знает про драйверы, протоколы, форматы. Core про них не знает.
+- заменяем: один порт — сколько угодно адаптеров.
+
+Шестиугольник выбран произвольно — нужно было место расставить порты по граням. Шесть сторон
+ничего не значат, портов может быть сколько угодно. Это не «три слоя по кругу», как Onion или Clean.
+
+----------------------------------------------------------------------------------------------------
+
+**Inbound vs outbound**
+
+Адаптеры делятся на две стороны. Терминов два набора, означают одно.
+
+- inbound (driving, primary) — кто-то дёргает приложение. HTTP-handler, CLI, тест, очередь.
+- outbound (driven, secondary) — приложение дёргает кого-то. БД, кэш, внешний API, часы.
+
+Чем отличается direction зависимости от direction вызова:
+- inbound-адаптер вызывает core. Зависимость идёт внутрь — адаптер знает про порт core.
+- outbound-адаптер вызывается core через порт. Зависимость тоже идёт внутрь — адаптер
+  реализует порт, объявленный в core.
+
+В обе стороны стрелка зависимости смотрит в центр. Это и есть The Dependency Rule, только Cockburn
+сформулировал её через порты раньше, чем Martin дал ей имя (2012).
+
+----------------------------------------------------------------------------------------------------
+
+**Симметрия**
+
+Главное, что отличает Hexagonal от Onion и Clean: внутри нет «верха UI» и «низа БД». Обе стороны
+равноправны, обе говорят через порты.
+
+Из этого следует штука, которую часто недооценивают: HTTP и тест — оба просто driving-адаптеры.
+
+- прод гоняет use case через HTTP-handler.
+- тест гоняет тот же use case напрямую, подменив outbound-порты на fakes.
+- core не замечает разницы. Для него оба — один и тот же inbound-вызов.
+
+Поэтому core тестируется без сети и без БД. Не потому что «мы написали моки», а потому что
+архитектурно прод-драйвер и тест-драйвер взаимозаменяемы по построению.
+
+----------------------------------------------------------------------------------------------------
+
+**Схема**
 
 ```text
-Entities
-    ↑
-Use Cases
-    ↑
-Interface Adapters
-    ↑
-Frameworks & Drivers
+                 inbound (driving)                          outbound (driven)
+                       adapters                                  adapters
 
-
-Или снаружи внутрь:
-
-
-Frameworks / DB / Web
-        ↓
-Interface Adapters
-        ↓
-Use Cases
-        ↓
-Entities
-
+   HTTP handler ─┐                                                ┌─ PostgresUserRepo
+   CLI          ─┤                                                ├─ RedisSessionStore
+   test driver  ─┤                                                ├─ JWTTokenSigner
+                 │       ┌──────────────────────────────┐        │
+                 └──▶ [port] ──▶ ╱                      ╲ ◀── [port] ──┘
+                              ╱                          ╲
+                             │         CORE               │
+                             │   use cases + domain       │
+                             │   (ничего не знает          │
+                             │    про адаптеры)            │
+                              ╲                          ╱
+                       [port] ──▶ ╲                    ╱ ◀── [port]
+                                    └──────────────────┘
 ```
 
+Порты сидят на гранях шестиугольника. Адаптеры подключаются снаружи. Стрелки зависимостей —
+всегда внутрь.
 
+----------------------------------------------------------------------------------------------------
 
---------------
+**Как выглядит в коде**
 
+Порты объявлены в core, на языке потребности:
 
-ПРОМПТ:
+```go
+// core/ports.go — всё на языке домена, ноль технологий
+type UserRepository interface {
+    Save(ctx context.Context, u *User) error
+    ByEmail(ctx context.Context, email string) (*User, error)
+}
 
+type SessionStore interface {
+    Put(ctx context.Context, s Session) error
+    Get(ctx context.Context, id string) (Session, bool, error)
+}
 
-Объясни мне как software engineer разницу между Layered Architecture, Hexagonal Architecture / Ports and Adapters, Clean Architecture, Onion Architecture и DDD.
+type PasswordHasher interface {
+    Hash(plain string) (string, error)
+    Compare(hash, plain string) bool
+}
 
-Мне нужен не поверхностный ответ, а инженерное сравнение:
+type TokenSigner interface {
+    Sign(claims Claims) (string, error)
+}
 
-1. Что означает каждый подход.
-2. Кто его автор или основной популяризатор.
-3. Где он впервые или канонически описан: книга, статья, блог, год.
-4. Какие проблемы он решает.
-5. Чем он отличается от других подходов.
-6. Где подходы пересекаются и почему их часто путают.
-7. В чём практическая разница в коде.
-8. Как это выглядит на примере backend-проекта.
-9. Какие есть плюсы, минусы и риски overengineering.
-10. Что лучше использовать для SSO/backend-системы с OIDC, admin panel, login API, PostgreSQL, Redis и Go.
+// Clock — порт даже на время, чтобы тест не зависел от time.Now().
+type Clock interface {
+    Now() time.Time
+}
+```
 
-Важно:
-- Не выдавай Clean, Onion и Hexagonal как полностью независимые “магические” архитектуры, если они реально близки.
-- Укажи, что Layered Architecture, Clean Architecture, Onion Architecture и Hexagonal Architecture частично пересекаются.
-- Отдельно объясни, что DDD — это не просто структура папок, а подход к моделированию бизнес-домена.
-- Приведи конкретные примеры: controller/service/repository, use case, port, adapter, repository interface, Postgres adapter, Redis adapter.
-- Покажи пример структуры проекта на Go.
-- Объясни, когда достаточно обычной layered architecture, а когда стоит использовать hexagonal/clean/onion.
-- Дай рекомендации без фанатизма и без лишней церемонии.
+Use case зависит только от портов, никогда от адаптеров:
 
-Обязательно приведи источники:
-- Alistair Cockburn — Hexagonal Architecture / Ports and Adapters
-- Martin Fowler — Patterns of Enterprise Application Architecture и Presentation-Domain-Data Layering
-- Robert C. Martin — Clean Architecture
-- Jeffrey Palermo — Onion Architecture
-- Eric Evans — Domain-Driven Design
+```go
+func (s *Auth) Login(ctx context.Context, email, plain string) (string, error) {
+    u, err := s.users.ByEmail(ctx, email)   // UserRepository
+    if err != nil {
+        return "", err
+    }
+    if !s.hasher.Compare(u.PasswordHash, plain) {  // PasswordHasher
+        return "", ErrBadCreds
+    }
+    return s.signer.Sign(Claims{Sub: u.ID, IssuedAt: s.clock.Now()})  // TokenSigner + Clock
+}
+```
 
-Формат ответа:
-- Сначала короткая карта различий.
-- Потом подробное объяснение каждого подхода.
-- Потом сравнительная таблица.
-- Потом практический пример на backend/SSO.
-- Потом список источников для изучения.
-- Пиши на русском языке.
+Адаптеры живут снаружи и реализуют порты. В тесте те же порты закрываются fakes — `Clock` отдаёт
+фиксированное время, `UserRepository` живёт в map. Core не меняется ни на строку.
 
-Дополнительно: критикуй каждый подход. Объясни, где авторы и практики спорят между собой. Не делай вид, что это строгие научные стандарты. Отделяй канонические определения от распространённых интерпретаций в индустрии.
+----------------------------------------------------------------------------------------------------
+
+**Плюсы**
+
+- core тестируется в изоляции — без сети, без БД, быстро.
+- технологию за портом меняешь, не трогая бизнес-логику: Postgres → MySQL, JWT → PASETO.
+- решение о framework и БД откладывается — core пишется первым.
+- границы явные: видно, через какой порт core общается с миром.
+
+**Минусы**
+
+- больше файлов и кода: на каждую потребность — интерфейс плюс хотя бы одна реализация.
+- лишний indirection: чтобы понять, что делает `Save`, идёшь от порта к адаптеру.
+- мапперы на границе: доменная модель ≠ строка БД ≠ DTO запроса, между ними конвертация.
+
+**Грабли**
+
+- Порт на каждую мелочь — церемония. Если за интерфейсом всегда одна реализация и подменять
+  её не собираешься, порт не окупается. Заводи порт там, где реально нужна подмена или изоляция
+  в тестах.
+- Анемичный core. Завели порты, а домен — мешок геттеров, вся логика в use case. Тогда это
+  Hexagonal поверх Anemic Domain Model, шестиугольник не спасает.
+- Протекающий порт. `GetByID(id string) (*sql.Row, error)` — это не порт потребности, это БД,
+  переодетая в интерфейс. Если в сигнатуре торчит технология, абстракция дырявая.
+- Слишком умный адаптер. Адаптер должен переводить, а не решать. Бизнес-правило, заехавшее
+  в `PostgresUserRepository`, — это логика, утёкшая из core наружу.
+
+----------------------------------------------------------------------------------------------------
+
+# Onion Architecture
+
+**Onion Architecture** — это организация кода концентрическими кольцами вокруг доменной модели,
+где coupling всегда направлен к центру: внешние кольца зависят от внутренних, внутренние о внешних
+ничего не знают.
+
+Автор — Jeffrey Palermo, серия постов «The Onion Architecture: part 1–4» в блоге «Programming with
+Palermo». Part 1 — 29 июля 2008. Тот же базовый принцип, что и в Hexagonal: зависимости внутрь,
+инфраструктура заменяема. Другой акцент и другая картинка.
+
+----------------------------------------------------------------------------------------------------
+
+Кольца изнутри наружу:
+- domain model — сущности и value objects в самом центре, чистые данные и поведение, без зависимостей.
+- domain services — доменная логика, которая не ложится на одну сущность; работает над domain model.
+- application services — оркестрация use case: координирует domain services, держит границу приложения.
+- infrastructure / UI / tests — самое внешнее кольцо: БД, web, внешние API, фреймворки.
+
+```text
+                +-------------------------------+
+                |   infrastructure / UI / tests |
+                |  +-------------------------+  |
+                |  |   application services  |  |
+                |  |  +-------------------+  |  |
+                |  |  |  domain services  |  |  |
+                |  |  |  +-------------+  |  |  |
+                |  |  |  |   domain    |  |  |  |
+                |  |  |  |    model    |  |  |  |
+                |  |  |  +-------------+  |  |  |
+                |  |  +-------------------+  |  |
+                |  +-------------------------+  |
+                +-------------------------------+
+
+           зависимости -> только внутрь, к центру
+```
+
+Ключевой тезис Palermo, который чаще всего теряют: infrastructure — включая БД и UI — это самое
+внешнее кольцо. Заменяемая деталь, а не фундамент. Слои не строятся снизу вверх от базы данных.
+БД висит снаружи и подключается к ядру через интерфейсы, объявленные во внутренних кольцах.
+
+Чем отличается от Hexagonal:
+- Onion явно вводит несколько именованных колец и кладёт domain model в самый центр.
+- Hexagonal про симметрию ports и не настаивает на числе слоёв — внутри нет «верха» и «низа».
+- Onion рисует иерархию вложенности (центр важнее краёв), Hexagonal — плоский шестиугольник с ports
+  по периметру.
+
+Грубо говоря, одна идея в двух обёртках. Та же The Dependency Rule, что позже обобщил Uncle Bob в
+Clean Architecture (2012) — Onion как раз один из источников этого синтеза.
+
+Плюсы:
+- domain model в центре изолирован от фреймворков и БД — легко тестировать без инфраструктуры.
+- понятное правило, куда смотрит зависимость: всегда внутрь, нарушение видно сразу.
+- интерфейсы репозиториев живут во внутренних кольцах, реализации — снаружи, домен не знает про `pgx`.
+
+Минусы:
+- много колец и интерфейсов ради изоляции — на простом CRUD это overhead.
+- легко скатиться в anemic domain model, если application services раздуть, а domain model оставить
+  мешком геттеров.
+- частая путаница с Clean Architecture; оба сводят к «положи интерфейс репозитория в домен»,
+  теряя исходный смысл колец.
+
+----------------------------------------------------------------------------------------------------
+
+# Clean Architecture
+
+**Clean Architecture** — это синтез Hexagonal, Onion и DDD-идей вокруг одного жёсткого
+правила: The Dependency Rule, исходные зависимости направлены только внутрь.
+
+Robert C. Martin (Uncle Bob), пост «The Clean Architecture» в The Clean Code Blog, 13 августа
+2012. Позже развёрнут в книгу «Clean Architecture: A Craftsman's Guide to Software Structure and
+Design», Prentice Hall, 2017.
+
+Главная идея: ничто во внутреннем кольце не знает о внешнем. Domain не импортирует базу,
+use case не импортирует HTTP. Снаружи — заменяемые детали, внутри — устойчивая бизнес-логика.
+
+----------------------------------------------------------------------------------------------------
+
+**Кольца**
+
+Каноничная раскладка — четыре концентрических кольца. Стрелки зависимостей идут к центру.
+
+```text
+        +-----------------------------------------------+
+        |  Frameworks & Drivers                         |
+        |  web, db, ui, devices — внешний мир           |
+        |   +-----------------------------------------+ |
+        |   |  Interface Adapters                     | |
+        |   |  controllers, presenters, gateways      | |
+        |   |   +---------------------------------+   | |
+        |   |   |  Use Cases                      |   | |
+        |   |   |  application business rules     |   | |
+        |   |   |   +-------------------------+   |   | |
+        |   |   |   |  Entities               |   |   | |
+        |   |   |   |  enterprise rules       |   |   | |
+        |   |   |   +-------------------------+   |   | |
+        |   |   |        ^                        |   | |
+        |   |   +--------|------------------------+   | |
+        |   |            | зависит внутрь             | |
+        |   +------------|--------------------------+ | |
+        |                |                            | |
+        +----------------|----------------------------+ |
+                         |
+                  dependencies point inward only
+```
+
+- Entities — enterprise-wide бизнес-правила. Самые стабильные объекты, меняются реже всего.
+- Use Cases — application-specific правила. Оркестрируют поток данных к Entities и обратно.
+- Interface Adapters — конвертируют данные между удобным для use case форматом и форматом
+  внешнего мира. Сюда же controllers и presenters.
+- Frameworks & Drivers — web-фреймворк, БД, UI. Самая внешняя, самая заменяемая деталь.
+
+> [!NOTE]
+> Число колец — не закон. Martin прямо пишет: колец может быть больше или меньше четырёх.
+> Жёсткое только одно — направление зависимостей внутрь.
+
+----------------------------------------------------------------------------------------------------
+
+**The Dependency Rule**
+
+**The Dependency Rule** — это правило, по которому исходный код может зависеть только в сторону
+центра, никогда наружу.
+
+Что значит на практике:
+- внутреннее кольцо не знает имён ничего из внешнего — ни типов, ни функций, ни переменных.
+- формат данных из внешнего кольца не протекает внутрь. То, что удобно фреймворку, не должно
+  попадать в Entities.
+- когда поток управления идёт изнутри наружу (use case вызывает БД) — спасает Dependency
+  Inversion. Use case держит interface, внешнее кольцо его реализует.
+
+Поток управления и поток зависимостей расходятся. Контроль бежит снаружи внутрь и обратно
+наружу, а зависимости исходников при этом смотрят только внутрь.
+
+----------------------------------------------------------------------------------------------------
+
+**Use case как первоклассная сущность**
+
+Тут Clean отличается от предшественников сильнее всего. Hexagonal и Onion рисуют кольца и порты,
+но use case у них растворён в application-слое. Clean делает его явным объектом — interactor.
+
+**Interactor** — это объект, реализующий ровно один use case приложения.
+
+- на входе — request model (простой DTO, не доменный объект, не HTTP-структура).
+- на выходе — response model через output boundary.
+- внутри — оркестрация Entities и вызовы repository через интерфейсы.
+
+Boundaries — это интерфейсы на стыке колец. Input boundary вызывает controller, output boundary
+реализует presenter. DTO на границах разрывают связь: controller не знает про presenter, оба
+говорят с interactor через простые структуры.
+
+```go
+// use case кольцо: интерфейсы и interactor, без знания про HTTP и SQL
+
+type CreateOrderInput struct {  // request model — простой DTO
+    CustomerID string
+    Items      []OrderItem
+}
+
+type OrderRepository interface {  // port, реализуется снаружи
+    Save(ctx context.Context, o *domain.Order) error
+}
+
+type CreateOrderInteractor struct {
+    repo OrderRepository
+}
+
+func (uc *CreateOrderInteractor) Execute(ctx context.Context, in CreateOrderInput) (OrderID, error) {
+    order, err := domain.NewOrder(in.CustomerID, in.Items)  // Entities делают бизнес-правила
+    if err != nil {
+        return "", err
+    }
+    if err := uc.repo.Save(ctx, order); err != nil {
+        return "", err
+    }
+    return order.ID, nil
+}
+```
+
+`OrderRepository` лежит в кольце use case, реализация `pgx` — снаружи. Зависимость инвертирована,
+правило соблюдено.
+
+----------------------------------------------------------------------------------------------------
+
+**Чем отличается и когда не надо**
+
+Чем отличается:
+- от Hexagonal — Hexagonal про симметрию портов, левый и правый край равноправны. Clean
+  достраивает поверх явную иерархию колец и именованный use case.
+- от Onion — Onion даёт концентрические кольца и coupling к центру, но не вводит interactor
+  и boundaries как обязательные сущности. Clean формализует это.
+- от слоёв вообще — Clean самая формализованная версия той же идеи. Один синтез, одно правило.
+
+Плюсы:
+- бизнес-логика тестируется без БД и web. Подменяешь repository заглушкой — и всё.
+- framework и БД откладываются как решения. Их меняешь, не трогая центр.
+- границы явные, протечки формата ловятся на ревью.
+
+Минусы:
+- много церемонии. На каждый use case — interactor, два boundary, request и response model.
+- маппинг между DTO колец руками. Доменный объект → DTO → ответ фреймворка, и обратно.
+- порог входа выше, чем у плоского слоёного кода.
+
+Грабли:
+- interactor на тривиальный CRUD — классический overengineering. Если use case — это
+  «прочитай строку по id и отдай как есть», interactor с boundaries вокруг него лишний.
+  Тут честнее Transaction Script или прямой вызов repository из handler.
+- частое искажение: воспринимают Clean как обязательную раскладку из четырёх папок с горой
+  интерфейсов. Martin говорит обратное — число колец произвольно, закон только один.
+
+----------------------------------------------------------------------------------------------------
+
+# Clean, Onion, Hexagonal — это одно семейство
+
+Clean, Onion и Hexagonal — близкие родственники, не три разные штуки. Одно семейство. Структура у всех одна:
+
+```text
+        ┌─────────────────────────────────────┐
+        │  infrastructure / framework / DB     │  ← снаружи, заменяемые детали
+        │   ┌─────────────────────────────┐    │
+        │   │   application / use cases    │    │
+        │   │   ┌─────────────────────┐    │    │
+        │   │   │  business core /     │    │    │
+        │   │   │  domain              │    │    │  ← внутри, не знает о внешнем
+        │   │   └─────────────────────┘    │    │
+        │   └─────────────────────────────┘    │
+        └─────────────────────────────────────┘
+              dependencies point inward  →
+```
+
+Business/application core внутри. Infrastructure, framework, database — снаружи. Dependencies point
+inward: внешнее знает про внутреннее, внутреннее про внешнее — нет. Это общий знаменатель всех трёх.
+
+Разница только в акценте и словаре. Одна идея, три диалекта — поэтому их и путают.
+
+Чем отличается акцент:
+- Hexagonal (Alistair Cockburn, 2005) — ports и adapters, симметрия драйверов. Внутри нет деления
+  на «верх UI» и «низ БД». Обе стороны равноправны: и тот, кто дёргает приложение (UI, тест, скрипт),
+  и то, что приложение дёргает (БД, очередь) — снаружи, говорят через ports.
+- Onion (Jeffrey Palermo, 2008) — концентрические кольца, domain в центре. Акцент на том, что
+  infrastructure (включая БД и UI) — самое внешнее кольцо, заменяемая деталь. Не фундамент, на котором
+  строят слои снизу вверх, а оболочка вокруг ядра.
+- Clean (Robert Martin, 2012) — синтез. Martin собирает Hexagonal, Onion и похожие вокруг одного
+  The Dependency Rule и добавляет явные use cases как отдельное кольцо.
+
+Где пересекаются:
+- У всех ядро не знает про БД и framework.
+- У всех зависимость на инфраструктуру инвертируется через interface (port у Cockburn,
+  абстракция во внутреннем кольце у Palermo и Martin).
+- У всех framework и БД — деталь, решение о них откладывается.
+
+Грабли в названиях «шестиугольник» и «кольца». Шесть сторон у Cockburn выбраны произвольно — нужно
+было место под порты, не больше. Число колец у Martin тоже произвольно: знаменитые четыре
+(Entities / Use Cases / Adapters / Frameworks) — иллюстрация, а не обязательная раскладка. Единственное
+жёсткое правило у Martin — направление зависимостей внутрь. Всё остальное — рекомендация.
+
+----------------------------------------------------------------------------------------------------
+
+Layered — рядом, но это другое семейство
+
+**Layered Architecture** — это структура из горизонтальных слоёв абстракции, где каждый слой даёт
+сервисы слою выше и опирается на слой ниже.
+
+Чем отличается от Clean/Onion/Hexagonal:
+- Layered (паттерн Layers, POSA, 1996) не требует «dependencies point inward». Зависимости идут
+  сверху вниз: UI → business → data access → БД.
+- В классической N-tier раскладке business зависит от data access, а тот — от БД. То есть core
+  зависит от инфраструктуры. Ровно то, что Clean/Onion/Hexagonal запрещают.
+- Чтобы Layered стал частью этого семейства, нужно перевернуть зависимость на БД через interface
+  (dependency inversion). Тогда получаешь, по сути, Onion. Без этого Layered — отдельная штука.
+
+Канон vs индустрия: канонический Layers из POSA — про уровни абстракции, не про физические tiers,
+и допускает разную строгость (relaxed/strict). В голове у многих Layered = жёсткий N-tier с БД внизу.
+Это сужение, но именно из него растёт путаница «слои = архитектура с зависимостью на БД».
+
+----------------------------------------------------------------------------------------------------
+
+DDD — отдельная ось, не структура папок
+
+**Domain-Driven Design (Eric Evans, 2003)** — это подход к моделированию домена, а не схема раскладки
+кода по слоям.
+
+Чем отличается:
+- Clean/Onion/Hexagonal отвечают на вопрос «куда направлены зависимости и где граница инфраструктуры».
+- DDD отвечает на вопрос «как смоделировать домен»: ubiquitous language, bounded context, core domain.
+- Это ортогональные оси. Можно сделать Hexagonal без DDD (тонкий core, Transaction Script внутри).
+  Можно делать DDD-моделирование и разложить его хоть по Onion, хоть по Layered.
+
+Грабли: DDD часто сводят к тактическим building blocks — Entity, Value Object, Repository, Aggregate.
+«У нас есть Repository и Aggregate, значит DDD» — самое частое искажение. У Evans ядро стратегическое:
+ubiquitous language и bounded context. Тактические кирпичи вторичны.
+
+----------------------------------------------------------------------------------------------------
+
+Канон vs индустрия
+
+«У нас Clean Architecture» в индустрии почти всегда значит три папки: `domain/`, `usecase/` (или
+`application/`), `infra/`. Иногда плюс куча interface для репозиториев.
+
+Это работает и часто достаточно. Но это беднее оригинала:
+- У Cockburn суть не в папках, а в симметрии ports — что UI и тест подключаются к приложению так же,
+  как приложение к БД. Папочная раскладка эту симметрию обычно теряет.
+- У Palermo суть в том, что БД — заменяемая внешняя деталь. Папка `infra/` это передаёт, но тезис
+  «решение о БД откладывается» на практике обычно игнорируют — пишут под конкретную БД с первого дня.
+- У Martin суть в Dependency Rule как в проверяемом правиле, а не в именах папок. Папки `domain/`,
+  `usecase/`, `infra/` не гарантируют, что зависимости реально идут внутрь — за этим надо отдельно
+  следить и желательно проверять линтером.
+
+----------------------------------------------------------------------------------------------------
+
+# Vertical Slice и Feature-Based Architecture
+
+Layered и hexagonal режут систему горизонтально: controllers сверху, services посередине, repositories
+снизу. Одна фича размазана по всем слоям. Vertical Slice и feature-folders переворачивают ось: режут
+вертикально, по фичам. Один slice — это HTTP + логика + доступ к данным для одного запроса, лежащие рядом.
+
+**Vertical Slice Architecture** — это организация кода вокруг отдельных запросов/фич, где каждый slice
+инкапсулирует все слои от UI до данных.
+- термин закрепил Jimmy Bogard в посте на jimmybogard.com, 2018.
+- правило slice: «minimize coupling between slices, maximize coupling in a slice».
+- ось организации — axis of change. Меняется фича — меняется один каталог, не пять слоёв.
+
+Контраст с layered: там максимизируешь переиспользование общих слоёв, но платишь связностью — правка
+одной фичи задевает общий `UserService`, общий repository, общий DTO-маппер. В VSA наоборот: внутри
+slice связность высокая (всё про фичу рядом), между slice — низкая (соседи почти не знают друг о друге).
+
+----------------------------------------------------------------------------------------------------
+
+**Как это выглядит на диске**
+
+Package by layer — папки по технической роли:
+
+```text
+/handlers
+  user_handler.go
+  order_handler.go
+/services
+  user_service.go
+  order_service.go
+/repositories
+  user_repository.go
+  order_repository.go
+```
+
+Package by feature — папки по фиче, технические роли внутри:
+
+```text
+/createorder
+  handler.go        // HTTP-вход
+  command.go        // данные запроса
+  validate.go       // правила
+  store.go          // запись в БД
+/cancelorder
+  handler.go
+  command.go
+  store.go
+/getorderhistory
+  handler.go
+  query.go
+  read_model.go     // своя проекция под чтение
+```
+
+Чтобы понять, что делает фича «отмена заказа», открываешь один каталог. В layered пришлось бы прыгать
+по `handlers/`, `services/`, `repositories/` и собирать картину из кусков.
+
+> [!NOTE]
+> Перекликается со Screaming Architecture (Uncle Bob, 2011): верхний уровень структуры должен «кричать»
+> про use cases, а не про framework. Каталоги `createorder`, `cancelorder` кричат про домен. `controllers`,
+> `models` выдают MVC-фреймворк, а не то, что система делает.
+
+----------------------------------------------------------------------------------------------------
+
+**Связь с CQRS и one handler per request**
+
+VSA почти всегда ходит в паре с CQRS-стилем: каждый slice — это один command или query, и под него один
+handler. Bogard сам построил вокруг этого библиотеку MediatR — отсюда канонический шаблон «one handler
+per request».
+
+Идея простая:
+- каждый запрос — отдельный тип (`CreateOrderCommand`, `GetOrderHistoryQuery`).
+- на тип — ровно один обработчик, который тащит запрос end-to-end: принял, провалидировал, сходил в БД,
+  вернул результат.
+- write-сторона и read-сторона не делят модель. Read-slice может бить прямым SQL в свою проекцию,
+  минуя доменные объекты.
+
+```go
+// slice getorderhistory — read-сторона, своя плоская модель, без домена
+type Query struct {
+    CustomerID string
+    Limit      int
+}
+
+type Row struct {
+    OrderID string
+    Total   int64
+    Status  string
+}
+
+func Handle(ctx context.Context, db *pgxpool.Pool, q Query) ([]Row, error) {
+    const sql = `
+        SELECT order_id, total_cents, status
+        FROM orders
+        WHERE customer_id = $1
+        ORDER BY created_at DESC
+        LIMIT $2`
+    rows, err := db.Query(ctx, sql, q.CustomerID, q.Limit)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+    // ... scan в []Row
+}
+```
+
+Здесь нет ни `OrderRepository`, ни `OrderService`. Read-slice не обязан уважать write-модель — он сам себе
+хозяин. В layered прямой SQL в обход repository смотрелся бы как нарушение слоёв. В VSA это норма: slice
+решает сам, сколько абстракций ему нужно.
+
+----------------------------------------------------------------------------------------------------
+
+**VSA vs просто feature-folders**
+
+Разные вещи, хотя на диске выглядят похоже.
+
+**Feature-Based / package by feature** — это стиль упаковки кода, где всё про одну фичу лежит в одном
+пакете, а не разнесено по техническим слоям.
+- единого канонического автора нет. Восходит к packaging principles Мартина (CCP/CRP, ~1996) и к главе
+  «The Missing Chapter» Саймона Брауна в книге Uncle Bob «Clean Architecture» (2017).
+- по сути про то, где лежат файлы. Ось упаковки — фича, а не слой.
+- внутри пакета слои могут оставаться какими угодно: хоть полноценный `Service` + `Repository`.
+
+**Vertical Slice Architecture** — это про то, сколько связей slice держит наружу и как развивается.
+- добавляет правило связности: между slice — минимум, внутри — максимум.
+- добавляет позицию по абстракциям: начинаешь с прямого кода внутри slice, общие абстракции достаёшь
+  только когда дублирование стало реальным, а не гипотетическим.
+- часто несёт CQRS-уклон и one handler per request.
+
+Чем отличается:
+- feature-folders отвечают на вопрос «куда положить файлы».
+- VSA отвечает ещё и на «насколько slice независим» и «когда вводить общую абстракцию».
+- feature-folders с жирными общими слоями внутри — это ещё не VSA. VSA целенаправленно режет связи
+  между фичами.
+
+Грабли частого искажения: «VSA = папка на каждую фичу, общие абстракции запрещены». Bogard говорит другое
+— общий код не запрещён, его просто не вытаскивают преждевременно. Сначала прямой код в slice. Рефакторинг
+в общую абстракцию — только под давлением реального дублирования.
+
+----------------------------------------------------------------------------------------------------
+
+**Когда подходит и чем платишь**
+
+Когда подходит:
+- много мелких, слабо связанных операций по CRUD/CQRS-сценариям — типичный API поверх БД.
+- фичи меняются независимо и часто. Удобно, когда правка живёт в одном каталоге.
+- команда хочет добавлять и удалять фичи целиком, не дёргая общие слои.
+
+Минусы:
+- дублирование. Похожий код validation/mapping расползается по slice. Грубо говоря, это плата за низкую
+  связность — иногда осознанная, иногда выходит из-под контроля.
+- размывание общих правил. Бизнес-инвариант, который должен держаться везде (авторизация, аудит, лимиты),
+  легко продублировать с вариациями или забыть в одном из slice. В layered такое правило живёт в одном
+  общем месте.
+- сложнее, когда домен богатый и инварианты тяжёлые. VSA с прямым кодом тянет к anemic-стилю и
+  Transaction Script; rich domain model с тяжёлыми aggregate ложится на slice хуже.
+- дисциплина на тебе. Компилятор не мешает slice залезть в кишки соседа — границы держатся
+  договорённостью, а не структурой.
+
+----------------------------------------------------------------------------------------------------
+
+# Modular Monolith, Component-Based, Screaming Architecture
+
+Три способа думать про границы внутри одной системы. Все три — про то, где проходят швы и кто
+кого видит. Разница в масштабе шва: модуль, компонент, дерево папок.
+
+----------------------------------------------------------------------------------------------------
+
+**Modular Monolith** — это монолит (один deployable unit), внутри которого код разбит на
+изолированные модули с явными контрактами и скрытыми деталями.
+
+Термин закрепил Simon Brown (~2015, серия докладов «Modular Monoliths», подход «package by
+component»). Канон жёсткий в одном: границы соблюдаются на уровне кода, а не на уровне «у нас
+аккуратные папки».
+
+Зачем:
+- Получить изоляцию микросервисов без распределённой системы — без сети, retries, eventual
+  consistency, отдельных деплоев.
+- Деплоишь и дебажишь один процесс. Транзакция на всю операцию, не saga.
+- Швы готовы заранее: если модуль реально перерастёт процесс — вырезаешь по контракту в сервис.
+
+Грабли:
+- Главное искажение — думать, что modular monolith это «недомикросервисы» или просто папки.
+  Brown акцентирует: граница должна быть принудительной. Файловая структура её не держит.
+- В Java это package-private видимость: класс модуля физически не виден снаружи пакета.
+  В Go — отдельный package, экспортируешь только интерфейс и конструктор, реализацию прячешь.
+- Без принуждения границы текут за недели. Кто-то импортирует internal-тип соседнего модуля —
+  и шов зарос.
+
+```text
+app/                      один бинарь, один процесс
+  orders/
+    api.go                <- публичный контракт модуля (интерфейсы, DTO)
+    service.go            <- скрыто, внутри пакета
+    repo.go               <- скрыто
+  billing/
+    api.go
+    ...
+  internal/shared/        общий kernel, осознанно, не свалка
+```
+
+Modular monolith — полноценная альтернатива микросервисам, а не обязательный переходный этап.
+Часто на нём и остаются — и это нормально.
+
+----------------------------------------------------------------------------------------------------
+
+**Component-Based Architecture** — это сборка системы из независимых заменяемых компонентов
+с контрактными интерфейсами и явными зависимостями от контекста.
+
+Идея старая: Douglas McIlroy, «Mass Produced Software Components», NATO Software Engineering
+Conference, 1968. Каноническое определение компонента — Clemens Szyperski, «Component Software»,
+1997.
+
+По Szyperski component — это:
+- единица композиции с явно заданными interface;
+- с явными зависимостями от контекста (что ему нужно снаружи — тоже часть контракта);
+- разворачивается независимо;
+- собирается третьими лицами, без доступа к внутренностям;
+- без видимого внутреннего состояния.
+
+Зачем:
+- Заменяемость. Меняешь реализацию за интерфейсом — остальная система не замечает.
+- Композиция. Систему собираешь из готовых кубиков, в идеале — чужих.
+
+Чем отличается:
+- От модуля — компонент сильнее про deployment и контракт «что мне нужно снаружи», а не только
+  про сокрытие.
+- Modular monolith у Brown и стоит на «package by component»: модуль монолита по сути и есть
+  такой компонент, просто живёт в одном процессе.
+
+Грабли:
+- Частое искажение — свести к UI-компонентам (React, Angular) или к «классам с интерфейсами».
+  У Szyperski речь про единицу композиции с контрактом и независимым deployment, а не про
+  переиспользуемые виджеты фронтенда.
+
+----------------------------------------------------------------------------------------------------
+
+**Screaming Architecture** — это идея, что структура проекта должна «кричать» о use cases
+домена, а не о применяемом framework.
+
+Robert C. Martin, пост «Screaming Architecture», Clean Coder Blog, 30 сентября 2011. Аналогия
+автора: смотришь на чертёж здания и видишь — это библиотека. Смотришь на корень репозитория и
+должен видеть — это система про orders и billing, а не про Rails.
+
+Зачем:
+- Верхний уровень дерева сообщает о домене. Новый человек открывает репо и за секунды понимает,
+  про что оно.
+- Решение о framework и БД откладывается. Framework — инструмент, деталь, а не каркас.
+
+```text
+src/                        кричит про домен            src/                  кричит про framework
+  orders/                                                 controllers/
+  billing/                                                models/
+  auth/                                                   views/
+  catalog/                                                helpers/
+```
+
+Грабли:
+- Слабое прочтение — «просто называй папки по доменам вместо `controllers/models/views`».
+  Это верно, но Martin говорит сильнее: верхний уровень структуры вообще не должен выдавать,
+  на чём это написано (Rails, Spring), а выбор framework и БД должен откладываться.
+- На практике плоского «папка = домен» обычно мало. Внутри домена всё равно нужны границы —
+  иначе снаружи кричит про домен, а внутри обычная каша.
+
+Канон vs индустрия:
+- Screaming Architecture часто читают как чисто про нейминг папок. Исходный тезис — про
+  приоритет: домен первичен, framework вторичен и заменяем.
+- Все три подхода смотрят с разных сторон на одно: Screaming — как назвать и разложить швы
+  сверху, Modular Monolith — как удержать их в одном процессе, Component-Based — как сделать
+  кусок за швом заменяемым.
+
+----------------------------------------------------------------------------------------------------
+
+## Как организован UI / presentation слой
+
+Две ветки презентационных паттернов. Классические триады разносят данные, картинку и связку с
+мутабельным состоянием. Семейство однонаправленного потока выросло из боли с двусторонним data
+binding: состояние течёт по кругу в одну сторону.
+
+# UI: классические триады — MVC, MVP, MVVM, PAC
+
+Главная идея: все четыре делят интерактивное приложение на роль данных, роль картинки и роль связки.
+Расходятся в одном: кто про кого знает и насколько тупой может быть view. Это не четыре конкурента —
+это эволюция одной идеи под разные платформы (desktop GUI, толстый клиент, декларативный UI с
+data binding).
+
+----------------------------------------------------------------------------------------------------
+
+**MVC (Model-View-Controller)**
+
+**MVC** — это разделение интерактивного приложения на три роли: Model (данные и доменная логика),
+View (визуальное представление) и Controller (обработка пользовательского ввода).
+
+Происхождение:
+- автор — Trygve Reenskaug, Xerox PARC, 1979. Внутренние заметки: «Thing-Model-View-Editor»
+  (12 мая) и «Models-Views-Controllers» (10 декабря).
+- канон закрепила команда Smalltalk-80 (Adele Goldberg, Jim Althoff); позже разжевал Steve Burbeck
+  в «Applications Programming in Smalltalk-80» (1987/1992).
+
+Поток данных в оригинале:
+
+```text
+   ┌──────────────────────────────┐
+   │            Model             │
+   │      (данные + логика)       │
+   └────▲──────────────────┬──────┘
+        │ update           │ notify (наблюдение)
+        │                  ▼
+   ┌────┴─────┐       ┌───────────┐
+   │Controller│──────▶│   View    │
+   │  (ввод)  │ select│ (картинка) │
+   └────▲─────┘       └────┬──────┘
+        │ user gesture     │ render
+        └──────────────────┘
+```
+
+Кто про кого знает:
+- View и Controller оба знают про Model и подписаны на её изменения (observer).
+- Model не знает ни про View, ни про Controller — просто кидает notify подписчикам.
+- View и Controller — пара 1:1 на каждый виджет. Controller ловит мышь и клавиатуру, View рисует.
+
+Канон vs индустрия:
+- у Reenskaug Controller — посредник ввода для конкретной View внутри GUI. Один виджет — одна триада.
+- в серверных web-фреймворках (Rails, Spring MVC) Controller переосмыслили как точку входа,
+  которая диспетчеризует HTTP-запрос. Это другой зверь под тем же именем.
+- вдобавок в самом Smalltalk-80 Althoff переназначил термин: его Controller ближе к Editor из ранней
+  заметки. Так что путаница началась ещё внутри PARC.
+
+> [!NOTE]
+> Когда кто-то говорит «у нас MVC», уточни какой. Web-MVC и оригинальный GUI-MVC роднит только
+> аббревиатура.
+
+----------------------------------------------------------------------------------------------------
+
+**MVP (Model-View-Presenter)**
+
+**MVP** — это обобщение MVC, где связка View-Controller сливается в одну Presentation, а отдельный
+Presenter играет роль event loop, переводя жесты пользователя в команды над Model.
+
+Происхождение:
+- автор — Mike Potel, Taligent/IBM, 1996 (white paper «MVP: Model-View-Presenter»). Корни — в
+  Taligent CommonPoint.
+- у Potel Presenter ближе к оркестратору всего приложения (Model + Selection + Command + Presenter +
+  Interactor + View — шесть вопросов разработчика), а не к тонкой прослойке.
+
+Канон vs индустрия:
+- широко известный MVP — это уже не Potel, а упрощение Мартина Фаулера. Тонкий тестируемый View,
+  Presenter 1:1 к View.
+- Фаулер развёл два варианта по тому, насколько тупая view.
+
+Два варианта Фаулера:
+- Supervising Controller — простой data binding View делает сам, а Presenter лезет только в сложную
+  логику отображения.
+  - view не совсем тупая: тривиальные привязки на ней.
+- Passive View — View не делает вообще ничего сама, весь UI-state двигает Presenter.
+  - view максимально тупая, поэтому максимально тестируемая через Presenter.
+
+Поток данных (Passive View):
+
+```text
+   ┌──────────┐  команды   ┌───────────┐  read/write  ┌────────┐
+   │   View   │───────────▶│ Presenter │─────────────▶│ Model  │
+   │ (тупая)  │◀───────────│           │◀─────────────│        │
+   └──────────┘ set state  └───────────┘    data       └────────┘
+```
+
+Чем отличается от MVC:
+- View и Model больше не общаются напрямую через observer. Всё идёт через Presenter.
+- Presenter знает про View (через интерфейс) и про Model. View знает только про Presenter.
+- именно разрыв прямой связи View↔Model даёт тестируемость: можно подсунуть mock-view.
+
+----------------------------------------------------------------------------------------------------
+
+**MVVM (Model-View-ViewModel)**
+
+**MVVM** — это вариация MVC для платформ с декларативным UI и data binding, где ViewModel — это
+«модель view»: адаптация Model под нужды конкретной View.
+
+Происхождение:
+- автор — John Gossman, архитектор WPF/Avalon в Microsoft, блог-пост на MSDN, 8 октября 2005.
+- Gossman прямо называл MVVM специализацией Presentation Model Фаулера под механизм data binding.
+- ViewModel держит data-transformers (конвертеры Model→View), команды и view-state (например,
+  selection).
+
+Что несёт ViewModel:
+- конвертеры типов: дата в строку, enum в иконку — всё, что View не должна знать сама.
+- команды: что делать на клик, без ссылки на конкретный виджет.
+- view-state: что выбрано, что раскрыто, что в процессе загрузки.
+
+Поток данных:
+
+```text
+   ┌──────────┐  data binding  ┌────────────┐         ┌────────┐
+   │   View   │◀══════════════▶│ ViewModel  │────────▶│ Model  │
+   │ (XAML)   │  (двусторон.)  │            │◀────────│        │
+   └──────────┘                └────────────┘         └────────┘
+```
+
+Чем отличается от MVP:
+- ключ — data binding. View привязывается к свойствам ViewModel декларативно, framework сам гоняет
+  данные туда-обратно. Presenter в MVP толкал бы их руками.
+- из-за этого ViewModel не держит ссылку на View вообще — связь идёт через биндинг, не через вызовы.
+
+Грабли:
+- «ViewModel не должна знать о View» часто понимают как абсолют. Канон мягче: суть в адаптации Model
+  под нужды конкретной View, а не в догме об изоляции.
+- без честного data binding MVVM вырождается в MVP с ручным прокидыванием — теряется весь смысл.
+
+----------------------------------------------------------------------------------------------------
+
+**PAC (Presentation-Abstraction-Control)**
+
+**PAC** — это рекурсивно-иерархическая структура приложения из агентов, где каждый агент — триада
+Presentation, Abstraction и Control, а общаются агенты только через свои Control-части.
+
+Происхождение:
+- автор — Joëlle Coutaz, INTERACT'87 («PAC, an Object-Oriented Model for Dialog Design»), Штутгарт,
+  1987. Позже закреплён в POSA (Buschmann et al., 1996).
+- три части агента:
+  - Presentation — конкретный синтаксис, как агент выглядит и принимает ввод.
+  - Abstraction — семантика и данные агента.
+  - Control — связь между своими Presentation и Abstraction плюс общение с другими агентами.
+
+Иерархия агентов:
+
+```text
+              ┌─────────────┐
+              │  top agent  │   (координирует приложение)
+              │  P   A   C  │
+              └──────┬──────┘
+                  через C
+          ┌──────────┴──────────┐
+   ┌──────┴───────┐      ┌───────┴──────┐
+   │ agent (P A C) │      │ agent (P A C) │
+   └──────────────┘      └──────────────┘
+```
+
+Чем отличается от MVC:
+- не три глобальных компонента, а дерево из мелких триад-агентов. Каждый кусок UI — свой агент.
+- вся межагентная коммуникация идёт исключительно через Control. У Coutaz Control — обязательный
+  посредник, а не аналог Controller из MVC (тот ловил ввод, этот разводит сообщения между агентами).
+- поэтому PAC хорошо ложится на распределённые и многоагентные системы, где MVC задыхается.
+
+----------------------------------------------------------------------------------------------------
+
+**Если коротко**
+
+| Паттерн | View знает про | Связь View↔Model | View тупая? |
+|---------|----------------|-------------------|-------------|
+| MVC (канон) | Model (observer) | прямая, через подписку | нет, сама читает Model |
+| MVP Passive View | только Presenter | нет, всё через Presenter | максимально |
+| MVP Supervising | Presenter + биндинг | частично прямая | почти |
+| MVVM | ViewModel (binding) | нет, через ViewModel | средне, биндинг сам |
+| PAC | только свой Control | нет, через Control-агента | агент, не «view» |
+
+----------------------------------------------------------------------------------------------------
+
+# UI: однонаправленный поток — Flux, Redux, MVU/Elm, MVI, VIPER
+
+Семейство презентационных паттернов, выросшее не из «как разложить классы», а из боли с
+двунаправленным data binding. View пишет в Model, Model пишет в другую View, та дёргает третью —
+состояние расползается, и баг «откуда взялось это значение» становится почти неотлаживаемым.
+
+Ответ одинаков у всех четырёх: поток данных идёт в одну сторону, состояние живёт в одном месте,
+обновление — это явное событие, а не скрытая мутация.
+
+Flux, Redux, MVU/Elm, MVI — одна семья, разные диалекты. VIPER стоит сбоку: это не про
+unidirectional flow, а про раскладку iOS-экрана по Clean Architecture. Держим рядом, потому что
+вместе они закрывают вопрос «как организовать presentation-слой».
+
+----------------------------------------------------------------------------------------------------
+
+**Flux**
+
+**Flux** — это паттерн (не фреймворк) для клиентских приложений вокруг однонаправленного потока:
+Action -> Dispatcher -> Store -> View.
+
+Facebook показал его на F8 в 2014, тогда же вышел пост в React Blog. Родился из конкретной проблемы:
+счётчик непрочитанных в чате жил в нескольких местах и рассинхронивался. MVC с двусторонними связями
+масштабировался плохо.
+
+```text
+   +--------+      +------------+      +--------+      +-------+
+   | Action | ---> | Dispatcher | ---> | Stores | ---> | Views |
+   +--------+      +------------+      +--------+      +-------+
+       ^                                                   |
+       |                  user interaction                |
+       +---------------------------------------------------+
+```
+
+Что делает:
+- Action — простой объект `{ type, payload }`, описывает «что случилось».
+- Dispatcher — singleton, единая точка входа. Все Store регистрируют у него callback.
+- Stores — держат состояние и логику домена, реагируют на actions, уведомляют View.
+- Views — рендерят состояние, на ввод диспатчат новый Action.
+
+Канон vs индустрия:
+- Главное искажение — путать Flux с библиотекой или с Redux. Flux — набор принципов.
+- Ключ — именно Dispatcher. Центральный singleton, который упорядочивает обновления и через
+  `waitFor` задаёт порядок callback-ов Store. Где Store A должен обновиться раньше Store B —
+  Dispatcher это гарантирует.
+- В Redux Dispatcher исчезает. Это главное отличие, а не «другой синтаксис».
+
+----------------------------------------------------------------------------------------------------
+
+**Redux**
+
+**Redux** — это predictable state container на трёх принципах: единый store, состояние только для
+чтения, изменения через чистые reducers.
+
+Dan Abramov и Andrew Clark, 2015. Реализацию Abramov написал к докладу «Live React: Hot Reloading
+with Time Travel» на React Europe. Time-travel debugging в демо — прямое следствие принципов: если
+состояние иммутабельно и меняется только чистой функцией, историю можно перематывать.
+
+Три принципа:
+- Single source of truth — всё состояние приложения в одном store, одно дерево объектов.
+- State is read-only — поменять можно, только отправив action. Прямой мутации нет.
+- Changes via pure functions — reducer это `(state, action) -> newState`, без побочных эффектов,
+  без мутации входа.
+
+```text
+   dispatch(action)        reducer(state, action)         subscribe
+   View ----------> Store --------------------> newState --------> View
+     ^                                                              |
+     +--------------------------------------------------------------+
+```
+
+Чем отличается от Flux:
+- Нет Dispatcher. Его роль растворилась в функции `dispatch`, которую держит сам store.
+- Один reducer на всё дерево (его дробят через композицию) вместо множества независимых Store.
+- Reducer обязан быть чистым. Это не стилистика — на этом стоят time-travel, undo, hot reload,
+  предсказуемость тестов.
+
+Грабли:
+- Redux называют «частью React» или «обязательным state-менеджером». Он самостоятельный и от React
+  не зависит.
+- Сводят к «глобальный стор» и игнорируют чистоту reducer и иммутабельность. Без них теряется всё,
+  ради чего Redux вообще существует.
+
+----------------------------------------------------------------------------------------------------
+
+**MVU / The Elm Architecture**
+
+**MVU** — это шаблон из трёх частей: Model (всё состояние), `update(msg, model) -> model` (чистый
+переход), `view(model) -> UI`, с однонаправленным циклом и иммутабельным состоянием.
+
+Evan Czaplicki, язык Elm. Сам Elm — 2012, дипломная в Harvard. Паттерн задокументирован в
+официальном гайде около 2015–2016. Czaplicki подчёркивал: архитектуру не проектировали заранее, она
+«возникла» из практики писать Elm-приложения.
+
+```text
+                  +-----------------------------+
+                  |                             v
+   msg ----> update(msg, model) ----> model ----> view(model) ----> UI
+                  ^                                                    |
+                  +----------------------------------------------------+
+                              user produces new msg
+```
+
+```go
+// MVU на Go: update — чистый переход, без мутации входного model.
+type Model struct {
+    Count int
+}
+
+type Msg int
+
+const (
+    Increment Msg = iota
+    Decrement
+)
+
+func update(msg Msg, m Model) Model {
+    switch msg {
+    case Increment:
+        return Model{Count: m.Count + 1}
+    case Decrement:
+        return Model{Count: m.Count - 1}
+    }
+    return m
+}
+```
+
+Грабли:
+- MVU и Redux отождествляют. Родство есть, но линии разные: MVU родился в типизированном
+  функциональном Elm, Redux — в JS-экосистеме React.
+- `update` путают с reducer. По форме близко, но канон MVU включает управляемые эффекты — `Cmd` и
+  `Sub`. Эффект не выполняется в `update`, а возвращается как данные, runtime исполняет его сам. Это
+  и держит `update` чистым.
+
+----------------------------------------------------------------------------------------------------
+
+**MVI**
+
+**MVI** — это полностью реактивная однонаправленная архитектура из чистых функций над потоками:
+Intent (события -> действия), Model (действия -> состояние), View (состояние -> рендеринг).
+
+André Staltz (André Medeiros), пост «Reactive MVC and the Virtual DOM» в блоге Futurice, 2014.
+Дальше — Cycle.js. На Android перенёс Hannes Dorfmann в 2016. Intent у Staltz — реактивная замена
+Controller.
+
+Идея простая: каждый компонент это функция над Observable. Поток событий пользователя проходит три
+трансформации и замыкается обратно в View.
+
+```text
+   View --(events)--> Intent --(actions)--> Model --(state)--> View
+     ^                                                          |
+     +----------------------------------------------------------+
+                       Observable streams
+```
+
+Канон vs индустрия:
+- На Android MVI массово понимают как «один immutable ViewState + sealed Intent + reducer» поверх
+  корутин — фактически Redux под другим именем.
+- У Staltz канон строится на RxJS-потоках, все три части определены именно как функции над
+  Observable.
+- Intent часто трактуют как объект-команду «намерение». В каноне Intent — это
+  функция-трансформация потока событий, а не data-объект.
+
+----------------------------------------------------------------------------------------------------
+
+**Одна семья, разные диалекты**
+
+Flux, Redux, MVU, MVI отвечают на один вопрос одинаково. Различия — в словах и в том, насколько
+жёстко прибита чистота и реактивность.
+
+| Диалект | Состояние  | Переход             | Координатор               | Среда                 |
+|---------|------------|---------------------|---------------------------|-----------------------|
+| Flux    | Stores     | Store-логика        | Dispatcher (singleton)    | React/JS              |
+| Redux   | один store | pure reducer        | dispatch (нет диспатчера) | React/JS              |
+| MVU     | Model      | update (чистый)     | runtime + Cmd/Sub         | Elm, функциональные   |
+| MVI     | Model      | функция над потоком | Observable-цикл           | Rx, Cycle.js, Android |
+
+Общий инвариант у всех:
+- Один источник состояния, а не россыпь по компонентам.
+- Поток в одну сторону: событие -> переход -> новое состояние -> рендер.
+- Обновление — явное и описанное данными (action / msg / intent), а не скрытая мутация.
+
+----------------------------------------------------------------------------------------------------
+
+**VIPER**
+
+**VIPER** — это применение Clean Architecture к iOS-экрану, где экран разбит на View, Interactor,
+Presenter, Entity, Routing.
+
+Mutual Mobile, статья Jeff Gilbert и Conrad Stoll, objc.io Issue 13, июнь 2014. Стоит особняком от
+unidirectional-семьи: это не про поток данных, а про разбиение ответственности одного экрана.
+
+Что делает:
+- View — пассивен. Показывает то, что дал Presenter, шлёт ему события ввода.
+- Interactor — бизнес-логика конкретного use case. Работает с Entity, ничего не знает про UI.
+- Presenter — готовит контент к показу, реагирует на ввод, дёргает Interactor и Router.
+- Entity — голые модели данных для Interactor. Без поведения уровня экрана.
+- Routing (Router) — навигация: какой экран открыть следующим и как.
+
+Грабли:
+- VIPER подают как «лучшую архитектуру для любого iOS». Авторы позиционировали скромнее —
+  применение Clean Architecture, где Interactor это use-case-слой Uncle Bob.
+- Размывают Interactor и Entity, забывают Router. Тогда VIPER вырождается в «MVP с лишними слоями» и
+  весь смысл теряется.
+- В отличие от Flux/Redux/MVU/MVI, VIPER не задаёт направление потока данных. Можно собрать
+  VIPER-экран и внутри гонять состояние двунаправленно. Это ортогональные вопросы.
+
+----------------------------------------------------------------------------------------------------
+
+## Как организована бизнес-логика
+
+Где жить бизнес-логике и в каком виде. Спектр от процедур (Transaction Script) до объектной модели
+(Domain Model), плюс старый спор anemic vs rich и building blocks из DDD.
+
+# Бизнес-логика: Transaction Script, Table Module, Domain Model, Service Layer
+
+Где жить бизнес-логике — главный вопрос enterprise-кода. Fowler в PoEAA (2002, глава «Organizing
+Domain Logic») разложил это на три способа организовать саму логику плюс один паттерн границы.
+
+Спектр один: от процедур к объектам. Слева — Transaction Script, просто и линейно. Справа — Domain
+Model, мощно и с порогом входа. Table Module посередине. Service Layer ортогонален — это граница, а
+не способ раскладки логики.
+
+```text
+сложность домена низкая ───────────────────────────────► высокая
+Transaction Script ──────── Table Module ──────── Domain Model
+порог входа низкий ────────────────────────────────────► высокий
+```
+
+----------------------------------------------------------------------------------------------------
+
+**Transaction Script**
+
+**Transaction Script** — это организация логики процедурами, где каждая процедура обрабатывает один
+запрос от слоя представления.
+
+Идея простая:
+- один сценарий (один use case) — одна процедура сверху вниз.
+- процедура сама достаёт данные, считает, пишет обратно. Линейный код, как рецепт.
+- состояние не размазано по объектам — оно проходит через процедуру параметрами и переменными.
+
+```go
+func TransferMoney(ctx context.Context, db *sql.DB, fromID, toID int64, amount Money) error {
+    tx, err := db.BeginTx(ctx, nil)
+    if err != nil {
+        return err
+    }
+    defer tx.Rollback()
+
+    from, err := loadAccount(ctx, tx, fromID)
+    if err != nil {
+        return err
+    }
+    if from.Balance < amount {
+        return ErrInsufficientFunds
+    }
+    if err := debit(ctx, tx, fromID, amount); err != nil {
+        return err
+    }
+    if err := credit(ctx, tx, toID, amount); err != nil {
+        return err
+    }
+    return tx.Commit()
+}
+```
+
+Когда подходит:
+- логика простая и её немного. CRUD с парой проверок, отчёты, утилиты.
+- домен не растёт по сложности — растёт по числу однотипных сценариев.
+- команда хочет видеть весь сценарий в одном месте без прыжков по объектам.
+
+Минусы:
+- общая логика дублируется между процедурами. Часто ловишь copy-paste между похожими сценариями.
+- с ростом сложности процедуры пухнут и ветвятся. 300-строчный метод с вложенными `if` — типичный
+  финал.
+
+Грабли:
+- не путать с Anemic Domain Model. Transaction Script процедурен честно — у него и нет объектов с
+  поведением. Anemic притворяется объектной моделью, но логику выносит наружу. Это разные вещи.
+
+----------------------------------------------------------------------------------------------------
+
+**Table Module**
+
+**Table Module** — это один экземпляр, который держит бизнес-логику для всех строк таблицы или view в
+БД.
+
+Зачем:
+- золотая середина между процедурами и полноценными объектами.
+- логика сгруппирована по таблицам, а не размазана по сценариям, как в Transaction Script.
+
+Что делает:
+- один объект `OrderModule` на всю таблицу `orders`, не по объекту на строку.
+- внутри работает с record set целиком — данные приходят пачкой, методы принимают `orderID`
+  параметром.
+
+```go
+type OrderModule struct {
+    data *RecordSet // вся таблица orders разом, не одна строка
+}
+
+// метод знает про всю таблицу, строку адресует по id
+func (m *OrderModule) CalcTotal(orderID int64) Money {
+    rows := m.data.Where("order_id", orderID)
+    // ... считает по строкам этого заказа
+}
+```
+
+Чем отличается:
+- от Domain Model — нет identity у объекта-строки. Объект один, строки адресуешь по ключу.
+- от Transaction Script — логика живёт в методах модуля, а не в плоских процедурах.
+
+Грабли:
+- частое искажение: «по объекту на строку». Наоборот — один объект на всю таблицу. Паттерн вырос из
+  .NET `DataSet`-стиля, где record set первичен.
+- вне экосистем с сильным табличным контейнером (как `DataSet`) Table Module встречается редко. В Go
+  его почти не пишут.
+
+----------------------------------------------------------------------------------------------------
+
+**Domain Model**
+
+**Domain Model** — это объектная модель домена, которая объединяет и поведение, и данные.
+
+Идея:
+- сеть объектов, где каждый знает свои данные и умеет с ними работать.
+- поведение живёт там же, где данные. `account.Debit(amount)`, а не `service.Debit(account, amount)`.
+- сложность домена раскладывается по объектам, и каждый объект остаётся небольшим.
+
+```go
+type Account struct {
+    id      int64
+    balance Money
+}
+
+// поведение внутри объекта, инвариант защищён здесь же
+func (a *Account) Withdraw(amount Money) error {
+    if a.balance < amount {
+        return ErrInsufficientFunds
+    }
+    a.balance -= amount
+    return nil
+}
+
+func (a *Account) Deposit(amount Money) {
+    a.balance += amount
+}
+```
+
+Когда подходит:
+- логика сложная и продолжает расти. Много правил, инвариантов, ветвлений.
+- правила меняются часто — объект локализует изменение в одном месте.
+- порог входа окупается: на простом CRUD это оверкилл.
+
+Минусы:
+- выше порог входа. Нужен mapping между объектами и таблицами (отсюда ORM, Data Mapper).
+- легко скатиться в Anemic Domain Model, если поведение утекает в сервисы, а объекты вырождаются в
+  мешок геттеров и сеттеров.
+
+Грабли:
+- не путать паттерн уровня кода (Fowler, PoEAA) с Domain-Driven Design (Evans, 2003). Domain Model у
+  Fowler — про объекты с данными и поведением. DDD — методология вокруг ubiquitous language и
+  bounded context, а не синоним «у объектов есть методы».
+
+----------------------------------------------------------------------------------------------------
+
+**Service Layer**
+
+**Service Layer** — это слой сервисов, который задаёт границу приложения: набор доступных операций и
+координацию ответа приложения в каждой операции.
+
+Авторство паттерна в PoEAA — Randy Stafford, не сам Fowler.
+
+Зачем:
+- ортогонален трём предыдущим. Те — про то, где логика. Service Layer — про границу вокруг неё.
+- определяет, что приложение умеет снаружи (API use cases), и где проходит граница транзакции.
+
+Что делает:
+- тонкий фасад поверх Domain Model. Открывает транзакцию, дёргает доменные объекты, коммитит.
+- координирует то, что не принадлежит ни одному доменному объекту: транзакции, security,
+  оркестрацию нескольких агрегатов.
+
+```go
+type TransferService struct {
+    accounts AccountRepository
+    uow      UnitOfWork
+}
+
+// тонкая граница: транзакция + оркестрация, бизнес-правило внутри Account
+func (s *TransferService) Transfer(ctx context.Context, fromID, toID int64, amount Money) error {
+    return s.uow.Do(ctx, func(repo AccountRepository) error {
+        from, err := repo.Get(ctx, fromID)
+        if err != nil {
+            return err
+        }
+        to, err := repo.Get(ctx, toID)
+        if err != nil {
+            return err
+        }
+        if err := from.Withdraw(amount); err != nil { // правило живёт в домене
+            return err
+        }
+        to.Deposit(amount)
+        return repo.Save(ctx, from, to)
+    })
+}
+```
+
+Грабли:
+- частое искажение: «класс `XxxService`, куда сваливают всю логику». У Stafford/Fowler Service Layer —
+  тонкий оркестратор, а не свалка.
+- раздуваешь сервис, вынося логику из доменных объектов — скатываешься в Anemic Domain Model.
+  Правило бизнеса живёт в `Account`, сервис только дирижирует.
+
+----------------------------------------------------------------------------------------------------
+
+# Бизнес-логика: Anemic vs Rich Domain Model и DDD tactical
+
+Главная идея: куда положить бизнес-логику — в объекты домена или в service. Спор старый, и в Go ответ
+часто не такой, как в каноне.
+
+**Anemic Domain Model** — это доменная модель, которая выглядит настоящей (объекты с именами из домена
+и связями), но почти не несёт поведения — мешок геттеров/сеттеров, вся логика снаружи.
+
+Так выглядит anemic в Go: структура — это данные, вся логика в service.
+
+```go
+// Данные без поведения.
+type Order struct {
+    ID     OrderID
+    Status string
+    Items  []Item
+}
+
+// Логика снаружи, в service.
+func (s *OrderService) Confirm(o *Order) error {
+    if o.Status != "draft" {
+        return ErrNotDraft
+    }
+    if len(o.Items) == 0 {
+        return ErrEmptyOrder
+    }
+    o.Status = "confirmed"
+    return nil
+}
+```
+
+**Rich Domain Model** — это модель, где данные и поведение живут вместе в объектах домена.
+
+То же подтверждение заказа — метод на самом `Order`:
+
+```go
+func (o *Order) Confirm() error {
+    if o.Status != StatusDraft {
+        return ErrNotDraft
+    }
+    if len(o.Items) == 0 {
+        return ErrEmptyOrder
+    }
+    o.Status = StatusConfirmed
+    return nil
+}
+```
+
+Чем отличается:
+- в anemic правило «нельзя подтвердить пустой заказ» живёт в service — заказ можно создать в любом
+  состоянии, инвариант держит кто-то снаружи.
+- в rich правило живёт на объекте — мимо `Confirm()` статус не поменять, инвариант защищён самим типом.
+
+Fowler в статье «Anemic Domain Model» (2003) назвал anemic анти-паттерном. Претензия точечная: anemic
+притворяется объектной моделью, но логику выносит наружу. Это нарушает базовый принцип ООП — данные и
+поведение вместе. Сам термин Fowler не приписывает себе; в статье он лишь ссылается на обсуждение с
+Eric Evans.
+
+> [!NOTE]
+> Не путай anemic с Transaction Script. Transaction Script (Fowler, PoEAA, 2002) процедурен честно и
+> осознанно: у тебя процедуры на каждый запрос от presentation, и ты не делаешь вид, что у тебя
+> объектная модель. Fowler клеймит именно притворство anemic, а не процедурный стиль как таковой.
+
+Канон vs индустрия:
+- по канону anemic — болезнь, поведение должно вернуться в объекты.
+- в Go и значительной части индустрии anemic + service часто осознанный прагматичный выбор.
+  Структуры-данные, логика в service-функциях — понятный data-oriented стиль, тестируется тривиально,
+  мапится на структуру таблиц.
+- спор не закрыт. Аргумент «за rich»: инварианты защищены типом, нельзя собрать невалидный объект.
+  Аргумент «за anemic»: меньше магии, поведение видно явно, проще для простой CRUD-логики.
+- грубое правило: чем сложнее инварианты и переходы состояний, тем больнее держать их в service —
+  тогда rich окупается. На тонкой CRUD-логике rich — оверинжиниринг.
+
+----------------------------------------------------------------------------------------------------
+
+**DDD tactical patterns**
+
+Eric Evans в книге «Domain-Driven Design» (2003) описал building-block паттерны — кирпичи, из которых
+собирается model-driven design. Сам ярлык «tactical» — позднейшая надстройка (Vaughn Vernon,
+«Implementing Domain-Driven Design», 2013); Evans называл это building blocks.
+
+- **Entity** — это объект с идентичностью, которая живёт во времени независимо от атрибутов.
+  Два заказа с одинаковым содержимым — разные заказы, потому что у них разные `ID`. Сравниваешь по
+  идентичности, не по значению.
+- **Value Object** — это объект без идентичности, определяемый только своими значениями.
+  `Money{100, "USD"}` равно любому другому `Money{100, "USD"}`. В Go обычно immutable struct,
+  сравниваешь по значению. Деньги, координаты, диапазон дат — классические VO.
+- **Aggregate** — это кластер связанных Entity и Value Object, который меняется как одно целое.
+  Граница консистентности: инварианты внутри агрегата держатся всегда.
+- **Aggregate Root** — это единственная Entity внутри агрегата, через которую идёт весь доступ снаружи.
+  Внешний код держит ссылку только на root; до внутренностей дотягивается только через него.
+- **Repository** — это абстракция хранилища, которая отдаёт и принимает агрегаты целиком, как коллекция
+  в памяти. Прячет SQL/storage за доменным интерфейсом.
+- **Domain Service** — это операция домена, которая по смыслу не принадлежит ни одной Entity или VO.
+  Перевод денег между счетами — не метод счёта, это domain service. Не путай с application service
+  (оркестратор use case): domain service несёт доменную логику, не координацию.
+- **Domain Event** — это факт, что в домене что-то произошло (`OrderConfirmed`). У Evans в книге 2003
+  его не было — паттерн добавили позже (Vernon).
+- **Factory** — это инкапсуляция сложной сборки агрегата, когда конструктор не тянет (много инвариантов
+  при создании, сборка из нескольких частей).
+
+`Order` как агрегат с защищёнными инвариантами:
+
+```go
+// OrderItem — внутренность агрегата, наружу её не отдаём отдельно.
+type OrderItem struct {
+    SKU      string
+    Quantity int
+    Price    Money // Value Object
+}
+
+// Order — Aggregate Root. Внешний код держит ссылку только на него.
+type Order struct {
+    id     OrderID
+    status Status
+    items  []OrderItem // приватны: менять можно только через методы root
+}
+
+// Добавление товара идёт через root — инвариант проверяется здесь.
+func (o *Order) AddItem(sku string, qty int, price Money) error {
+    if o.status != StatusDraft {
+        return ErrOrderLocked // в подтверждённый заказ товар не добавить
+    }
+    if qty <= 0 {
+        return ErrBadQuantity
+    }
+    o.items = append(o.items, OrderItem{SKU: sku, Quantity: qty, Price: price})
+    return nil
+}
+```
+
+Грабли:
+- Aggregate Root существует, чтобы инварианты держались. Если поля публичные и менять можно мимо
+  методов — это уже не агрегат, а структура с громким именем.
+- Repository отдаёт агрегат целиком, не куски. `repo.GetOrderItems()` в обход root — запах: граница
+  агрегата протекает.
+- Domain Service легко превращается в свалку. Если операция по смыслу принадлежит Entity — это её
+  метод, а не service.
+
+----------------------------------------------------------------------------------------------------
+
+**DDD ≠ структура папок**
+
+Самое частое искажение DDD: «у нас есть `Repository` и `Aggregate`, папки `entity/` и `valueobject/` —
+значит, мы делаем DDD». Это cargo-cult: скопировали форму, потеряли суть.
+
+У Evans tactical-блоки вторичны. Ядро DDD — стратегическое:
+- **Ubiquitous Language** — это общий язык домена, на котором говорят и доменные эксперты, и код.
+  Если в разговоре «отгрузка», а в коде `ShipmentEntity` с методом `process()` — язык не ubiquitous,
+  модель оторвана от домена.
+- **Bounded Context** — это явная граница, внутри которой модель и язык консистентны.
+  «Клиент» в биллинге и «клиент» в доставке — разные модели в разных контекстах, и это нормально.
+- **Context Map** — это карта отношений между контекстами (Shared Kernel, Customer/Supplier,
+  Anticorruption Layer и т.п.). Про то, как контексты общаются и кто от кого защищается.
+
+Канон vs индустрия:
+- индустрия часто сводит DDD к tactical-блокам и раскладке папок. «DDD = Repository + Aggregate» —
+  диагноз, не комплимент.
+- по Evans strategic важнее tactical. Сначала моделируешь домен и язык, очерчиваешь bounded context —
+  потом думаешь, какими кирпичами это собрать.
+- tactical-блоки без strategic дают красивые папки поверх анемичной модели и невнятных границ.
+  Это и есть cargo-cult DDD.
+- грабли с Bounded Context: его часто отождествляют с микросервисом один-к-одному. У Evans это
+  языковая и модельная граница, не единица деплоя. Один сервис может держать несколько контекстов,
+  один контекст может жить в монолите.
+
+----------------------------------------------------------------------------------------------------
+
+## Глубокое сравнение: Layered / Hexagonal / Onion / Clean / DDD
+
+Короткая карта: Layered — слои, зависимость идёт вниз к БД. Hexagonal, Onion, Clean — одно семейство,
+зависимость направлена внутрь, к домену, различается только словарь (ports/adapters vs кольца vs
+Dependency Rule). DDD — ортогональная ось: про моделирование домена, не про раскладку кода.
+
+Инженерные вопросы — что значит, кто автор, где описан, что решает, чем отличается, как в коде, плюсы
+и минусы — разобраны по каждому подходу выше в каталоге. Здесь сравнение в лоб: таблица, споры, цена.
+Что брать для конкретной SSO-системы — в разделе с Go-примером ниже.
+
+| Архитектура | Суть | Направление зависимостей | Главная единица | Что решает | Цена / overengineering |
+|---|---|---|---|---|---|
+| Layered | Горизонтальные слои абстракции, каждый зовёт нижний | Сверху вниз, к БД | Слой (layer) | Грубое разделение ответственности | Низкая; домен привязан к infrastructure |
+| Hexagonal | Ядро + симметричные ports, к ним adapters | Внутрь, к ядру через ports | Port / adapter | Изоляция от I/O, тесты без БД | Средняя; много интерфейсов и mapping |
+| Onion | Концентрические кольца вокруг домена | Внутрь, к центру | Кольцо (ring) | Инверсия зависимости от БД | Средняя; путают с Clean |
+| Clean | Синтез Hexagonal/Onion вокруг Dependency Rule | Только внутрь | Use case | Одно правило вместо схем | Высокая; культ из 4 колец и папок |
+| DDD | Моделирование сложного домена через язык | Внутрь, к домену | Bounded context | Сложность бизнес-логики | Очень высокая; не для CRUD |
+
+> [!NOTE]
+> DDD стоит особняком. Layered/Hexagonal/Onion/Clean — про техническую раскладку зависимостей.
+> DDD — про то, как моделировать домен (ubiquitous language, bounded context); тактические блоки
+> (Entity, Aggregate, Repository) вторичны. Его кладут поверх Hexagonal или Onion, а не вместо.
+
+----------------------------------------------------------------------------------------------------
+
+**Где спорят авторы и практики**
+
+Это не строгие стандарты, а инженерные традиции — и по ним спорят:
+- Нужен ли явный use case object. Clean (Martin) — да, отдельный Interactor на сценарий. Лагерь
+  Vertical Slice (Bogard) — лишний слой: тонкий handler с вызовом домена решает то же без церемоний.
+- Сколько заводить интерфейсов. Канон Clean не требует interface под каждый класс; индустрия плодит
+  их механически — так рождается «Clean ради Clean».
+- Anemic vs rich domain model. Канон (Fowler, DDD) — поведение должно жить в объектах. Прагматики в
+  Go часто осознанно держат anemic + service: меньше магии, проще тесты. Спор не закрыт.
+- DDD на CRUD. Тактический DDD поверх «сохранить форму в таблицу» — overengineering. DDD окупается
+  на реальной доменной сложности, не на валидации полей.
+- Bounded context = микросервис? Частое отождествление. У Evans это языковая граница модели, не
+  единица деплоя: один сервис может держать несколько контекстов.
+
+----------------------------------------------------------------------------------------------------
+
+**Лестница overengineering**
+
+Цена растёт слева направо. Бери самое левое, что закрывает боль:
+- Layered — низкий риск. Базовый дефолт, с него начинают.
+- Hexagonal — средний. Появляется, когда под каждый port заводят interface «на всякий случай».
+- Onion — средне-высокий. Кольца провоцируют плодить слои там, где хватило бы одного.
+- Clean — высокий. Самый частый источник «архитектуры ради архитектуры»: четыре кольца, интерфейс
+  на каждый класс, ручной маппинг entity -> dto -> response.
+- DDD — очень высокий на простом домене. Ритуал (Aggregate, Repository, папки) вместо моделирования.
+
+----------------------------------------------------------------------------------------------------
+
+## Практический пример: SSO-бэкенд на Go
+
+Возьмём систему, которую видишь почти в каждой компании: внутренний SSO. OIDC-провайдер для
+своих сервисов, admin panel для управления пользователями, login API для веба и мобилки. Под
+капотом — PostgreSQL для пользователей и клиентов, Redis для сессий и rate limit, всё на Go.
+
+Покажу, как такой бэкенд эволюционирует. Не «как правильно с первого дня», а как реально растёт:
+сначала плоский layered, потом — ports и adapters там, где прижало.
+
+----------------------------------------------------------------------------------------------------
+
+### Старт: простой layered
+
+На старте у тебя три эндпоинта и одна таблица. Тащить сюда clean architecture — церемония ради
+церемонии. Берёшь классический layered: `controller → service → repository`. Зависимости идут
+сверху вниз, каждый слой знает только про слой ниже. Это паттерн Layers из POSA (Buschmann et al.,
+1996): горизонтальные уровни абстракции, верхний опирается на нижний.
+
+```text
+cmd/
+  sso/
+    main.go              // сборка зависимостей, запуск http-сервера
+internal/
+  controller/
+    auth_handler.go      // login, logout, OIDC-эндпоинты
+    admin_handler.go     // CRUD пользователей
+  service/
+    auth_service.go      // бизнес-логика логина
+    user_service.go
+  repository/
+    user_repo.go         // SQL к Postgres
+    session_repo.go      // сессии в Redis
+  model/
+    user.go
+```
+
+Слой делает ровно своё:
+- `controller` — парсит HTTP, валидирует вход, зовёт service, сериализует ответ. Никакого SQL.
+- `service` — оркестрирует: проверь пароль, заведи сессию, отдай токен. Транзакции живут здесь.
+- `repository` — только хранилище. Один метод — один запрос, без бизнес-правил.
+
+Login на этом этапе — прямая процедура. Это Transaction Script (Fowler, PoEAA, 2002): одна
+процедура обрабатывает один запрос от слоя представления. Для простой логики — легитимный выбор,
+не антипаттерн.
+
+```go
+func (s *AuthService) Login(ctx context.Context, email, password string) (*model.Session, error) {
+	u, err := s.users.ByEmail(ctx, email)
+	if err != nil {
+		return nil, ErrInvalidCredentials
+	}
+	if !checkPassword(u.PasswordHash, password) {
+		return nil, ErrInvalidCredentials
+	}
+	sess := model.NewSession(u.ID, s.clock.Now())
+	if err := s.sessions.Save(ctx, sess); err != nil {
+		return nil, err
+	}
+	return sess, nil
+}
+```
+
+Куда ложатся фичи:
+- login API — `auth_handler.go` зовёт `AuthService.Login`.
+- admin panel — `admin_handler.go` поверх `user_service.go`, обычный CRUD.
+- OIDC — пока тонкий: пара эндпоинтов `/authorize`, `/token` в `auth_handler.go`, выдача токена
+  прямо в service.
+
+Этого хватает надолго. Пока логика тонкая, а зависимостей мало — не усложняй.
+
+Грабли layered на росте:
+- `service` начинает тянуть `database/sql` и `go-redis` напрямую — слой размывается, тесты требуют
+  живой Postgres.
+- логика выдачи токенов расползается по хендлерам и сервисам.
+- `AuthService` распухает в god-object на сотни строк — это уже путь в Anemic Domain Model, где
+  объекты пустые, а вся логика снаружи.
+
+----------------------------------------------------------------------------------------------------
+
+### Дорос: hexagonal-порты для инфраструктуры
+
+Система выросла: OIDC стал серьёзным (refresh, разные grant types, ротация ключей), сессий много,
+появился rate limit. Боль конкретная — хочется тестировать логин без Postgres и Redis, а выдачу
+токенов вынести из хендлеров в одно место.
+
+Тут заходит Hexagonal Architecture (Cockburn, 2005). Суть не в «шести сторонах» — шестиугольник
+выбран произвольно, чтобы было где разместить порты. Суть в симметрии: приложение в центре общается
+с миром через **ports** (интерфейсы), а конкретный Postgres/Redis/JWT — это **adapters**,
+заменяемые детали. Внутри нет деления на «верх UI» и «низ БД», обе стороны равноправны. Зависимость
+направлена внутрь: домен не знает про драйверы — это и есть Dependency Rule из Clean Architecture
+(Martin, 2012).
+
+```text
+cmd/
+  sso/
+    main.go                    // wiring: создаёт adapters, инжектит в use cases
+internal/
+  auth/
+    domain/
+      user.go                  // User, политики паролей
+      token.go                 // Token, правила валидности — здесь логика, не геттеры
+      errors.go
+    app/
+      login.go                 // use case Login
+      issue_token.go           // use case выдачи OIDC-токена
+      ports.go                 // интерфейсы: UserRepository, SessionStore, TokenSigner
+    adapters/
+      postgres/
+        user_repo.go           // реализация UserRepository
+      redis/
+        session_store.go       // реализация SessionStore
+      jwt/
+        signer.go              // реализация TokenSigner
+      http/
+        auth_handler.go        // driving adapter: login, OIDC
+        admin_handler.go       // driving adapter: admin panel
+```
+
+Driving vs driven — две стороны шестиугольника:
+- driving (слева) — кто дёргает приложение: HTTP-хендлеры, CLI, тесты. Зовут use cases.
+- driven (справа) — кого дёргает приложение: Postgres, Redis, JWT-signer. Прячутся за ports.
+
+----------------------------------------------------------------------------------------------------
+
+**Ports: интерфейсы в `app`, не в адаптерах**
+
+Ключевой момент в Go — port объявляется на стороне потребителя, в пакете `app`. Адаптер про
+интерфейс ничего не знает, просто реализует нужную сигнатуру (Go-интерфейсы структурные). Так
+зависимость и разворачивается внутрь.
+
+```go
+package app
+
+type UserRepository interface {
+	ByEmail(ctx context.Context, email string) (*domain.User, error)
+	Create(ctx context.Context, u *domain.User) error
+}
+
+type SessionStore interface {
+	Save(ctx context.Context, s *domain.Session) error
+	Get(ctx context.Context, id string) (*domain.Session, error)
+	Delete(ctx context.Context, id string) error
+}
+
+type TokenSigner interface {
+	Sign(claims domain.Claims) (string, error)
+	Verify(token string) (domain.Claims, error)
+}
+```
+
+Postgres-адаптер реализует `UserRepository`. Тут живёт SQL и весь `pgx` — дальше он не протекает.
+
+```go
+package postgres
+
+type UserRepo struct {
+	pool *pgxpool.Pool
+}
+
+func (r *UserRepo) ByEmail(ctx context.Context, email string) (*domain.User, error) {
+	const q = `SELECT id, email, password_hash FROM users WHERE email = $1`
+	var u domain.User
+	err := r.pool.QueryRow(ctx, q, email).Scan(&u.ID, &u.Email, &u.PasswordHash)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, app.ErrUserNotFound
+	}
+	return &u, err
+}
+```
+
+Redis-адаптер реализует `SessionStore`. Сессия с TTL ложится на Redis естественно — но use case
+про это не знает, для него это просто `SessionStore`.
+
+```go
+package redis
+
+type SessionStore struct {
+	client *redis.Client
+	ttl    time.Duration
+}
+
+func (s *SessionStore) Save(ctx context.Context, sess *domain.Session) error {
+	data, err := json.Marshal(sess)
+	if err != nil {
+		return err
+	}
+	return s.client.Set(ctx, "sess:"+sess.ID, data, s.ttl).Err()
+}
+```
+
+----------------------------------------------------------------------------------------------------
+
+**Use case: оркестрация поверх портов**
+
+Use case складывает порты в один сценарий и ничего не знает про драйверы. Это Service Layer
+(Stafford в PoEAA, 2002): тонкая граница-оркестратор, а не свалка логики. Сама логика — в `domain`.
+
+```go
+package app
+
+type LoginUseCase struct {
+	users    UserRepository
+	sessions SessionStore
+	clock    Clock
+}
+
+func (uc *LoginUseCase) Execute(ctx context.Context, email, password string) (*domain.Session, error) {
+	u, err := uc.users.ByEmail(ctx, email)
+	if err != nil {
+		return nil, ErrInvalidCredentials
+	}
+	if !u.CheckPassword(password) { // поведение на domain.User, не снаружи
+		return nil, ErrInvalidCredentials
+	}
+	sess := domain.NewSession(u.ID, uc.clock.Now())
+	if err := uc.sessions.Save(ctx, sess); err != nil {
+		return nil, err
+	}
+	return sess, nil
+}
+```
+
+Тест логина теперь без инфраструктуры: подсовываешь fake-реализации `UserRepository` и
+`SessionStore` в памяти — Postgres и Redis не нужны. Ровно то, ради чего Cockburn и затевал
+симметрию портов.
+
+----------------------------------------------------------------------------------------------------
+
+### DDD tactical — только в сложном куске
+
+Соблазн после hexagonal — натянуть Entity / Value Object / Aggregate на всё подряд. Не надо.
+Тактические building blocks DDD (Evans, 2003) — для куска с реально сложными правилами, а не
+обязательный налог на каждый CRUD. И у Evans тактика вторична: ubiquitous language и bounded
+context важнее, чем «у нас есть Repository».
+
+В SSO сложный кусок ровно один — выдача и валидация токенов. Там настоящие инварианты: scope,
+audience, срок жизни, ротация ключей, refresh против access. Это и есть кандидат на rich domain:
+поведение и правила живут в объектах, а не размазаны по сервису.
+
+Где что уместно:
+- `admin panel` CRUD — оставь как layered/Transaction Script. Заводить агрегаты на «создать
+  пользователя» — пустая церемония.
+- `login` — use case + порты. Логика тонкая, домена почти нет.
+- `token issuance/validation` — здесь tactical DDD оправдан: `Token` как entity с инвариантами,
+  `Scope`/`Audience` как value objects, политики выдачи в domain service.
+
+```go
+package domain
+
+// Token — entity с правилами валидности внутри, а не мешок полей.
+type Token struct {
+	subject   UserID
+	audience  Audience
+	scopes    []Scope
+	issuedAt  time.Time
+	expiresAt time.Time
+}
+
+func (t *Token) Valid(now time.Time, want Scope) error {
+	if now.After(t.expiresAt) {
+		return ErrTokenExpired
+	}
+	if !t.scopes.Contains(want) {
+		return ErrInsufficientScope
+	}
+	return nil
+}
+```
+
+----------------------------------------------------------------------------------------------------
+
+### Если коротко
+
+- Стартуешь мало → layered (`controller/service/repository`) с чёткими границами. Не тащи clean
+  architecture в три эндпоинта.
+- Вырос, нужна тестируемость и замена инфраструктуры → hexagonal-порты для БД, Redis и токенов.
+  Интерфейсы (`UserRepository`, `SessionStore`, `TokenSigner`) объявляй в `app`, реализуй в
+  `adapters`.
+- Сложность сконцентрирована, не размазана → tactical DDD только в этом куске (выдача/валидация
+  токенов, политики), не на admin CRUD.
+
+----------------------------------------------------------------------------------------------------
+
+## Когда что брать (без фанатизма)
+
+Архитектура — это про стоимость изменений, а не про красоту схемы. Сначала смотришь, что за домен
+и сколько внешних краёв. Потом берёшь самое дешёвое, что закрывает боль. Усложняешь, когда боль
+уже реальная, а не предполагаемая.
+
+Канон, на который опираемся ниже:
+- Layered — паттерн «Layers» из POSA (Buschmann et al., 1996), идея слоёв ещё старше (Dijkstra, 1968).
+- Hexagonal — Cockburn, 2005 (первый набросок ~1994).
+- Onion — Palermo, 2008. Clean — Martin, 2012. По сути все трое про одно: Dependency Rule,
+  зависимости направлены внутрь.
+- DDD — Evans, 2003. Ядро у него стратегическое (ubiquitous language, bounded context), а не
+  Entity/Repository/Aggregate.
+
+----------------------------------------------------------------------------------------------------
+
+### Когда хватает обычной layered
+
+**Layered** — это разбиение на горизонтальные слои абстракции, где верхний опирается на нижний:
+обычно handler -> service -> repository -> БД.
+
+Когда подходит:
+- CRUD и тонкая логика поверх БД. Запрос пришёл, провалидировал, сходил в базу, отдал ответ.
+- Маленький и средний сервис, прямолинейный домен. Правил мало, они не ветвятся.
+- Внешних интеграций один-два, и они стабильны. Нет зоопарка адаптеров, ради которого городишь ports.
+- Команда хочет предсказуемую раскладку. Любой открывает проект и сразу понимает, где handler,
+  где запрос в базу.
+
+Логику внутри service часто пишут как **Transaction Script** (Fowler, 2002) — одна процедура на
+один запрос от слоя представления. Это не антипаттерн. Для простой логики Fowler сам подаёт его
+как легитимный выбор. Не извиняйся за процедурный код там, где домена почти нет.
+
+Грабли:
+- Service-слой пухнет, вся логика утекает из моделей в `XxxService` — это уже Anemic Domain Model
+  (Fowler, 2003). Для CRUD терпимо. Для богатого домена — симптом, что layered ты перерос.
+- Зависимость жёстко идёт к БД: domain знает про `pgx`, про конкретные таблицы. Поменять хранилище
+  или замокать его в тесте — больно.
+
+----------------------------------------------------------------------------------------------------
+
+### Когда брать hexagonal / clean / onion
+
+Это всё одна семья. Внутри — domain, который ничего не знает о внешнем мире. Снаружи — adapters,
+подключённые через ports (или интерфейсы, объявленные в core).
+
+```text
+        in-adapters (HTTP, CLI, тесты)
+                    |
+                  ports
+                    |
+                  domain  <- ничего не знает о краях
+                    |
+                  ports
+                    |
+        out-adapters (БД, очередь, внешний API)
+```
+
+Когда брать:
+- Много внешних интеграций, и они меняются. Сегодня Kafka, завтра ещё одна очередь, послезавтра
+  замена платёжки. Каждый край — свой adapter за общим port.
+- Нужно тестировать core в изоляции. Domain гоняешь юнит-тестами без БД и сети — зависимости
+  подменяешь фейками на уровне port.
+- Сложные правила, которые живут отдельно от транспорта и хранилища. Логику хочется держать чистой,
+  не прибитой к HTTP или к схеме таблиц.
+- Долгоживущая система. Framework и БД для Cockburn и Martin — заменяемая деталь, решение о них
+  откладывается. На горизонте лет это окупается.
+
+Чем отличаются внутри семьи:
+- Hexagonal (Cockburn) — про симметрию. Нет «верха UI» и «низа БД», обе стороны равноправны и
+  говорят через ports. Шесть сторон ничего не значат — рисовали место для портов.
+- Onion (Palermo) — концентрические кольца, infrastructure (БД и UI) самое внешнее, заменяемое.
+- Clean (Martin) — синтез предыдущих вокруг Dependency Rule. Четыре кольца и раскладка папок —
+  не догма; жёсткое только направление зависимостей внутрь.
+
+> [!NOTE]
+> Не путай Clean с «положи интерфейсы репозиториев в домен и сделай папку usecases». Это
+> карго-культ. Суть — направление зависимостей, а не имена каталогов.
+
+----------------------------------------------------------------------------------------------------
+
+### Когда DDD
+
+**DDD** (Evans, 2003) — это подход к сложному ПО, где модель строят совместно с доменными
+экспертами, а внутри bounded context живёт общий ubiquitous language.
+
+Когда подходит:
+- Богатый, сложный домен. Правила ветвятся, у понятий есть инварианты, бизнес сам спорит о
+  терминах. Тут модель с поведением (Rich Domain Model) окупается.
+- Важен общий язык с бизнесом. Если код и аналитик называют одну сущность разными словами — DDD
+  про то, чтобы свести язык в один.
+- Система большая, её режут на части. Bounded context даёт границы модели — где какой термин что
+  значит.
+
+Когда НЕ надо:
+- CRUD и тонкая логика. DDD на пустом домене — оверинжиниринг с ритуалами. Бери layered.
+- «У нас есть Repository и Aggregate, значит у нас DDD». Тактические блоки (Entity, Value Object,
+  Aggregate, Repository) — вторичны. Ядро у Evans стратегическое: ubiquitous language и bounded
+  context. Папки `aggregates/` без общего языка — это не DDD.
+
+Канон vs индустрия:
+- Bounded context часто отождествляют с микросервисом один-к-одному. У Evans это языковая и
+  модельная граница, а не единица деплоя. Один сервис может держать несколько контекстов, и наоборот.
+
+----------------------------------------------------------------------------------------------------
+
+### Риски overengineering
+
+Грабли:
+- Порты ради портов. Интерфейс с одной-единственной реализацией, которая никогда не сменится.
+  Лишний слой абстракции, который только мешает читать. Port оправдан, когда край реально меняется
+  или его надо подменять в тесте.
+- Interactor / use case на каждый getter. Тащить `GetUserByID` через отдельный класс use case с
+  входным и выходным DTO — обычно пустая церемония. VIPER и Clean этим грешат на ровном месте.
+- DDD как папки. Завести `entities/`, `valueobjects/`, `aggregates/` и считать, что сделал DDD.
+  Без ubiquitous language и реальных инвариантов это просто переименованные слои.
+- Anemic Domain Model под видом богатого. Модель с именами из домена, но без поведения — мешок
+  геттеров и сеттеров, вся логика в сервисах. Притворяется объектной, но ею не является.
+
+Если коротко:
+- Прямолинейный CRUD, мало правил -> layered + Transaction Script.
+- Один-два стабильных внешних края -> layered, не плоди порты.
+- Много меняющихся интеграций, нужна изоляция core в тестах -> hexagonal / clean / onion.
+- Сложные ветвящиеся правила, инварианты, спор о терминах -> DDD (стратегический, не папки).
+- Большая система, режешь на куски по смыслу -> bounded context как граница.
+- Интерфейс с единственной вечной реализацией -> убери port, не абстрагируй.
+- Use case-обёртка вокруг чистого getter -> выкинь, зови repository напрямую.
+
+----------------------------------------------------------------------------------------------------
+
+## Источники
+
+Канон каждой архитектуры лучше читать в первоисточнике — пересказы почти всегда теряют исходный
+акцент. Список разбит по темам: организация кода, доменная логика, UI-паттерны, state management
+фронтенда.
+
+Организация кода и слои:
+- Frank Buschmann et al. — «Pattern-Oriented Software Architecture, Vol. 1» (POSA, 1996), паттерн
+  «Layers»: слои как уровни абстракции, не как физические N-tier. Корни идеи старше — Dijkstra,
+  «The Structure of the THE-Multiprogramming System» (1968).
+- Alistair Cockburn — «Hexagonal Architecture» / «Ports and Adapters» (2005, первый набросок ~1994):
+  симметрия port-ов, внутри нет деления на «верх UI» и «низ БД». Статья на `alistair.cockburn.us`.
+- Jeffrey Palermo — серия «The Onion Architecture, part 1–4» (2008–2013): кольца вокруг домена,
+  coupling направлен к центру, infrastructure — внешняя заменяемая деталь. Блог `jeffreypalermo.com`.
+- Robert C. Martin — «The Clean Architecture» (2012), позже книга «Clean Architecture» (2017):
+  синтез Hexagonal/Onion вокруг The Dependency Rule. Число колец произвольно, жёсткое одно —
+  зависимости направлены внутрь. Пост на `blog.cleancoder.com`.
+- Robert C. Martin — «Screaming Architecture» (2011): структура «кричит» о use cases, не о framework.
+  Тот же блог.
+- Simon Brown — «Package by component and architecturally-aligned testing» (2015) + доклады
+  «Modular Monoliths» (~2015–2018): модули с принудительными границами на уровне видимости, не папок.
+- Jimmy Bogard — «Vertical Slice Architecture» (2018): организация по фичам, «minimize coupling
+  between slices, maximize coupling in a slice». Блог `jimmybogard.com`.
+- Clemens Szyperski — «Component Software: Beyond Object-Oriented Programming» (1997): каноническое
+  определение software component. Идея старше — McIlroy, «Mass Produced Software Components» (1968).
+
+Доменная логика (Fowler, PoEAA, 2002):
+- Martin Fowler — «Patterns of Enterprise Application Architecture» (2002), глава 9 «Organizing
+  Domain Logic»: Transaction Script, Domain Model, Table Module. Каталог на `martinfowler.com/eaaCatalog`.
+- Randy Stafford — паттерн Service Layer в PoEAA (запись Stafford, онлайн-версия датирована 2003):
+  тонкая граница-оркестратор поверх Domain Model, не свалка логики.
+- Martin Fowler — «Anemic Domain Model» (2003) в bliki: модель притворяется объектной, логика
+  снаружи. Явление обсуждалось с Eric Evans; авторство названия Fowler за собой не закрепляет.
+
+Domain-Driven Design:
+- Eric Evans — «Domain-Driven Design: Tackling Complexity in the Heart of Software» (2003): ядро —
+  стратегическое (ubiquitous language, bounded context), тактические блоки вторичны. Part II —
+  building blocks, Part IV — strategic design.
+- Vaughn Vernon — «Implementing Domain-Driven Design» (2013): закрепил ярлыки «tactical» и
+  «strategic patterns» как рубрики поверх книги Evans 2003 года.
+
+UI-паттерны (Model-View-*):
+- Trygve Reenskaug — заметки Xerox PARC «Thing-Model-View-Editor» и «Models-Views-Controllers»
+  (1979): Controller — посредник ввода для конкретной View внутри GUI, не HTTP-диспетчер. Книжный
+  канон — Steve Burbeck, «Applications Programming in Smalltalk-80» (1987/1992).
+- Joëlle Coutaz — «PAC, an Object-Oriented Model for Dialog Design» (INTERACT'87): иерархия
+  агентов-триад, межагентная связь только через Control.
+- Mike Potel — «MVP: Model-View-Presenter» (Taligent, 1996): Presenter ближе к оркестратору
+  приложения, чем к тонкому посреднику Фаулера.
+- John Gossman — «Introduction to Model/View/ViewModel pattern» (MSDN, 2005): MVVM как
+  специализация Presentation Model Фаулера, держится на data binding.
+- Jeff Gilbert, Conrad Stoll — «Architecting iOS Apps with VIPER» (objc.io, 2014): применение Clean
+  Architecture к iOS, не «MVP с лишними слоями».
+
+State management фронтенда (unidirectional data flow):
+- Jing Chen et al. (Facebook) — «Flux: An Application Architecture for React» (2014): Action →
+  Dispatcher → Stores → Views, Dispatcher-singleton отличает Flux от Redux. Пост на React Blog.
+- Dan Abramov, Andrew Clark — Redux, доклад «Live React: Hot Reloading with Time Travel» (React
+  Europe, 2015) + `redux.js.org`: единый store, read-only state, чистые reducers.
+- Evan Czaplicki — «The Elm Architecture» в `guide.elm-lang.org` (~2015–2016): Model + update + view,
+  однонаправленный цикл, управляемые эффекты `Cmd`/`Sub` — часть канона, не отдельная деталь.
+- André Staltz (Medeiros) — «Reactive MVC and the Virtual DOM» (Futurice, 2014): MVI как функции над
+  Observable-потоками, Intent — реактивная замена Controller. Android-перенос — Hannes Dorfmann (2016).
+
+----------------------------------------------------------------------------------------------------
+
+> Главное правило: не путай три вопроса и не молись на схемы. Hexagonal/Onion/Clean — один приём
+> (зависимости внутрь) под тремя именами; DDD ортогонально, про домен, а не про папки; усложнять
+> стоит под реальную боль, а не под воображаемую.
